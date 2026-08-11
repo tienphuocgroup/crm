@@ -36,7 +36,7 @@ import { DealStageIndicator } from "@/components/crm/deal-stage";
 import { RecordLink } from "@/components/crm/record-sheet/record-link";
 import { useOpenRecord } from "@/components/crm/record-sheet/record-stack";
 import { LocalRelativeTime } from "@/components/local-date-time";
-import { activityLabel } from "@/lib/activity-presentation";
+import { activityLabelKey } from "@/lib/activity-presentation";
 import { dealStageColor } from "@/lib/deal-stage";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
@@ -116,6 +116,7 @@ function activityColumns(
 
 export function DashboardSummary() {
 	const t = useTranslations("dashboard");
+	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 	const openRecord = useOpenRecord();
@@ -305,7 +306,7 @@ export function DashboardSummary() {
 							<SimpleTableRow key={entry.id}>
 								<TableCell className={CELL}>
 									<span className="truncate">
-										{entry.subject ?? activityLabel(entry.type)}
+										{entry.subject ?? common(activityLabelKey(entry.type))}
 									</span>
 								</TableCell>
 								<TableCell className={`${CELL} hidden md:table-cell`}>

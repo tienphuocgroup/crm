@@ -22,7 +22,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
-import { activityLabel } from "@/lib/activity-presentation";
+import { activityLabelKey } from "@/lib/activity-presentation";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 import { ActivityIcon } from "./activity-icon";
@@ -118,10 +118,10 @@ export function ActivityComposer({ anchor }: { anchor: TimelineAnchor }) {
 							<ToggleGroupItem
 								key={option}
 								value={option}
-								aria-label={activityLabel(option)}
+								aria-label={common(activityLabelKey(option))}
 							>
 								<ActivityIcon type={option} />
-								{activityLabel(option)}
+								{common(activityLabelKey(option))}
 							</ToggleGroupItem>
 						))}
 					</ToggleGroup>
@@ -159,7 +159,7 @@ export function ActivityComposer({ anchor }: { anchor: TimelineAnchor }) {
 							{isTask
 								? common("timeline.addTask")
 								: common("timeline.logActivity", {
-										activity: activityLabel(type).toLowerCase(),
+										activity: common(activityLabelKey(type)).toLowerCase(),
 									})}
 						</InputGroupButton>
 					)}

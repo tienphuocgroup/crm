@@ -6,10 +6,15 @@ import ChevronRight from "@carbon/icons-react/es/ChevronRight";
 import Column from "@carbon/icons-react/es/Column";
 import Search from "@carbon/icons-react/es/Search";
 import Image from "next/image";
+import { getTranslations } from "next-intl/server";
 import { COMPANY_COLUMNS, MOCK_COMPANIES } from "./companies";
 import { CompanyMark } from "./company-mark";
 
-const FACETS = ["Owner", "Industry", "Enrichment"];
+const FACET_KEYS = [
+	"companiesColumnOwner",
+	"companiesColumnIndustry",
+	"facetEnrichmentLabel",
+] as const;
 
 export function CompaniesPage() {
 	return (
@@ -31,15 +36,19 @@ export function CompaniesPage() {
  * What the list looks like on a phone: no columns, no facet bar — the name and
  * the domain, which is all a narrow row has space to say.
  */
-export function CompaniesList() {
+export async function CompaniesList() {
+	const t = await getTranslations("landing");
+
 	return (
 		<div className="flex min-h-0 min-w-0 grow flex-col gap-3 p-4">
-			<p className="font-medium text-xl/[120%] tracking-[-0.5px]">Companies</p>
+			<p className="font-medium text-xl/[120%] tracking-[-0.5px]">
+				{t("companiesHeading")}
+			</p>
 
 			<div className="flex h-8 shrink-0 items-center rounded-md border border-border bg-muted px-2">
 				<Search size={14} className="shrink-0 text-muted-foreground" />
 				<span className="truncate pl-1.5 text-muted-foreground text-xs">
-					Search companies…
+					{t("companiesSearchPlaceholderShort")}
 				</span>
 			</div>
 
@@ -63,50 +72,56 @@ export function CompaniesList() {
 	);
 }
 
-function PageHeader() {
+async function PageHeader() {
+	const t = await getTranslations("landing");
+
 	return (
 		<div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2">
 			<p className="col-start-1 row-start-1 self-center font-medium text-3xl/[120%] tracking-[-0.75px]">
-				Companies
+				{t("companiesHeading")}
 			</p>
 			<p className="col-start-1 -col-end-1 row-start-2 text-muted-foreground text-sm/[142%]">
-				Every account in the pipeline.
+				{t("companiesPageSubtitle")}
 			</p>
 			<span className="col-start-2 row-start-1 flex h-8 shrink-0 items-center justify-self-end rounded-md bg-primary pr-2.5 pl-2 text-primary-foreground shadow-2xs">
 				<Add size={16} />
-				<span className="pl-1.5 font-medium text-xs/[133%]">New company</span>
+				<span className="pl-1.5 font-medium text-xs/[133%]">
+					{t("newCompanyButton")}
+				</span>
 			</span>
 		</div>
 	);
 }
 
-function Toolbar() {
+async function Toolbar() {
+	const t = await getTranslations("landing");
+
 	return (
 		<div className="flex flex-wrap items-center justify-between gap-2">
 			<div className="flex h-8 w-64 shrink-0 items-center rounded-md border border-border bg-muted pl-2">
 				<Search size={16} className="shrink-0 text-muted-foreground" />
 				<span className="truncate pl-1.5 text-muted-foreground text-xs">
-					Search companies by name or domain…
+					{t("companiesSearchPlaceholderLong")}
 				</span>
 			</div>
 
 			<div className="ml-auto flex flex-wrap items-center gap-2">
-				{FACETS.map((facet) => (
+				{FACET_KEYS.map((key) => (
 					<span
-						key={facet}
+						key={key}
 						className="flex h-7 shrink-0 items-center gap-1 rounded-md border border-border bg-muted pr-1.5 pl-2.5 font-medium text-xs/[133%] shadow-2xs"
 					>
-						{facet}
+						{t(key)}
 						<ChevronDown size={14} className="shrink-0 opacity-60" />
 					</span>
 				))}
 				<span className="flex h-7 shrink-0 items-center gap-1 rounded-md border border-border bg-muted pr-2.5 pl-1.5 font-medium text-xs/[133%] shadow-2xs">
 					<ArrowsVertical size={14} className="shrink-0" />
-					Sort
+					{t("sortButton")}
 				</span>
 				<span className="flex h-7 shrink-0 items-center gap-1 rounded-md border border-border bg-muted pr-2.5 pl-1.5 font-medium text-xs/[133%] shadow-2xs">
 					<Column size={14} className="shrink-0" />
-					Columns
+					{t("columnsButton")}
 					<span className="opacity-60">(7)</span>
 				</span>
 			</div>
@@ -114,7 +129,9 @@ function Toolbar() {
 	);
 }
 
-function CompaniesTable() {
+async function CompaniesTable() {
+	const t = await getTranslations("landing");
+
 	return (
 		<div className="min-h-0 w-full grow overflow-clip rounded-lg border border-border bg-card">
 			<table className="w-full table-fixed border-collapse">
@@ -122,12 +139,12 @@ function CompaniesTable() {
 					<tr>
 						{COMPANY_COLUMNS.map((column, index) => (
 							<th
-								key={column.label}
+								key={column.labelKey}
 								style={{ width: column.width }}
 								className={`h-11 overflow-clip pr-3 text-left font-normal ${index === 0 ? "pl-4" : "pl-3"}`}
 							>
 								<span className="-ml-2 inline-flex h-6 items-center gap-1 rounded-sm px-2 text-muted-foreground text-xs/[133%]">
-									{column.label}
+									{t(column.labelKey)}
 									<ArrowsVertical size={12} className="shrink-0 opacity-40" />
 								</span>
 							</th>
@@ -188,23 +205,25 @@ function CompaniesTable() {
 	);
 }
 
-function Pagination() {
+async function Pagination() {
+	const t = await getTranslations("landing");
+
 	return (
 		<div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
 			<span className="text-muted-foreground text-xs/[133%] tabular-nums">
-				Showing 1–25 of 48
+				{t("paginationSummary")}
 			</span>
 
 			<div className="flex items-center gap-2">
 				<span className="flex h-7 shrink-0 items-center gap-1 rounded-md pr-2.5 pl-1.5 font-medium text-xs/[133%] opacity-50">
 					<ChevronLeft size={14} className="shrink-0" />
-					Previous
+					{t("previousButton")}
 				</span>
 				<span className="text-muted-foreground text-xs/[133%] tabular-nums">
 					1 / 2
 				</span>
 				<span className="flex h-7 shrink-0 items-center gap-1 rounded-md bg-foreground pr-1.5 pl-2.5 font-medium text-background text-xs/[133%] shadow-2xs">
-					Next
+					{t("nextButton")}
 					<ChevronRight size={14} className="shrink-0" />
 				</span>
 			</div>

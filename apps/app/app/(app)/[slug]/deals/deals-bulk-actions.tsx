@@ -124,7 +124,7 @@ export function DealsBulkActions({
 										setStage.mutate({ ids, stage: option.value });
 									}}
 								>
-									{option.label}
+									{t(option.labelKey)}
 								</DropdownMenuItem>
 							))}
 						</DropdownMenuGroup>

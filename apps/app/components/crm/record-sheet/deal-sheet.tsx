@@ -160,7 +160,7 @@ export function DealSheet({ dealId }: { dealId: string }) {
 				},
 				{
 					value: "agent",
-					label: "Agent",
+					label: common("recordSheet.agentTab"),
 					content: <AgentPanel record={{ kind: "deal", id: deal.id }} />,
 					keepMounted: true,
 				},

@@ -18,7 +18,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { AreaTrend, DonutStat } from "@/components/dashboard-charts";
-import { dealStageColor, dealStageLabel } from "@/lib/deal-stage";
+import { dealStageColor, dealStageLabelKey } from "@/lib/deal-stage";
 import type { RouterOutputs } from "@/lib/trpc/types";
 import { useWorkspaceUrl } from "@/lib/use-workspace-url";
 
@@ -47,6 +47,7 @@ function changeDelta(
 
 export function SalesDashboard({ summary }: { summary: Summary }) {
 	const t = useTranslations("dashboard");
+	const deals = useTranslations("deals");
 	const workspaceUrl = useWorkspaceUrl();
 
 	const {
@@ -74,7 +75,7 @@ export function SalesDashboard({ summary }: { summary: Summary }) {
 			? [
 					{
 						key: stage.stage,
-						label: dealStageLabel(stage.stage),
+						label: deals(dealStageLabelKey(stage.stage)),
 						value: stage.valueCents,
 						color: dealStageColor(stage.stage),
 						count: stage.count,

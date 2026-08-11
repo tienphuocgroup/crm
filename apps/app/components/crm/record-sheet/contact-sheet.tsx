@@ -121,7 +121,7 @@ export function ContactSheet({ contactId }: { contactId: string }) {
 				},
 				{
 					value: "agent",
-					label: "Agent",
+					label: common("recordSheet.agentTab"),
 					content: <AgentPanel record={{ kind: "contact", id: contact.id }} />,
 					keepMounted: true,
 				},

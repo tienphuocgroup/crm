@@ -1,7 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { MessageStreamEvent, SessionState } from "eve/client";
-import { recordCopy, recordFilter, recordHeader } from "../lib/agent-record";
+import {
+	type AgentRecordKind,
+	recordCopyKeys,
+	recordFilter,
+	recordHeader,
+} from "../lib/agent-record";
 import { classify, composerState, eventsOf } from "../lib/agent-session";
 
 const NOW = Date.parse("2026-08-01T12:00:00.000Z");
@@ -107,16 +112,31 @@ describe("eventsOf", () => {
 });
 
 describe("record context", () => {
+	const KIND_PREFIX: Record<AgentRecordKind, string> = {
+		contact: "recordContact",
+		company: "recordCompany",
+		deal: "recordDeal",
+	};
+
 	it("asks about the thing you are actually looking at", () => {
-		expect(recordCopy("contact").title).toBe("Ask about this person");
-		expect(recordCopy("company").title).toBe("Ask about this company");
-		expect(recordCopy("deal").title).toBe("Ask about this deal");
+		expect(recordCopyKeys("contact").title).toBe("recordContactTitle");
+		expect(recordCopyKeys("company").title).toBe("recordCompanyTitle");
+		expect(recordCopyKeys("deal").title).toBe("recordDealTitle");
 	});
 
 	it("offers questions that suit the record", () => {
-		expect(recordCopy("company").suggestions.join(" ")).not.toContain("person");
-		expect(recordCopy("deal").suggestions.join(" ")).not.toContain("person");
-		expect(recordCopy("contact").suggestions[0]).toBe("Who is this person?");
+		for (const kind of ["contact", "company", "deal"] as const) {
+			const keys = recordCopyKeys(kind).suggestions;
+
+			expect(keys).toHaveLength(3);
+			for (const key of keys) {
+				expect(key.startsWith(`${KIND_PREFIX[kind]}Suggestion`)).toBe(true);
+			}
+		}
+
+		expect(recordCopyKeys("contact").suggestions[0]).toBe(
+			"recordContactSuggestionWho",
+		);
 	});
 
 	it("tells the agent which record it is on", () => {
@@ -148,15 +168,15 @@ describe("the panel", () => {
 
 	it("takes its copy from the record, never from a literal", () => {
 		for (const kind of ["contact", "company", "deal"] as const) {
-			const copy = recordCopy(kind);
-			for (const literal of [copy.title, copy.blurb, copy.placeholder]) {
-				expect(source()).not.toContain(literal);
+			const copy = recordCopyKeys(kind);
+			for (const key of [copy.title, copy.blurb, copy.placeholder]) {
+				expect(source()).not.toContain(key);
 			}
 		}
 	});
 
 	it("offers a way out of a thread that has ended", () => {
-		expect(source()).toContain("Start a new conversation");
+		expect(source()).toContain('t("startNewConversation")');
 		expect(source()).toContain("onClick={onNewThread}");
 	});
 });

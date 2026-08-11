@@ -1,7 +1,7 @@
 ---
 phase: 8
 title: "Extract: Agent Panel + Landing"
-status: pending
+status: complete
 priority: P2
 dependencies: [4, 5]
 ---
@@ -153,20 +153,57 @@ Provider names — Google, Microsoft, SSO — are allowlisted, not translated.
     list, agent detail, chat, and the record sheet Agent tab for all three entities.
 15. Commit.
 
+## Implementation notes
+
+- Run in two sequential passes: the protocol split + six pure helpers + tests
+  first, then agent-builder/landing/Agent-tab extraction.
+- `agent-record.ts` final shape: a `PROTOCOL` record keeps `header`/`field`
+  wire values byte-identical; `recordCopy()` became `recordCopyKeys()`
+  returning catalog keys; 18 `record*` keys in `agent-panel`. The x-crm grep
+  matches at every consumer (`eve/v1/[...path]/route.ts:46-48,53-55`, the
+  producer, and the spec that asserts them); `x-crm-builder-conversation`
+  untouched; nothing in `apps/api`/`apps/agent` references these.
+- **Unresolved question 4 is resolved: all 38 `agent-transcript` literals
+  reduced cleanly.** The two runtime assemblies became
+  `stepWithReason: "{step} — {reason}"` (model prose passed as an ICU
+  argument, inserted verbatim) and per-(tense × artifact) keys plus
+  `{name}`/`{title}` parameterised pairs. Nothing stayed ratcheted for ICU
+  resistance; the unknown-tool `humanise()` fallback stays as code surfaced
+  via `StepLabel.fallback`.
+- **Spec correction:** `agent-transcript.spec.ts:563/573/600` assert
+  conversation-title *fixture data* (`title: "Thursday"`) in a
+  lookup-by-id test — `resolveThread` formats no dates. There is no ambient
+  locale to pin; the lines are unchanged and the corresponding success
+  criterion is struck through below as a plan misread.
+- Chat date groups went to `common` (`chatDateGroup*`) — the checked-in
+  key-naming reference documents that exact file as its worked example.
+- 9/9 metadata conversions (4 agent-builder + 5 landing). Sign-in's Suspense
+  fallback became an async `SignInFallback` so `getTranslations` never sits
+  above a boundary; all landing routes kept ◐ (and `/t/crm.js` ○).
+- Toasts: ~21 literal conversions, 17 passthroughs kept. Keys: agent-panel
+  +333 total, landing +133, deals +8, common +18 across the two passes.
+- One allowlist entry added: `agent-section.tsx::"Dan"` (example teammate
+  name in the marketing mockup).
+- Ratchet after this phase: 6 shared shell components
+  (`agent-clarification-composer`, `app-header`, `app-icon-rail`,
+  `auth-shell`, `detail-sheet`, `page-shell`) that no phase's owned-file list
+  covered — deliberately left for phase 9's sweep, which owns "any file the
+  final sweep catches".
+
 ## Success Criteria
 
-- [ ] `i18n:check` clean for all owned paths; ratchet entries removed, or any exception explicitly raised.
-- [ ] `x-crm-contact`, `x-crm-company`, `x-crm-deal` are byte-identical at every consumer; the eve bridge route still resolves record context.
-- [ ] `field` values (`contactId`/`companyId`/`dealId`) unchanged.
-- [ ] All six pure helpers return keys, not prose; no `t` threaded into a pure function.
-- [ ] The four listed test files assert keys, not English; none imports the message catalog to re-assert English.
-- [ ] `agent-transcript.spec.ts:563` pins an explicit locale rather than relying on ambient.
-- [ ] `workspace-label.spec.ts` unchanged and passing.
-- [ ] Nine metadata exports (4 agent-builder + 5 landing) converted to `generateMetadata`.
-- [ ] `(landing)` prerender status matches the phase 1 spike record — no route newly dynamic.
-- [ ] Agent LLM output untouched; nothing under `apps/agent` in the diff.
-- [ ] Pseudo-locale walkthrough of all listed screens shows no unaccented text outside the allowlist.
-- [ ] `check-types`, `lint`, `test` green. Zero code comments.
+- [x] `i18n:check` clean for all owned paths; ratchet entries removed; six unowned shell components explicitly raised for phase 9.
+- [x] `x-crm-contact`, `x-crm-company`, `x-crm-deal` are byte-identical at every consumer; the eve bridge route still resolves record context.
+- [x] `field` values (`contactId`/`companyId`/`dealId`) unchanged.
+- [x] All six pure helpers return keys, not prose; no `t` threaded into a pure function.
+- [x] The four listed test files assert keys, not English; none imports the message catalog to re-assert English.
+- [x] ~~`agent-transcript.spec.ts:563` pins an explicit locale~~ — plan misread: those lines assert fixture conversation titles, not formatted dates; no locale to pin (see notes).
+- [x] `workspace-label.spec.ts` unchanged and passing.
+- [x] Nine metadata exports (4 agent-builder + 5 landing) converted to `generateMetadata`.
+- [x] `(landing)` prerender status matches the phase 1 spike record — no route newly dynamic.
+- [x] Agent LLM output untouched; nothing under `apps/agent` in the diff.
+- [x] Pseudo-locale walkthrough of all listed screens shows no unaccented text outside the allowlist.
+- [x] `check-types`, `lint`, `test` green. Zero code comments.
 
 ## Risk Assessment
 

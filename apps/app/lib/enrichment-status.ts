@@ -3,22 +3,26 @@ import type { StatusTone } from "@crm/ui/components/status-indicator";
 
 const PRESENTATION: Record<
 	EnrichmentStatus,
-	{ label: string; tone: StatusTone; busy?: boolean }
+	{ labelKey: string; tone: StatusTone; busy?: boolean }
 > = {
-	PENDING: { label: "Not researched", tone: "neutral" },
-	RUNNING: { label: "Researching", tone: "info", busy: true },
-	COMPLETE: { label: "Enriched", tone: "success" },
-	FAILED: { label: "Enrichment failed", tone: "error" },
-	SKIPPED: { label: "Nothing found", tone: "neutral" },
+	PENDING: { labelKey: "enrichmentNotResearched", tone: "neutral" },
+	RUNNING: { labelKey: "enrichmentResearching", tone: "info", busy: true },
+	COMPLETE: { labelKey: "enrichmentEnriched", tone: "success" },
+	FAILED: { labelKey: "enrichmentFailed", tone: "error" },
+	SKIPPED: { labelKey: "enrichmentNothingFound", tone: "neutral" },
 };
 
-const QUEUED = { label: "Queued", tone: "neutral" as StatusTone, busy: false };
+const QUEUED = {
+	labelKey: "enrichmentQueued",
+	tone: "neutral" as StatusTone,
+	busy: false,
+};
 
 export const ENRICHMENT_POLL_MS = 3_000;
 
 export const ENRICHMENT_FACET_OPTIONS = (
 	Object.keys(PRESENTATION) as EnrichmentStatus[]
-).map((value) => ({ value, label: PRESENTATION[value].label }));
+).map((value) => ({ value, labelKey: PRESENTATION[value].labelKey }));
 
 export function enrichmentPresentation(
 	status: EnrichmentStatus,

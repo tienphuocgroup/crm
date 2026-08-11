@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { TeamAgentDetail } from "@/components/agent-builder/team-agent-detail";
 import { PageShellFallback } from "@/components/page-shell";
 import { HydrateClient } from "@/lib/trpc/hydrate";
 import { getServerQueryClient, getServerTrpc } from "@/lib/trpc/server";
 
-export const metadata: Metadata = { title: "Team agent" };
+export async function generateMetadata(): Promise<Metadata> {
+	const t = await getTranslations("agent-panel");
+	return { title: t("teamAgentMetaTitle") };
+}
 
 export default function TeamAgentPage({
 	params,

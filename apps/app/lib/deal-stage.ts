@@ -11,15 +11,19 @@ const ORDER = [
 	DealStage.UNQUALIFIED_TO_BUY,
 ] as const;
 
-const PRESENTATION: Record<DealStage, { label: string; tone: StatusTone }> = {
-	DEMO_BOOKED: { label: "Demo booked", tone: "neutral" },
-	QUALIFIED_TO_BUY: { label: "Qualified to buy", tone: "info" },
-	DECISION_MAKER_BOUGHT_IN: { label: "Decision maker in", tone: "info" },
-	CONTRACT_SENT: { label: "Contract sent", tone: "warning" },
-	CLOSED_WON: { label: "Closed won", tone: "success" },
-	CLOSED_LOST: { label: "Closed lost", tone: "error" },
-	UNQUALIFIED_TO_BUY: { label: "Unqualified", tone: "neutral" },
-};
+const PRESENTATION: Record<DealStage, { labelKey: string; tone: StatusTone }> =
+	{
+		DEMO_BOOKED: { labelKey: "stageDemoBooked", tone: "neutral" },
+		QUALIFIED_TO_BUY: { labelKey: "stageQualifiedToBuy", tone: "info" },
+		DECISION_MAKER_BOUGHT_IN: {
+			labelKey: "stageDecisionMakerIn",
+			tone: "info",
+		},
+		CONTRACT_SENT: { labelKey: "stageContractSent", tone: "warning" },
+		CLOSED_WON: { labelKey: "stageClosedWon", tone: "success" },
+		CLOSED_LOST: { labelKey: "stageClosedLost", tone: "error" },
+		UNQUALIFIED_TO_BUY: { labelKey: "stageUnqualified", tone: "neutral" },
+	};
 
 export const OPEN_STAGES = ORDER.slice(0, 4) as readonly DealStage[];
 
@@ -30,7 +34,7 @@ export const LOSING_STAGES: readonly DealStage[] = [
 
 export const DEAL_STAGE_OPTIONS = ORDER.map((value) => ({
 	value,
-	label: PRESENTATION[value].label,
+	labelKey: PRESENTATION[value].labelKey,
 }));
 
 const OPEN_STAGE_COLORS = [
@@ -48,8 +52,8 @@ export function dealStageColor(stage: DealStage): string {
 	return OPEN_STAGE_COLORS[OPEN_STAGES.indexOf(stage)] ?? "var(--chart-5)";
 }
 
-export function dealStageLabel(stage: DealStage): string {
-	return PRESENTATION[stage].label;
+export function dealStageLabelKey(stage: DealStage): string {
+	return PRESENTATION[stage].labelKey;
 }
 
 export function dealStagePresentation(stage: DealStage) {

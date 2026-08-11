@@ -205,8 +205,10 @@ export function CompaniesTable() {
 		{
 			id: "enrichment",
 			label: t("enrichmentColumnLabel"),
-			options: ENRICHMENT_FACET_OPTIONS.filter(
-				(option) => (facetCounts?.enrichment?.[option.value] ?? 0) > 0,
+			options: ENRICHMENT_FACET_OPTIONS.flatMap((option) =>
+				(facetCounts?.enrichment?.[option.value] ?? 0) > 0
+					? [{ value: option.value, label: common(option.labelKey) }]
+					: [],
 			),
 		},
 	];

@@ -163,8 +163,10 @@ export function DealsTable() {
 		{
 			id: "stage",
 			label: t("stageLabel"),
-			options: DEAL_STAGE_OPTIONS.filter(
-				(option) => (facetCounts?.stage?.[option.value] ?? 0) > 0,
+			options: DEAL_STAGE_OPTIONS.flatMap((option) =>
+				(facetCounts?.stage?.[option.value] ?? 0) > 0
+					? [{ value: option.value, label: t(option.labelKey) }]
+					: [],
 			),
 		},
 		{

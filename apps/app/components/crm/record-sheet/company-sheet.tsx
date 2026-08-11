@@ -191,7 +191,7 @@ export function CompanySheet({ companyId }: { companyId: string }) {
 				},
 				{
 					value: "agent",
-					label: "Agent",
+					label: common("recordSheet.agentTab"),
 					content: <AgentPanel record={{ kind: "company", id: company.id }} />,
 					keepMounted: true,
 				},

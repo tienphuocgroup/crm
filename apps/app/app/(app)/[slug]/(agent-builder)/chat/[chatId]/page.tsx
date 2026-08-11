@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { AgentBuilderChat } from "@/components/agent-builder/agent-builder-chat";
 import { AgentBuilderChatFallback } from "@/components/agent-builder/agent-builder-route-fallback";
 import { isSharedChatToken } from "@/lib/chat-route";
 import { getServerQueryClient, getServerTrpc } from "@/lib/trpc/server";
 
-export const metadata: Metadata = { title: "Agent chat" };
+export async function generateMetadata(): Promise<Metadata> {
+	const t = await getTranslations("agent-panel");
+	return { title: t("chatTitleFallback") };
+}
 
 export default function AgentChatPage({
 	params,

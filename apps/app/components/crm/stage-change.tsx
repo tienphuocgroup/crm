@@ -61,6 +61,7 @@ export function DealStageMenu({
 	stage: DealStage;
 	variant?: "inline" | "control";
 }) {
+	const t = useTranslations("deals");
 	const [, setCloseParams] = useQueryStates(closeReasonParams);
 	const setStage = useStageMutation();
 
@@ -110,7 +111,7 @@ export function DealStageMenu({
 				>
 					{DEAL_STAGE_OPTIONS.map((option) => (
 						<DropdownMenuRadioItem key={option.value} value={option.value}>
-							{option.label}
+							{t(option.labelKey)}
 						</DropdownMenuRadioItem>
 					))}
 				</DropdownMenuRadioGroup>

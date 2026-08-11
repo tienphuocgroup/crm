@@ -34,6 +34,7 @@ import { cn } from "@crm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -95,6 +96,8 @@ export function TeamAgentDetail({
 	initialRuns: Runs;
 	initialActivity: Activity;
 }) {
+	const t = useTranslations("agent-panel");
+	const common = useTranslations("common");
 	const locale = useUiLocale();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -137,7 +140,7 @@ export function TeamAgentDetail({
 					}),
 				]);
 				setTab("runs");
-				toast.success("Agent run queued.");
+				toast.success(t("agentRunQueuedToast"));
 			},
 			onError: (error) => toast.error(error.message),
 		}),
@@ -173,7 +176,7 @@ export function TeamAgentDetail({
 			<PageShell>
 				<PageShellHeader>
 					<PageShellHeading>
-						<PageShellTitle>Agent unavailable</PageShellTitle>
+						<PageShellTitle>{t("agentUnavailableTitle")}</PageShellTitle>
 						<PageShellDescription>{agent.error.message}</PageShellDescription>
 					</PageShellHeading>
 				</PageShellHeader>
@@ -196,9 +199,9 @@ export function TeamAgentDetail({
 	const displayedDescription = isDraft
 		? textOf(
 				reviewManifest.description,
-				data.description ?? "A durable team automation.",
+				data.description ?? t("agentDescriptionFallback"),
 			)
-		: (data.description ?? "A durable team automation.");
+		: (data.description ?? t("agentDescriptionFallback"));
 	const displayedVersionNumber =
 		data.currentVersion?.number ?? data.reviewVersion?.number;
 	const nextRun = data.triggers.find((trigger) => trigger.enabled)?.nextRunAt;
@@ -213,23 +216,27 @@ export function TeamAgentDetail({
 					<PageShellDescription className="wrap-break-word leading-6">
 						<span className="block">{displayedDescription}</span>
 						<span className="mt-2 block text-xs">
-							Created by {data.createdBy.name} ·{" "}
-							{isDraft ? "Private draft" : "Team agent"} · Version{" "}
-							{displayedVersionNumber ?? "—"}
+							{t("agentCreatedByVersion", {
+								name: data.createdBy.name,
+								kind: isDraft
+									? t("agentKindPrivateDraft")
+									: t("agentKindTeamAgent"),
+								version: displayedVersionNumber ?? "—",
+							})}
 						</span>
 					</PageShellDescription>
 				</PageShellHeading>
 				<PageShellActions className="col-start-1 row-start-3 justify-self-start sm:col-start-2 sm:row-start-1 sm:justify-self-end">
 					<div className="flex min-w-0 flex-col items-start gap-2 sm:items-end">
 						<span className="text-muted-foreground text-xs">
-							{isDraft ? "Visibility" : "Next run"}
+							{isDraft ? t("agentVisibilityLabel") : t("agentNextRunLabel")}
 						</span>
 						<span className="font-mono text-sm">
 							{isDraft
-								? "Private draft"
+								? t("agentKindPrivateDraft")
 								: nextRun
 									? formatDate(nextRun, locale)
-									: "Manual only"}
+									: t("manualOnlyLabel")}
 						</span>
 						<div className="mt-1 flex flex-wrap gap-2">
 							{isDraft && data.canManage ? (
@@ -247,12 +254,12 @@ export function TeamAgentDetail({
 								>
 									<AsyncButtonContent
 										status={runAction.status}
-										pendingLabel="Queueing"
-										successLabel="Queued"
-										errorLabel="Try again"
+										pendingLabel={t("queueingLabel")}
+										successLabel={t("queuedLabel")}
+										errorLabel={common("tryAgain")}
 									>
 										<Icon icon={Play} data-icon="inline-start" />
-										Run now
+										{t("runNowButton")}
 									</AsyncButtonContent>
 								</Button>
 							)}
@@ -265,12 +272,12 @@ export function TeamAgentDetail({
 								>
 									<AsyncButtonContent
 										status={pauseAction.status}
-										pendingLabel="Pausing"
-										successLabel="Paused"
-										errorLabel="Try again"
+										pendingLabel={t("pausingLabel")}
+										successLabel={t("pausedLabel")}
+										errorLabel={common("tryAgain")}
 									>
 										<Icon icon={Pause} data-icon="inline-start" />
-										Pause
+										{t("pauseButton")}
 									</AsyncButtonContent>
 								</Button>
 							) : null}
@@ -283,12 +290,12 @@ export function TeamAgentDetail({
 								>
 									<AsyncButtonContent
 										status={resumeAction.status}
-										pendingLabel="Resuming"
-										successLabel="Resumed"
-										errorLabel="Try again"
+										pendingLabel={t("resumingLabel")}
+										successLabel={t("resumedLabel")}
+										errorLabel={common("tryAgain")}
 									>
 										<Icon icon={Play} data-icon="inline-start" />
-										Resume
+										{t("resumeButton")}
 									</AsyncButtonContent>
 								</Button>
 							) : null}
@@ -303,7 +310,7 @@ export function TeamAgentDetail({
 			<PageShellContent className="min-h-0">
 				<div
 					role="tablist"
-					aria-label="Agent details"
+					aria-label={t("agentDetailsTablistAriaLabel")}
 					className="flex h-9 min-w-0 items-end gap-5 overflow-x-auto border-b sm:gap-6"
 				>
 					<TabButton
@@ -311,14 +318,14 @@ export function TeamAgentDetail({
 						active={tab === "overview"}
 						onClick={() => setTab("overview")}
 					>
-						Overview
+						{t("overviewTabLabel")}
 					</TabButton>
 					<TabButton
 						tab="runs"
 						active={tab === "runs"}
 						onClick={() => setTab("runs")}
 					>
-						Runs{" "}
+						{t("runsTabLabel")}{" "}
 						<span className="font-mono text-muted-foreground">
 							{data.runCount}
 						</span>
@@ -328,7 +335,7 @@ export function TeamAgentDetail({
 						active={tab === "activity"}
 						onClick={() => setTab("activity")}
 					>
-						Activity{" "}
+						{t("activityTabLabel")}{" "}
 						<span className="font-mono text-muted-foreground">
 							{activity.data?.length ?? 0}
 						</span>
@@ -376,6 +383,8 @@ function DraftAgentActions({
 	name: string;
 	version: ReviewVersion;
 }) {
+	const t = useTranslations("agent-panel");
+	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const workspaceUrl = useWorkspaceUrl();
@@ -401,7 +410,7 @@ function DraftAgentActions({
 						queryKey: trpc.conversations.builderList.pathKey(),
 					}),
 				]);
-				toast.success("Agent deployed to the team.");
+				toast.success(t("agentDeployedToast"));
 			},
 			onError: (error) => toast.error(error.message),
 		}),
@@ -425,7 +434,7 @@ function DraftAgentActions({
 						href={workspaceUrl(`/chat/${version.sourceConversationId}`)}
 						transitionTypes={["nav-back"]}
 					>
-						Change details
+						{t("changeDetailsButton")}
 					</Link>
 				</Button>
 			) : null}
@@ -436,11 +445,11 @@ function DraftAgentActions({
 			>
 				<AsyncButtonContent
 					status={deployAction.status}
-					pendingLabel="Deploying"
-					successLabel="Deployed"
-					errorLabel="Try again"
+					pendingLabel={t("deployingLabel")}
+					successLabel={t("deployedLabel")}
+					errorLabel={common("tryAgain")}
 				>
-					Deploy agent
+					{t("deployAgentButton")}
 				</AsyncButtonContent>
 			</Button>
 			<DeleteAgentAction agentId={agentId} name={name} />
@@ -455,6 +464,8 @@ function DeleteAgentAction({
 	agentId: string;
 	name: string;
 }) {
+	const t = useTranslations("agent-panel");
+	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const router = useRouter();
@@ -473,7 +484,7 @@ function DeleteAgentAction({
 					}),
 				]);
 				setConfirming(false);
-				toast.success(`${name} was deleted.`);
+				toast.success(t("agentDeletedToast", { name }));
 				router.replace(workspaceUrl("/agents"));
 			},
 			onError: (error) => toast.error(error.message),
@@ -493,7 +504,7 @@ function DeleteAgentAction({
 						disabled={removeAction.pending}
 					>
 						<Icon icon={OverflowMenuVertical} />
-						<span className="sr-only">More agent actions</span>
+						<span className="sr-only">{t("moreAgentActionsLabel")}</span>
 					</Button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end">
@@ -502,7 +513,7 @@ function DeleteAgentAction({
 						onSelect={() => setConfirming(true)}
 					>
 						<Icon icon={TrashCan} />
-						Delete agent
+						{t("deleteAgentMenuLabel")}
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
@@ -515,17 +526,17 @@ function DeleteAgentAction({
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Delete {name}?</AlertDialogTitle>
+						<AlertDialogTitle>
+							{t("deleteAgentConfirmTitle", { name })}
+						</AlertDialogTitle>
 						<AlertDialogDescription>
-							This removes it from the team agent list, disables its triggers,
-							and cancels queued runs. Its run and action history stays in the
-							audit log. A run already in progress may finish.
+							{t("deleteAgentConfirmDescription")}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={removeAction.pending}>
-							Cancel
+							{common("cancel")}
 						</AlertDialogCancel>
 						<Button
 							variant="destructive"
@@ -535,11 +546,11 @@ function DeleteAgentAction({
 						>
 							<AsyncButtonContent
 								status={removeAction.status}
-								pendingLabel="Deleting"
-								successLabel="Deleted"
-								errorLabel="Try again"
+								pendingLabel={t("deletingLabel")}
+								successLabel={t("deletedLabel")}
+								errorLabel={common("tryAgain")}
 							>
-								Delete agent
+								{t("deleteAgentMenuLabel")}
 							</AsyncButtonContent>
 						</Button>
 					</AlertDialogFooter>
@@ -579,6 +590,7 @@ function TabButton({
 }
 
 function AgentOverview({ agent }: { agent: AgentDetail }) {
+	const t = useTranslations("agent-panel");
 	const agentVersions = agent as unknown as {
 		currentVersion: unknown;
 		reviewVersion: unknown;
@@ -594,7 +606,10 @@ function AgentOverview({ agent }: { agent: AgentDetail }) {
 		: [];
 	const actionSummaries = actions
 		.map((action) =>
-			textOf(action.summary, textOf(action.type, "Configured action")),
+			textOf(
+				action.summary,
+				textOf(action.type, t("configuredActionFallback")),
+			),
 		)
 		.filter(Boolean);
 	const access = Array.isArray(manifest.access)
@@ -606,39 +621,36 @@ function AgentOverview({ agent }: { agent: AgentDetail }) {
 
 	return (
 		<div className="overflow-hidden rounded-lg border bg-card">
-			<DetailRow label="Status" value={agent.status} />
-			<DetailRow label="Model" value={textOf(version.modelId, "—")} />
+			<DetailRow label={t("detailRowStatus")} value={agent.status} />
 			<DetailRow
-				label="Execution"
-				value={textOf(
-					sandbox.summary,
-					"Isolated sandbox · deny-all network · bounded CRM tools",
-				)}
+				label={t("detailRowModel")}
+				value={textOf(version.modelId, "—")}
 			/>
 			<DetailRow
-				label="Scope"
-				value={textOf(
-					recordOf(manifest.dataScope).summary,
-					"Bounded CRM access",
-				)}
+				label={t("detailRowExecution")}
+				value={textOf(sandbox.summary, t("executionFallback"))}
 			/>
 			<DetailRow
-				label="Triggers"
+				label={t("detailRowScope")}
+				value={textOf(recordOf(manifest.dataScope).summary, t("scopeFallback"))}
+			/>
+			<DetailRow
+				label={t("detailRowTriggers")}
 				value={
 					agent.triggers.map((trigger) => trigger.name).join(" · ") ||
-					textOf(trigger.summary, "Manual only")
+					textOf(trigger.summary, t("manualOnlyLabel"))
 				}
 			/>
 			<DetailRow
-				label="Actions"
-				value={actionSummaries.join(" · ") || "No external actions"}
+				label={t("detailRowActions")}
+				value={actionSummaries.join(" · ") || t("noExternalActions")}
 			/>
 			<DetailRow
-				label="Access"
+				label={t("detailRowAccess")}
 				value={
 					<AgentScopeBadges
 						scopes={access}
-						fallback="Bounded CRM read access"
+						fallback={t("agentScopeFallback")}
 					/>
 				}
 			/>
@@ -660,6 +672,7 @@ function DetailRow({ label, value }: { label: string; value: ReactNode }) {
 }
 
 function AgentRuns({ runs }: { runs: Runs }) {
+	const t = useTranslations("agent-panel");
 	const locale = useUiLocale();
 	const [outcome, setOutcome] = useState("ALL");
 	const [expanded, setExpanded] = useState<string | null>(null);
@@ -676,16 +689,18 @@ function AgentRuns({ runs }: { runs: Runs }) {
 				<select
 					value={outcome}
 					onChange={(event) => setOutcome(event.target.value)}
-					aria-label="Filter run outcomes"
+					aria-label={t("filterRunOutcomesAriaLabel")}
 					className="h-7 rounded-md border bg-muted px-2.5 font-medium text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 				>
-					<option value="ALL">All outcomes</option>
-					<option value="SUCCEEDED">Succeeded</option>
-					<option value="FAILED">Failed</option>
-					<option value="RUNNING">Running</option>
-					<option value="QUEUED">Queued</option>
-					<option value="WAITING_FOR_APPROVAL">Waiting for approval</option>
-					<option value="CANCELLED">Cancelled</option>
+					<option value="ALL">{t("runOutcomeAll")}</option>
+					<option value="SUCCEEDED">{t("runOutcomeSucceeded")}</option>
+					<option value="FAILED">{t("runOutcomeFailed")}</option>
+					<option value="RUNNING">{t("runOutcomeRunning")}</option>
+					<option value="QUEUED">{t("runOutcomeQueued")}</option>
+					<option value="WAITING_FOR_APPROVAL">
+						{t("runOutcomeWaitingForApproval")}
+					</option>
+					<option value="CANCELLED">{t("runOutcomeCancelled")}</option>
 				</select>
 			</div>
 
@@ -704,7 +719,9 @@ function AgentRuns({ runs }: { runs: Runs }) {
 						<span className="min-w-0 flex-1">
 							<span className="flex flex-wrap items-center gap-x-3 gap-y-1">
 								<span className="font-semibold text-sm">
-									Run #{String(runNumbers.get(run.id)).padStart(3, "0")}
+									{t("runNumberLabel", {
+										number: String(runNumbers.get(run.id)).padStart(3, "0"),
+									})}
 								</span>
 								<span
 									className={cn(
@@ -717,15 +734,14 @@ function AgentRuns({ runs }: { runs: Runs }) {
 							</span>
 							<span className="mt-1 block wrap-break-word font-mono text-muted-foreground text-xs leading-5 sm:mt-0">
 								{humanStatus(run.triggerType)} ·{" "}
-								{formatDate(run.createdAt, locale)} · Version{" "}
+								{formatDate(run.createdAt, locale)} {t("versionSeparator")}{" "}
 								{run.version.number}
 							</span>
 						</span>
 						<span className="flex min-w-0 items-center justify-between gap-3 font-mono text-muted-foreground text-xs sm:shrink-0 sm:justify-start sm:gap-4">
 							<span>{duration(run.startedAt, run.finishedAt)}</span>
 							<span>
-								{run.actions.length} external{" "}
-								{run.actions.length === 1 ? "action" : "actions"}
+								{t("externalActionsCount", { count: run.actions.length })}
 							</span>
 							<Icon
 								icon={expanded === run.id ? ChevronUp : ChevronDown}
@@ -742,7 +758,7 @@ function AgentRuns({ runs }: { runs: Runs }) {
 
 			{visible.length === 0 ? (
 				<p className="py-12 text-center text-muted-foreground text-sm">
-					No runs match this outcome.
+					{t("noRunsMatchOutcome")}
 				</p>
 			) : null}
 		</div>
@@ -750,6 +766,7 @@ function AgentRuns({ runs }: { runs: Runs }) {
 }
 
 function ExpandedRun({ run }: { run: RunRow }) {
+	const t = useTranslations("agent-panel");
 	const locale = useUiLocale();
 	const events = run.events.filter(
 		(event) => event.type !== "message.appended",
@@ -759,13 +776,23 @@ function ExpandedRun({ run }: { run: RunRow }) {
 	return (
 		<div className="min-w-0 border-t">
 			<div className="grid grid-cols-2 gap-x-4 gap-y-3 border-b bg-background px-4 py-3 sm:min-h-[58px] sm:grid-cols-4 sm:items-center sm:gap-0 sm:px-5 sm:py-2">
-				<RunMeta label="Trigger" value={humanStatus(run.triggerType)} />
 				<RunMeta
-					label="Initiated by"
-					value={run.initiatedBy?.name ?? "Eve scheduler"}
+					label={t("runMetaTrigger")}
+					value={humanStatus(run.triggerType)}
 				/>
-				<RunMeta label="Model" value={run.modelId ?? "Gateway default"} />
-				<RunMeta label="Version" value={String(run.version.number)} last />
+				<RunMeta
+					label={t("runMetaInitiatedBy")}
+					value={run.initiatedBy?.name ?? t("eveSchedulerLabel")}
+				/>
+				<RunMeta
+					label={t("detailRowModel")}
+					value={run.modelId ?? t("gatewayDefaultLabel")}
+				/>
+				<RunMeta
+					label={t("runMetaVersion")}
+					value={String(run.version.number)}
+					last
+				/>
 			</div>
 
 			<div>
@@ -781,7 +808,7 @@ function ExpandedRun({ run }: { run: RunRow }) {
 							{eventLabel(event.type, event.data)}
 						</span>
 						<span className="hidden shrink-0 font-mono text-muted-foreground text-xs sm:inline">
-							event
+							{t("auditEventLabel")}
 						</span>
 					</div>
 				))}
@@ -812,8 +839,7 @@ function ExpandedRun({ run }: { run: RunRow }) {
 				))}
 				{condensedEvents > 0 ? (
 					<div className="flex min-h-9 items-center border-t px-4 py-2 text-muted-foreground text-xs sm:px-5">
-						{condensedEvents} streaming{" "}
-						{condensedEvents === 1 ? "update" : "updates"} condensed
+						{t("condensedEventsCount", { count: condensedEvents })}
 					</div>
 				) : null}
 			</div>
@@ -844,6 +870,7 @@ function RunMeta({
 }
 
 function AgentActivity({ activity }: { activity: Activity }) {
+	const t = useTranslations("agent-panel");
 	const locale = useUiLocale();
 	const [kind, setKind] = useState("ALL");
 	const rows = activity as unknown as ActivityRow[];
@@ -857,12 +884,12 @@ function AgentActivity({ activity }: { activity: Activity }) {
 				<select
 					value={kind}
 					onChange={(event) => setKind(event.target.value)}
-					aria-label="Filter activity"
+					aria-label={t("filterActivityAriaLabel")}
 					className="h-7 rounded-md border bg-muted px-2.5 font-medium text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 				>
-					<option value="ALL">All changes</option>
-					<option value="agent.">Agent changes</option>
-					<option value="run.">Run requests</option>
+					<option value="ALL">{t("activityFilterAll")}</option>
+					<option value="agent.">{t("activityFilterAgentChanges")}</option>
+					<option value="run.">{t("activityFilterRunRequests")}</option>
 				</select>
 				<Button
 					variant="outline"
@@ -870,16 +897,18 @@ function AgentActivity({ activity }: { activity: Activity }) {
 					onClick={() => exportJson("agent-activity.json", visible)}
 				>
 					<Icon icon={Download} data-icon="inline-start" />
-					Export
+					{t("exportButton")}
 				</Button>
 			</div>
 
 			<div className="min-w-0 overflow-hidden rounded-lg border bg-card">
 				<div className="hidden h-9 items-center border-b bg-background px-5 text-muted-foreground text-xs sm:flex">
-					<span className="w-[166px] shrink-0">Time</span>
-					<span className="min-w-0 flex-1">Change</span>
-					<span className="w-[140px] shrink-0">Actor</span>
-					<span className="w-[118px] shrink-0 text-right">Request</span>
+					<span className="w-[166px] shrink-0">{t("activityColumnTime")}</span>
+					<span className="min-w-0 flex-1">{t("activityColumnChange")}</span>
+					<span className="w-[140px] shrink-0">{t("activityColumnActor")}</span>
+					<span className="w-[118px] shrink-0 text-right">
+						{t("activityColumnRequest")}
+					</span>
 				</div>
 				{visible.map((event) => (
 					<div
@@ -900,11 +929,15 @@ function AgentActivity({ activity }: { activity: Activity }) {
 							) : null}
 						</span>
 						<span className="min-w-0 wrap-break-word text-xs sm:w-[140px] sm:shrink-0 sm:text-sm">
-							<span className="text-muted-foreground sm:hidden">Actor · </span>
+							<span className="text-muted-foreground sm:hidden">
+								{t("activityActorPrefix")}
+							</span>
 							{event.actorUser?.name ?? event.actorId ?? event.actorType}
 						</span>
 						<span className="min-w-0 wrap-break-word font-mono text-muted-foreground text-xs sm:w-[118px] sm:shrink-0 sm:text-right">
-							<span className="font-sans sm:hidden">Request · </span>
+							<span className="font-sans sm:hidden">
+								{t("activityRequestPrefix")}
+							</span>
 							{event.requestId?.slice(0, 12) ?? "—"}
 						</span>
 					</div>

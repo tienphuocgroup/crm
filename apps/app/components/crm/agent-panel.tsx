@@ -46,6 +46,7 @@ import {
 import { Spinner } from "@crm/ui/components/spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEveAgent } from "eve/react";
+import { useTranslations } from "next-intl";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { AgentClarificationComposer } from "@/components/agent-clarification-composer";
 import {
@@ -55,7 +56,7 @@ import {
 } from "@/components/crm/agent-conversations";
 import {
 	type AgentRecord,
-	recordCopy,
+	recordCopyKeys,
 	recordFilter,
 	recordHeader,
 } from "@/lib/agent-record";
@@ -71,6 +72,7 @@ import {
 	pendingQuestion,
 	resolveThread,
 	type Source,
+	type StepLabel,
 	type Tone,
 	type TranscriptItem,
 	toTranscript,
@@ -202,7 +204,8 @@ function Thread({
 	thread: ThreadState | undefined;
 	onNewThread: () => void;
 }) {
-	const copy = recordCopy(record.kind);
+	const t = useTranslations("agent-panel");
+	const copy = recordCopyKeys(record.kind);
 	const agent = useEveAgent({
 		headers: recordHeader(record),
 		...(thread && "session" in thread
@@ -267,18 +270,17 @@ function Thread({
 
 			{thread?.status === "working" && !busy ? (
 				<p className="border-t px-4 py-2 text-pretty text-muted-foreground text-xs sm:px-5">
-					Still working on the last question. Your next one can go in when it
-					finishes.
+					{t("stillWorkingNotice")}
 				</p>
 			) : null}
 
 			{ended ? (
 				<div className="flex flex-col items-start gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-2">
 					<p className="text-pretty text-muted-foreground text-xs">
-						This conversation has ended.
+						{t("conversationEndedNotice")}
 					</p>
 					<Button variant="outline" size="sm" onClick={onNewThread}>
-						Start a new conversation
+						{t("startNewConversation")}
 					</Button>
 				</div>
 			) : null}
@@ -302,7 +304,7 @@ function Thread({
 						<Input
 							value={draft}
 							onChange={(event) => setDraft(event.target.value)}
-							placeholder={copy.placeholder}
+							placeholder={t(copy.placeholder)}
 							disabled={locked}
 						/>
 						<Button
@@ -312,7 +314,7 @@ function Thread({
 							disabled={locked}
 						>
 							{busy ? <Spinner /> : <Icon icon={Send} />}
-							<span className="sr-only">Ask</span>
+							<span className="sr-only">{t("askButton")}</span>
 						</Button>
 					</form>
 				)}
@@ -328,7 +330,8 @@ function Idle({
 	kind: AgentRecord["kind"];
 	onAsk: (question: string) => void;
 }) {
-	const copy = recordCopy(kind);
+	const t = useTranslations("agent-panel");
+	const copy = recordCopyKeys(kind);
 
 	return (
 		<Empty width="wide">
@@ -338,8 +341,8 @@ function Idle({
 						<Logo className="size-4" />
 					</span>
 				</EmptyMedia>
-				<EmptyTitle>{copy.title}</EmptyTitle>
-				<EmptyDescription>{copy.blurb}</EmptyDescription>
+				<EmptyTitle>{t(copy.title)}</EmptyTitle>
+				<EmptyDescription>{t(copy.blurb)}</EmptyDescription>
 			</EmptyHeader>
 
 			<EmptyContent layout="row">
@@ -348,9 +351,9 @@ function Idle({
 						key={suggestion}
 						variant="outline"
 						size="sm"
-						onClick={() => onAsk(suggestion)}
+						onClick={() => onAsk(t(suggestion))}
 					>
-						{suggestion}
+						{t(suggestion)}
 					</Button>
 				))}
 			</EmptyContent>
@@ -359,10 +362,11 @@ function Idle({
 }
 
 function Failure({ message }: { message: string }) {
+	const t = useTranslations("agent-panel");
 	const hint = message.includes("not reachable")
-		? "Start it with `bun run dev`, or check AGENT_URL."
+		? t("agentUnreachableHint")
 		: message.includes("not configured")
-			? "Set AGENT_BRIDGE_SECRET for both the app and the agent."
+			? t("agentNotConfiguredHint")
 			: null;
 
 	return (
@@ -388,6 +392,7 @@ const SOURCE_ICONS: Record<Source["network"], CarbonIcon> = {
 };
 
 function Item({ item }: { item: TranscriptItem }) {
+	const t = useTranslations("agent-panel");
 	if (item.kind === "said") {
 		return item.mine ? (
 			<Message align="end" className="min-w-0">
@@ -414,7 +419,7 @@ function Item({ item }: { item: TranscriptItem }) {
 	if (item.kind === "asked") {
 		return (
 			<div className="w-full max-w-sm border-ring/50 border-l-2 bg-muted/40 px-3 py-2.5">
-				<p className="font-medium text-xs">Follow-up</p>
+				<p className="font-medium text-xs">{t("followUpLabel")}</p>
 				<Markdown className="mt-1.5 wrap-break-word text-sm leading-5">
 					{item.question.prompt}
 				</Markdown>
@@ -430,7 +435,9 @@ function Item({ item }: { item: TranscriptItem }) {
 				<MarkerIcon>
 					{item.pending ? <Spinner /> : <Icon icon={TONE_ICONS[item.tone]} />}
 				</MarkerIcon>
-				<MarkerContent>{item.label}</MarkerContent>
+				<MarkerContent>
+					<StepText label={item.label} />
+				</MarkerContent>
 			</Marker>
 
 			{item.sources.length > 0 ? <Sources sources={item.sources} /> : null}
@@ -438,7 +445,17 @@ function Item({ item }: { item: TranscriptItem }) {
 	);
 }
 
+function StepText({ label }: { label: StepLabel }) {
+	const t = useTranslations("agent-panel");
+	const verb = label.key ? t(label.key) : label.fallback;
+
+	return label.reason
+		? t("stepWithReason", { step: verb, reason: label.reason })
+		: verb;
+}
+
 function Sources({ sources }: { sources: Source[] }) {
+	const t = useTranslations("agent-panel");
 	return (
 		<AttachmentGroup>
 			{sources.map((source) => (
@@ -452,7 +469,9 @@ function Sources({ sources }: { sources: Source[] }) {
 
 					<AttachmentTrigger asChild>
 						<a href={source.url} target="_blank" rel="noreferrer noopener">
-							<span className="sr-only">Open {source.title}</span>
+							<span className="sr-only">
+								{t("openSourceAriaLabel", { title: source.title })}
+							</span>
 						</a>
 					</AttachmentTrigger>
 				</Attachment>

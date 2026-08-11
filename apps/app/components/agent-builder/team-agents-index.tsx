@@ -5,13 +5,25 @@ import Bot from "@carbon/icons-react/es/Bot";
 import { Icon } from "@crm/ui/components/icon";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useTRPC } from "@/lib/trpc/client";
 import type { RouterOutputs } from "@/lib/trpc/types";
 import { useWorkspaceUrl } from "@/lib/use-workspace-url";
 
 type Agents = RouterOutputs["agents"]["list"];
+type AgentStatus = Agents[number]["status"];
+
+const AGENT_STATUS_KEYS: Record<AgentStatus, string> = {
+	DRAFT: "agentLifecycleDraft",
+	DEPLOYING: "agentLifecycleDeploying",
+	LIVE: "agentLifecycleLive",
+	PAUSED: "agentLifecyclePaused",
+	ARCHIVED: "agentLifecycleArchived",
+	DELETED: "agentLifecycleDeleted",
+};
 
 export function TeamAgentsIndex({ initialAgents }: { initialAgents: Agents }) {
+	const t = useTranslations("agent-panel");
 	const trpc = useTRPC();
 	const workspaceUrl = useWorkspaceUrl();
 	const agents = useQuery({
@@ -40,18 +52,18 @@ export function TeamAgentsIndex({ initialAgents }: { initialAgents: Agents }) {
 										{agent.name}
 									</span>
 									<span className="shrink-0 text-muted-foreground text-xs">
-										{agent.status.toLowerCase()}
+										{t(AGENT_STATUS_KEYS[agent.status])}
 									</span>
 								</span>
 								<span className="mt-1 block wrap-break-word text-muted-foreground text-xs sm:mt-0 sm:truncate">
-									{agent.description ?? "No description"}
+									{agent.description ?? t("noDescription")}
 								</span>
 								<span className="mt-2 block font-mono text-muted-foreground text-xs sm:hidden">
-									{agent.runCount} runs
+									{t("agentRunCount", { count: agent.runCount })}
 								</span>
 							</span>
 							<span className="hidden shrink-0 font-mono text-muted-foreground text-xs sm:inline">
-								{agent.runCount} runs
+								{t("agentRunCount", { count: agent.runCount })}
 							</span>
 							<Icon
 								icon={ArrowRight}
@@ -63,16 +75,15 @@ export function TeamAgentsIndex({ initialAgents }: { initialAgents: Agents }) {
 			) : (
 				<div className="flex min-h-64 flex-col items-center justify-center rounded-lg border border-dashed px-6 text-center">
 					<Icon icon={Bot} className="size-6 text-muted-foreground" />
-					<h2 className="mt-4 font-medium text-sm">No team agents yet</h2>
+					<h2 className="mt-4 font-medium text-sm">{t("noTeamAgentsYet")}</h2>
 					<p className="mt-1 text-muted-foreground text-xs">
-						Create one from a private chat, then review its access before
-						deploying it.
+						{t("noTeamAgentsHint")}
 					</p>
 					<Link
 						href={workspaceUrl("/chat")}
 						className="mt-4 text-primary text-xs hover:underline"
 					>
-						Open chat
+						{t("openChatLink")}
 					</Link>
 				</div>
 			)}

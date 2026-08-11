@@ -101,6 +101,9 @@
 	"apps/app/components/landing/built-with.tsx::Context": {
 		"reason": "Vendor name in the built-with row. Scoped to this file because the bare word is ordinary English elsewhere."
 	},
+	"apps/app/components/landing/agent-section.tsx::Dan": {
+		"reason": "Example teammate name in the marketing mockup composer. A personal name is locale-neutral."
+	},
 	"apps/app/app/(app)/[slug]/settings/tracking/tracking-script.tsx::<script": {
 		"reason": "Literal HTML the operator copies into their page. Translating it breaks the tag."
 	},

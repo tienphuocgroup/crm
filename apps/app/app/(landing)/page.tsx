@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { AgentSection } from "@/components/landing/agent-section";
 import { LandingAnalytics } from "@/components/landing/analytics";
 import { CapabilitiesSection } from "@/components/landing/capabilities-section";
@@ -8,11 +9,10 @@ import { LandingFooter } from "@/components/landing/landing-footer";
 import { LandingNav } from "@/components/landing/landing-nav";
 import { ProductShot } from "@/components/landing/product-shot/product-shot";
 
-export const metadata: Metadata = {
-	title: "The CRM for agents",
-	description:
-		"The first agentic CRM experience — durable research agents that read your inbox, keep every record current and book their own follow-ups.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const t = await getTranslations("landing");
+	return { title: t("metaTitle"), description: t("metaDescription") };
+}
 
 export default function Home() {
 	return (

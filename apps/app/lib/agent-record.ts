@@ -4,63 +4,63 @@ export type AgentRecordKind = "contact" | "company" | "deal";
 
 export type AgentRecord = { kind: AgentRecordKind; id: string };
 
-type RecordCopy = {
+type RecordProtocol = {
 	header: string;
 	field: "contactId" | "companyId" | "dealId";
+};
+
+const PROTOCOL: Record<AgentRecordKind, RecordProtocol> = {
+	contact: { header: "x-crm-contact", field: "contactId" },
+	company: { header: "x-crm-company", field: "companyId" },
+	deal: { header: "x-crm-deal", field: "dealId" },
+};
+
+export type RecordCopyKeys = {
 	title: string;
 	blurb: string;
 	placeholder: string;
-	suggestions: string[];
+	suggestions: readonly string[];
 };
 
-const COPY: Record<AgentRecordKind, RecordCopy> = {
+const COPY_KEYS: Record<AgentRecordKind, RecordCopyKeys> = {
 	contact: {
-		header: "x-crm-contact",
-		field: "contactId",
-		title: "Ask about this person",
-		blurb:
-			"Every step is shown as it happens — including the leads it throws away.",
-		placeholder: "Are they still there?",
+		title: "recordContactTitle",
+		blurb: "recordContactBlurb",
+		placeholder: "recordContactPlaceholder",
 		suggestions: [
-			"Who is this person?",
-			"Are they still there?",
-			"What should I know before a call?",
+			"recordContactSuggestionWho",
+			"recordContactSuggestionStillThere",
+			"recordContactSuggestionBeforeCall",
 		],
 	},
 	company: {
-		header: "x-crm-company",
-		field: "companyId",
-		title: "Ask about this company",
-		blurb:
-			"It reads their site and our own history with them, and shows its working.",
-		placeholder: "What do they sell?",
+		title: "recordCompanyTitle",
+		blurb: "recordCompanyBlurb",
+		placeholder: "recordCompanyPlaceholder",
 		suggestions: [
-			"What do they do?",
-			"Who do we know here?",
-			"What has changed recently?",
+			"recordCompanySuggestionWhatTheyDo",
+			"recordCompanySuggestionWhoWeKnow",
+			"recordCompanySuggestionWhatChanged",
 		],
 	},
 	deal: {
-		header: "x-crm-deal",
-		field: "dealId",
-		title: "Ask about this deal",
-		blurb:
-			"It can read the thread, the meetings and the people on both sides of it.",
-		placeholder: "Where has this stalled?",
+		title: "recordDealTitle",
+		blurb: "recordDealBlurb",
+		placeholder: "recordDealPlaceholder",
 		suggestions: [
-			"Where does this stand?",
-			"Who else should be involved?",
-			"What is the risk here?",
+			"recordDealSuggestionWhereItStands",
+			"recordDealSuggestionWhoElse",
+			"recordDealSuggestionRisk",
 		],
 	},
 };
 
-export function recordCopy(kind: AgentRecordKind): RecordCopy {
-	return COPY[kind];
+export function recordCopyKeys(kind: AgentRecordKind): RecordCopyKeys {
+	return COPY_KEYS[kind];
 }
 
 export function recordHeader(record: AgentRecord): Record<string, string> {
-	return { [COPY[record.kind].header]: record.id };
+	return { [PROTOCOL[record.kind].header]: record.id };
 }
 
 export function recordFilter(record: AgentRecord): {
@@ -68,7 +68,7 @@ export function recordFilter(record: AgentRecord): {
 	companyId?: string;
 	dealId?: string;
 } {
-	return { [COPY[record.kind].field]: record.id };
+	return { [PROTOCOL[record.kind].field]: record.id };
 }
 
 export type { CarbonIcon };
