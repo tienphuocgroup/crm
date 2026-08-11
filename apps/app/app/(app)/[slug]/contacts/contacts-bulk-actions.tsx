@@ -32,13 +32,12 @@ export function ContactsBulkActions({
 	onDone: () => void;
 }) {
 	const t = useTranslations("contacts");
+	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 	const users = useQuery(trpc.users.list.queryOptions());
 	const companies = useQuery(trpc.companies.options.queryOptions({ q: "" }));
 	const [confirming, setConfirming] = useState(false);
-
-	const contacts = (count: number) => t("contactCount", { count });
 
 	const onError = (error: { message: string }) => toast.error(error.message);
 
@@ -46,7 +45,9 @@ export function ContactsBulkActions({
 		trpc.contacts.bulkAssignOwner.mutationOptions({
 			onSuccess: async (result) => {
 				await cache.contact();
-				reportBulk(result, (count) => `${contacts(count)} reassigned.`);
+				reportBulk(common, result, (count) =>
+					t("bulkReassignedToast", { count }),
+				);
 				onDone();
 			},
 			onError,
@@ -57,7 +58,7 @@ export function ContactsBulkActions({
 		trpc.contacts.bulkSetCompany.mutationOptions({
 			onSuccess: async (result) => {
 				await cache.contact();
-				reportBulk(result, (count) => `${contacts(count)} moved.`);
+				reportBulk(common, result, (count) => t("bulkMovedToast", { count }));
 				onDone();
 			},
 			onError,
@@ -68,10 +69,7 @@ export function ContactsBulkActions({
 		trpc.contacts.bulkEnrich.mutationOptions({
 			onSuccess: async (result) => {
 				await cache.contact();
-				reportBulk(
-					result,
-					(count) => `Looking up ${contacts(count)} — the table will update.`,
-				);
+				reportBulk(common, result, (count) => t("bulkEnrichToast", { count }));
 				onDone();
 			},
 			onError,
@@ -82,7 +80,7 @@ export function ContactsBulkActions({
 		trpc.contacts.bulkDelete.mutationOptions({
 			onSuccess: async (result, variables) => {
 				await cache.removedMany({ kind: "contact", ids: variables.ids });
-				reportBulk(result, (count) => `${contacts(count)} deleted.`);
+				reportBulk(common, result, (count) => t("bulkDeletedToast", { count }));
 				setConfirming(false);
 				onDone();
 			},
@@ -101,20 +99,22 @@ export function ContactsBulkActions({
 			<BulkActionsMenu pending={pending}>
 				<BulkOwnerMenu
 					users={users.data ?? []}
-					unassignedLabel="Nobody"
+					unassignedLabel={common("bulkUnassignedOption")}
 					onSelect={(ownerId) => assignOwner.mutate({ ids, ownerId })}
 				/>
 				<DropdownMenuSub>
-					<DropdownMenuSubTrigger>Move to company</DropdownMenuSubTrigger>
+					<DropdownMenuSubTrigger>
+						{t("bulkMoveToCompanyLabel")}
+					</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent className="max-h-72 overflow-y-auto">
 						<DropdownMenuGroup>
 							<DropdownMenuItem
 								onSelect={() => setCompany.mutate({ ids, companyId: null })}
 							>
-								No company
+								{t("noCompanyOption")}
 							</DropdownMenuItem>
 							{companies.data?.length === 0 ? (
-								<DropdownMenuLabel>No companies yet.</DropdownMenuLabel>
+								<DropdownMenuLabel>{t("bulkNoCompaniesYet")}</DropdownMenuLabel>
 							) : (
 								companies.data?.map((company) => (
 									<DropdownMenuItem
@@ -133,7 +133,7 @@ export function ContactsBulkActions({
 				<DropdownMenuGroup>
 					<DropdownMenuItem onSelect={() => enrich.mutate({ ids })}>
 						<Renew />
-						Re-enrich
+						{common("reenrich")}
 					</DropdownMenuItem>
 				</DropdownMenuGroup>
 				<DropdownMenuSeparator />
@@ -143,7 +143,7 @@ export function ContactsBulkActions({
 						onSelect={() => setConfirming(true)}
 					>
 						<TrashCan />
-						Delete
+						{common("delete")}
 					</DropdownMenuItem>
 				</DropdownMenuGroup>
 			</BulkActionsMenu>
@@ -151,8 +151,8 @@ export function ContactsBulkActions({
 			<BulkDeleteDialog
 				open={confirming}
 				onOpenChange={setConfirming}
-				title={`Delete ${contacts(ids.length)}?`}
-				description="Their email addresses are suppressed, so the inbox sync will not file them again. This cannot be undone."
+				title={t("bulkDeleteConfirmTitle", { count: ids.length })}
+				description={t("bulkDeleteConfirmDescription")}
 				onConfirm={() => remove.mutate({ ids })}
 			/>
 		</>

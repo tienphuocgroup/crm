@@ -44,6 +44,7 @@ export function DealsBulkActions({
 	onDone: () => void;
 }) {
 	const t = useTranslations("deals");
+	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 	const users = useQuery(trpc.users.list.queryOptions());
@@ -52,15 +53,15 @@ export function DealsBulkActions({
 	const [closing, setClosing] = useState<DealStage | null>(null);
 	const [reason, setReason] = useState("");
 
-	const deals = (count: number) => t("dealCount", { count });
-
 	const onError = (error: { message: string }) => toast.error(error.message);
 
 	const assignOwner = useMutation(
 		trpc.deals.bulkAssignOwner.mutationOptions({
 			onSuccess: async (result) => {
 				await cache.deal();
-				reportBulk(result, (count) => `${deals(count)} reassigned.`);
+				reportBulk(common, result, (count) =>
+					t("bulkReassignedToast", { count }),
+				);
 				onDone();
 			},
 			onError,
@@ -71,7 +72,9 @@ export function DealsBulkActions({
 		trpc.deals.bulkSetStage.mutationOptions({
 			onSuccess: async (result) => {
 				await cache.deal();
-				reportBulk(result, (count) => `${deals(count)} moved.`);
+				reportBulk(common, result, (count) =>
+					t("bulkStageMovedToast", { count }),
+				);
 				setClosing(null);
 				setReason("");
 				onDone();
@@ -84,7 +87,7 @@ export function DealsBulkActions({
 		trpc.deals.bulkDelete.mutationOptions({
 			onSuccess: async (result, variables) => {
 				await cache.removedMany({ kind: "deal", ids: variables.ids });
-				reportBulk(result, (count) => `${deals(count)} deleted.`);
+				reportBulk(common, result, (count) => t("bulkDeletedToast", { count }));
 				setConfirming(false);
 				onDone();
 			},
@@ -105,7 +108,9 @@ export function DealsBulkActions({
 					}
 				/>
 				<DropdownMenuSub>
-					<DropdownMenuSubTrigger>Change stage</DropdownMenuSubTrigger>
+					<DropdownMenuSubTrigger>
+						{t("bulkChangeStageLabel")}
+					</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent className="max-h-72 overflow-y-auto">
 						<DropdownMenuGroup>
 							{DEAL_STAGE_OPTIONS.map((option) => (
@@ -132,7 +137,7 @@ export function DealsBulkActions({
 						onSelect={() => setConfirming(true)}
 					>
 						<TrashCan />
-						Delete
+						{common("delete")}
 					</DropdownMenuItem>
 				</DropdownMenuGroup>
 			</BulkActionsMenu>
@@ -149,12 +154,11 @@ export function DealsBulkActions({
 					<DialogHeader>
 						<DialogTitle>
 							{closing === "CLOSED_LOST"
-								? `Close ${deals(ids.length)} as lost`
-								: `Mark ${deals(ids.length)} as unqualified`}
+								? t("bulkCloseLostTitle", { count: ids.length })
+								: t("bulkMarkUnqualifiedTitle", { count: ids.length })}
 						</DialogTitle>
 						<DialogDescription>
-							The same reason goes on every one of them, so keep it to what they
-							have in common.
+							{t("bulkCloseReasonDescription")}
 						</DialogDescription>
 					</DialogHeader>
 
@@ -168,12 +172,12 @@ export function DealsBulkActions({
 						}}
 					>
 						<Field>
-							<FieldLabel htmlFor={reasonId}>Reason</FieldLabel>
+							<FieldLabel htmlFor={reasonId}>{t("reasonLabel")}</FieldLabel>
 							<Textarea
 								id={reasonId}
 								value={reason}
 								onChange={(event) => setReason(event.target.value)}
-								placeholder="Budget pulled for the quarter"
+								placeholder={t("bulkCloseReasonPlaceholder")}
 								rows={3}
 							/>
 						</Field>
@@ -186,7 +190,7 @@ export function DealsBulkActions({
 							disabled={setStage.isPending || reason.trim() === ""}
 						>
 							{setStage.isPending ? <Spinner /> : null}
-							Save
+							{common("save")}
 						</Button>
 						<Button
 							variant="outline"
@@ -195,7 +199,7 @@ export function DealsBulkActions({
 								setReason("");
 							}}
 						>
-							Cancel
+							{common("cancel")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
@@ -204,8 +208,8 @@ export function DealsBulkActions({
 			<BulkDeleteDialog
 				open={confirming}
 				onOpenChange={setConfirming}
-				title={`Delete ${deals(ids.length)}?`}
-				description="Everything filed against them — activity, notes, the amounts in your pipeline — goes too. This cannot be undone."
+				title={t("bulkDeleteConfirmTitle", { count: ids.length })}
+				description={t("bulkDeleteConfirmDescription")}
 				onConfirm={() => remove.mutate({ ids })}
 			/>
 		</>

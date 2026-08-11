@@ -115,5 +115,8 @@
 	},
 	"apps/app/app/(app)/[slug]/settings/tracking/tracking-script.tsx::></script>": {
 		"reason": "Literal HTML in the copyable snippet."
+	},
+	"apps/app/app/(app)/[slug]/deals/create-deal-sheet.tsx::Stripe — Comp AI": {
+		"reason": "Example deal name in a field placeholder, built from two already-allowlisted proper nouns (vendor name and product name). Locale-neutral."
 	}
 }

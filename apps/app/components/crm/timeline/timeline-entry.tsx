@@ -4,6 +4,7 @@ import { Checkbox } from "@crm/ui/components/checkbox";
 import { StatusIndicator } from "@crm/ui/components/status-indicator";
 import { cn } from "@crm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { RecordLink } from "@/components/crm/record-sheet/record-link";
 import { LocalDateTime, LocalRelativeTime } from "@/components/local-date-time";
@@ -44,6 +45,7 @@ export function TimelineEntry({
 	entry: TimelineEntryData;
 	anchor: TimelineAnchor;
 }) {
+	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 
@@ -68,8 +70,8 @@ export function TimelineEntry({
 	const synced = entry.meta?.synced === true;
 	const author = synced
 		? entry.emailThread
-			? "via Gmail"
-			: "via Calendar"
+			? common("timeline.viaGmail")
+			: common("timeline.viaCalendar")
 		: entry.createdBy.name;
 
 	const headline = change
@@ -92,7 +94,11 @@ export function TimelineEntry({
 					<Checkbox
 						checked={done}
 						disabled={complete.isPending}
-						aria-label={done ? "Mark as not done" : "Mark as done"}
+						aria-label={
+							done
+								? common("timeline.markNotDone")
+								: common("timeline.markDone")
+						}
 						onCheckedChange={(checked) =>
 							complete.mutate({ id: entry.id, completed: checked === true })
 						}
@@ -169,7 +175,9 @@ export function TimelineEntry({
 								tone={overdue ? "error" : "info"}
 								label={
 									<>
-										{overdue ? "Overdue" : "Due"}{" "}
+										{overdue
+											? common("timeline.overdueLabel")
+											: common("timeline.dueLabel")}{" "}
 										<LocalRelativeTime date={entry.dueAt} />
 									</>
 								}

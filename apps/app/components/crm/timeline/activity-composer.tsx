@@ -19,6 +19,7 @@ import { ToggleGroup, ToggleGroupItem } from "@crm/ui/components/toggle-group";
 import { useUiLocale } from "@crm/ui/components/ui-strings-provider";
 import { dateTimeFormat } from "@crm/ui/lib/format";
 import { useMutation } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { activityLabel } from "@/lib/activity-presentation";
@@ -36,15 +37,16 @@ const DUE_OPTIONS = {
 	day: "numeric",
 } as const;
 
-const PLACEHOLDER: Record<ComposableType, string> = {
-	NOTE: "Log a note, call, email, meeting or task…",
-	CALL: "What came out of the call?",
-	EMAIL: "What was said?",
-	MEETING: "What came out of the meeting?",
-	TASK: "What needs doing?",
+const PLACEHOLDER_KEY: Record<ComposableType, string> = {
+	NOTE: "timeline.composerPlaceholderNote",
+	CALL: "timeline.composerPlaceholderCall",
+	EMAIL: "timeline.composerPlaceholderEmail",
+	MEETING: "timeline.composerPlaceholderMeeting",
+	TASK: "timeline.composerPlaceholderTask",
 };
 
 export function ActivityComposer({ anchor }: { anchor: TimelineAnchor }) {
+	const common = useTranslations("common");
 	const locale = useUiLocale();
 	const trpc = useTRPC();
 	const cache = useCrmCache();
@@ -93,8 +95,8 @@ export function ActivityComposer({ anchor }: { anchor: TimelineAnchor }) {
 				<InputGroupTextarea
 					value={draft}
 					onChange={(event) => setDraft(event.target.value)}
-					placeholder={PLACEHOLDER[type]}
-					aria-label="What happened"
+					placeholder={common(PLACEHOLDER_KEY[type])}
+					aria-label={common("timeline.whatHappenedAriaLabel")}
 					onKeyDown={(event) => {
 						if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
 							event.preventDefault();
@@ -131,7 +133,7 @@ export function ActivityComposer({ anchor }: { anchor: TimelineAnchor }) {
 									<Icon icon={Calendar} data-icon="inline-start" />
 									{dueAt
 										? dateTimeFormat(locale, DUE_OPTIONS).format(dueAt)
-										: "Due date"}
+										: common("timeline.dueDateLabel")}
 								</InputGroupButton>
 							</PopoverTrigger>
 							<PopoverContent size="fit" align="start">
@@ -154,7 +156,11 @@ export function ActivityComposer({ anchor }: { anchor: TimelineAnchor }) {
 							disabled={create.isPending}
 						>
 							{create.isPending ? <Spinner /> : null}
-							{isTask ? "Add task" : `Log ${activityLabel(type).toLowerCase()}`}
+							{isTask
+								? common("timeline.addTask")
+								: common("timeline.logActivity", {
+										activity: activityLabel(type).toLowerCase(),
+									})}
 						</InputGroupButton>
 					)}
 				</InputGroupAddon>

@@ -24,6 +24,7 @@ import {
 	DropdownMenuTrigger,
 } from "@crm/ui/components/dropdown-menu";
 import { Spinner } from "@crm/ui/components/spinner";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 
@@ -35,19 +36,18 @@ export type BulkResult = {
 };
 
 export function reportBulk(
+	common: ReturnType<typeof useTranslations<"common">>,
 	result: BulkResult,
 	done: (count: number) => string,
 ): void {
 	if (result.succeeded === 0) {
-		toast.error(result.message ?? "Nothing changed.");
+		toast.error(result.message ?? common("bulkNothingChanged"));
 		return;
 	}
 
 	if (result.failed > 0) {
 		toast.error(
-			`${done(result.succeeded)} ${result.failed} ${
-				result.failed === 1 ? "was" : "were"
-			} left alone${result.message ? ` — ${result.message}` : "."}`,
+			`${done(result.succeeded)} ${common("bulkLeftAlone", { count: result.failed })}${result.message ? ` — ${result.message}` : "."}`,
 		);
 		return;
 	}
@@ -62,12 +62,14 @@ export function BulkActionsMenu({
 	pending?: boolean;
 	children: ReactNode;
 }) {
+	const common = useTranslations("common");
+
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
 				<Button variant="outline" size="sm" disabled={pending}>
 					{pending ? <Spinner /> : null}
-					Actions
+					{common("actions")}
 					<ChevronDown data-icon="inline-end" className="opacity-60" />
 				</Button>
 			</DropdownMenuTrigger>
@@ -87,9 +89,13 @@ export function BulkOwnerMenu({
 	onSelect: (ownerId: string | null) => void;
 	unassignedLabel?: string;
 }) {
+	const common = useTranslations("common");
+
 	return (
 		<DropdownMenuSub>
-			<DropdownMenuSubTrigger>Assign owner</DropdownMenuSubTrigger>
+			<DropdownMenuSubTrigger>
+				{common("assignOwnerLabel")}
+			</DropdownMenuSubTrigger>
 			<DropdownMenuSubContent className="max-h-72 overflow-y-auto">
 				<DropdownMenuGroup>
 					{unassignedLabel && (
@@ -98,7 +104,7 @@ export function BulkOwnerMenu({
 						</DropdownMenuItem>
 					)}
 					{users.length === 0 ? (
-						<DropdownMenuLabel>Nobody else works here yet.</DropdownMenuLabel>
+						<DropdownMenuLabel>{common("bulkNoUsers")}</DropdownMenuLabel>
 					) : (
 						users.map((user) => (
 							<DropdownMenuItem
@@ -128,6 +134,8 @@ export function BulkDeleteDialog({
 	description: string;
 	onConfirm: () => void;
 }) {
+	const common = useTranslations("common");
+
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<AlertDialogContent>
@@ -137,9 +145,9 @@ export function BulkDeleteDialog({
 				</AlertDialogHeader>
 
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>{common("cancel")}</AlertDialogCancel>
 					<AlertDialogAction variant="destructive" onClick={onConfirm}>
-						Delete
+						{common("delete")}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

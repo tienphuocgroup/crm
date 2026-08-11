@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import {
 	PageShell,
@@ -17,21 +18,22 @@ import { CreateDealSheet } from "./create-deal-sheet";
 import { dealsSearchParams } from "./deals-search-params";
 import { DealsTable } from "./deals-table";
 
-export const metadata: Metadata = {
-	title: "Deals",
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const t = await getTranslations("deals");
+	return { title: t("metaTitle") };
+}
 
-export default function DealsPage({
+export default async function DealsPage({
 	searchParams,
 }: PageProps<"/[slug]/deals">) {
+	const t = await getTranslations("deals");
+
 	return (
 		<PageShell className="min-h-0">
 			<PageShellHeader>
 				<PageShellHeading>
-					<PageShellTitle>Deals</PageShellTitle>
-					<PageShellDescription>
-						The pipeline, and everything that has already closed.
-					</PageShellDescription>
+					<PageShellTitle>{t("metaTitle")}</PageShellTitle>
+					<PageShellDescription>{t("pageDescription")}</PageShellDescription>
 				</PageShellHeading>
 				<PageShellActions>
 					<CreateDealSheet />

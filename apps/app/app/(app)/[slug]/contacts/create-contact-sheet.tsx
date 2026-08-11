@@ -24,6 +24,7 @@ import {
 } from "@crm/ui/components/sheet";
 import { Spinner } from "@crm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import { type ComponentProps, Suspense, useId, useState } from "react";
 import { toast } from "sonner";
@@ -34,10 +35,12 @@ import { useTRPC } from "@/lib/trpc/client";
 const NONE = "none";
 
 function AddButton(props: ComponentProps<typeof Button>) {
+	const t = useTranslations("contacts");
+
 	return (
 		<Button {...props}>
 			<Icon icon={Add} data-icon="inline-start" />
-			New contact
+			{t("createTitle")}
 		</Button>
 	);
 }
@@ -51,6 +54,8 @@ export function CreateContactSheet({ companyId }: { companyId?: string }) {
 }
 
 function CreateContactForm({ companyId }: { companyId?: string }) {
+	const t = useTranslations("contacts");
+	const common = useTranslations("common");
 	const openRecord = useOpenRecord();
 	const trpc = useTRPC();
 	const cache = useCrmCache();
@@ -79,7 +84,11 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 			onSuccess: async (contact) => {
 				await cache.contact(contact.id);
 				toast.success(
-					`${[contact.firstName, contact.lastName].filter(Boolean).join(" ")} added.`,
+					t("createdToast", {
+						name: [contact.firstName, contact.lastName]
+							.filter(Boolean)
+							.join(" "),
+					}),
 				);
 				await setOpen(null);
 				setFirstName("");
@@ -99,11 +108,8 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 			</SheetTrigger>
 			<SheetContent side="right">
 				<SheetHeader>
-					<SheetTitle>New contact</SheetTitle>
-					<SheetDescription>
-						Email addresses are unique, so importing the same person twice
-						updates them rather than duplicating them.
-					</SheetDescription>
+					<SheetTitle>{t("createTitle")}</SheetTitle>
+					<SheetDescription>{t("createDescription")}</SheetDescription>
 				</SheetHeader>
 
 				<form
@@ -123,7 +129,9 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 				>
 					<FieldGroup>
 						<Field>
-							<FieldLabel htmlFor={firstNameId}>First name</FieldLabel>
+							<FieldLabel htmlFor={firstNameId}>
+								{t("firstNameLabel")}
+							</FieldLabel>
 							<Input
 								id={firstNameId}
 								value={firstName}
@@ -134,7 +142,7 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor={lastNameId}>Last name</FieldLabel>
+							<FieldLabel htmlFor={lastNameId}>{t("lastNameLabel")}</FieldLabel>
 							<Input
 								id={lastNameId}
 								value={lastName}
@@ -144,7 +152,7 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor={emailId}>Email</FieldLabel>
+							<FieldLabel htmlFor={emailId}>{t("emailLabel")}</FieldLabel>
 							<Input
 								id={emailId}
 								type="email"
@@ -155,24 +163,26 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor={titleId}>Title</FieldLabel>
+							<FieldLabel htmlFor={titleId}>{t("titleLabel")}</FieldLabel>
 							<Input
 								id={titleId}
 								value={title}
 								onChange={(event) => setTitle(event.target.value)}
-								placeholder="Head of Security"
+								placeholder={t("titleFieldPlaceholder")}
 								autoComplete="off"
 							/>
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor="create-contact-company">Company</FieldLabel>
+							<FieldLabel htmlFor="create-contact-company">
+								{t("companyLabel")}
+							</FieldLabel>
 							<Select value={company} onValueChange={setCompany}>
 								<SelectTrigger id="create-contact-company">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value={NONE}>No company</SelectItem>
+									<SelectItem value={NONE}>{t("noCompanyOption")}</SelectItem>
 									{(companies.data ?? []).map((option) => (
 										<SelectItem key={option.id} value={option.id}>
 											{option.name}
@@ -183,13 +193,17 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor="create-contact-owner">Owner</FieldLabel>
+							<FieldLabel htmlFor="create-contact-owner">
+								{common("ownerLabel")}
+							</FieldLabel>
 							<Select value={ownerId} onValueChange={setOwnerId}>
 								<SelectTrigger id="create-contact-owner">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value={NONE}>Unassigned</SelectItem>
+									<SelectItem value={NONE}>
+										{common("unassignedOption")}
+									</SelectItem>
 									{(users.data ?? []).map((user) => (
 										<SelectItem key={user.id} value={user.id}>
 											{user.name}
@@ -208,10 +222,10 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 						disabled={create.isPending || firstName.trim() === ""}
 					>
 						{create.isPending ? <Spinner /> : null}
-						Add contact
+						{t("addContactAction")}
 					</Button>
 					<SheetClose asChild>
-						<Button variant="outline">Cancel</Button>
+						<Button variant="outline">{common("cancel")}</Button>
 					</SheetClose>
 				</SheetFooter>
 			</SheetContent>

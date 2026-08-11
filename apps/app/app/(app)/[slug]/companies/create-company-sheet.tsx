@@ -29,6 +29,7 @@ import {
 } from "@crm/ui/components/sheet";
 import { Spinner } from "@crm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import { type ComponentProps, Suspense, useId, useState } from "react";
 import { toast } from "sonner";
@@ -39,10 +40,12 @@ import { useTRPC } from "@/lib/trpc/client";
 const UNASSIGNED = "unassigned";
 
 function AddButton(props: ComponentProps<typeof Button>) {
+	const t = useTranslations("companies");
+
 	return (
 		<Button {...props}>
 			<Icon icon={Add} data-icon="inline-start" />
-			New company
+			{t("createTitle")}
 		</Button>
 	);
 }
@@ -56,6 +59,8 @@ export function CreateCompanySheet() {
 }
 
 function CreateCompanyForm() {
+	const t = useTranslations("companies");
+	const common = useTranslations("common");
 	const openRecord = useOpenRecord();
 	const trpc = useTRPC();
 	const cache = useCrmCache();
@@ -77,7 +82,7 @@ function CreateCompanyForm() {
 		trpc.companies.create.mutationOptions({
 			onSuccess: async (company) => {
 				await cache.company(company.id);
-				toast.success(`${company.name} added.`);
+				toast.success(t("createdToast", { name: company.name }));
 				await setOpen(null);
 				setName("");
 				setDomain("");
@@ -95,11 +100,8 @@ function CreateCompanyForm() {
 			</SheetTrigger>
 			<SheetContent side="right">
 				<SheetHeader>
-					<SheetTitle>New company</SheetTitle>
-					<SheetDescription>
-						Give it a name and a domain. The agent fills in the logo,
-						description, industry, address and socials.
-					</SheetDescription>
+					<SheetTitle>{t("createTitle")}</SheetTitle>
+					<SheetDescription>{t("createDescription")}</SheetDescription>
 				</SheetHeader>
 
 				<form
@@ -116,7 +118,7 @@ function CreateCompanyForm() {
 				>
 					<FieldGroup>
 						<Field>
-							<FieldLabel htmlFor={nameId}>Name</FieldLabel>
+							<FieldLabel htmlFor={nameId}>{t("nameLabel")}</FieldLabel>
 							<Input
 								id={nameId}
 								value={name}
@@ -128,7 +130,7 @@ function CreateCompanyForm() {
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor={domainId}>Domain</FieldLabel>
+							<FieldLabel htmlFor={domainId}>{t("domainLabel")}</FieldLabel>
 							<Input
 								id={domainId}
 								value={domain}
@@ -137,20 +139,21 @@ function CreateCompanyForm() {
 								autoComplete="off"
 								inputMode="url"
 							/>
-							<FieldDescription>
-								A full URL is fine — it is reduced to the bare host, which has
-								to be unique.
-							</FieldDescription>
+							<FieldDescription>{t("domainHelp")}</FieldDescription>
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor="create-company-owner">Owner</FieldLabel>
+							<FieldLabel htmlFor="create-company-owner">
+								{common("ownerLabel")}
+							</FieldLabel>
 							<Select value={ownerId} onValueChange={setOwnerId}>
 								<SelectTrigger id="create-company-owner">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
+									<SelectItem value={UNASSIGNED}>
+										{common("unassignedOption")}
+									</SelectItem>
 									{(users.data ?? []).map((user) => (
 										<SelectItem key={user.id} value={user.id}>
 											{user.name}
@@ -169,10 +172,10 @@ function CreateCompanyForm() {
 						disabled={create.isPending || name.trim() === ""}
 					>
 						{create.isPending ? <Spinner /> : null}
-						Add company
+						{t("createSubmit")}
 					</Button>
 					<SheetClose asChild>
-						<Button variant="outline">Cancel</Button>
+						<Button variant="outline">{common("cancel")}</Button>
 					</SheetClose>
 				</SheetFooter>
 			</SheetContent>

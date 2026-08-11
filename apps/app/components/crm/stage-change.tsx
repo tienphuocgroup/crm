@@ -23,6 +23,7 @@ import { Icon } from "@crm/ui/components/icon";
 import { Spinner } from "@crm/ui/components/spinner";
 import { Textarea } from "@crm/ui/components/textarea";
 import { useMutation } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { parseAsString, useQueryStates } from "nuqs";
 import { useId, useState } from "react";
 import { toast } from "sonner";
@@ -119,6 +120,8 @@ export function DealStageMenu({
 }
 
 export function CloseReasonDialog() {
+	const t = useTranslations("deals");
+	const common = useTranslations("common");
 	const reasonId = useId();
 	const [{ closing, closingStage }, setCloseParams] =
 		useQueryStates(closeReasonParams);
@@ -130,7 +133,7 @@ export function CloseReasonDialog() {
 	};
 
 	const setStage = useStageMutation(() => {
-		toast.success("Deal closed.");
+		toast.success(t("stageClosedToast"));
 		close();
 	});
 
@@ -142,12 +145,14 @@ export function CloseReasonDialog() {
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>
-						{stage === "CLOSED_LOST" ? "Close as lost" : "Mark as unqualified"}
+						{stage === "CLOSED_LOST"
+							? t("closeLostTitle")
+							: t("markUnqualifiedTitle")}
 					</DialogTitle>
 					<DialogDescription>
 						{stage === "CLOSED_LOST"
-							? "What did we lose it to? This is the only place that answer gets recorded."
-							: "Why is this not a fit? It goes on the timeline so nobody re-runs the same deal."}
+							? t("closeLostDescription")
+							: t("markUnqualifiedDescription")}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -161,12 +166,12 @@ export function CloseReasonDialog() {
 					}}
 				>
 					<Field>
-						<FieldLabel htmlFor={reasonId}>Reason</FieldLabel>
+						<FieldLabel htmlFor={reasonId}>{t("reasonLabel")}</FieldLabel>
 						<Textarea
 							id={reasonId}
 							value={reason}
 							onChange={(event) => setReason(event.target.value)}
-							placeholder="Went with an incumbent vendor"
+							placeholder={t("stageChangeReasonPlaceholder")}
 							rows={3}
 						/>
 					</Field>
@@ -179,10 +184,10 @@ export function CloseReasonDialog() {
 						disabled={setStage.isPending || reason.trim() === ""}
 					>
 						{setStage.isPending ? <Spinner /> : null}
-						Save
+						{common("save")}
 					</Button>
 					<Button variant="outline" onClick={close}>
-						Cancel
+						{common("cancel")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

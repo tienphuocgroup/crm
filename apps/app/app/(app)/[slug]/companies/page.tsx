@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import {
 	PageShell,
@@ -17,21 +18,22 @@ import { companiesSearchParams } from "./companies-search-params";
 import { CompaniesTable } from "./companies-table";
 import { CreateCompanySheet } from "./create-company-sheet";
 
-export const metadata: Metadata = {
-	title: "Companies",
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const t = await getTranslations("companies");
+	return { title: t("metaTitle") };
+}
 
-export default function CompaniesPage({
+export default async function CompaniesPage({
 	searchParams,
 }: PageProps<"/[slug]/companies">) {
+	const t = await getTranslations("companies");
+
 	return (
 		<PageShell className="min-h-0">
 			<PageShellHeader>
 				<PageShellHeading>
-					<PageShellTitle>Companies</PageShellTitle>
-					<PageShellDescription>
-						Every account in the pipeline.
-					</PageShellDescription>
+					<PageShellTitle>{t("metaTitle")}</PageShellTitle>
+					<PageShellDescription>{t("pageDescription")}</PageShellDescription>
 				</PageShellHeading>
 				<PageShellActions>
 					<CreateCompanySheet />

@@ -3,6 +3,7 @@
 import { Spinner } from "@crm/ui/components/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@crm/ui/components/tabs";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import {
 	type RecordKind,
 	useFieldsSheet,
@@ -10,12 +11,7 @@ import {
 import { DetailSheet, DetailSheetHeader } from "@/components/detail-sheet";
 import { useTRPC } from "@/lib/trpc/client";
 import { FieldEditor } from "./field-editor";
-import {
-	ENTITY_TABS,
-	NEW_FIELD,
-	SHEET_TITLE,
-	subtitleFor,
-} from "./fields-copy";
+import { ENTITY_TABS, subtitleKey } from "./fields-copy";
 import { entityOf } from "./fields-entity";
 import { FieldsList } from "./fields-list";
 
@@ -32,6 +28,7 @@ function FieldsSheetBody({
 	onEdit: (key: string | null) => void;
 	onClose: () => void;
 }) {
+	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const entity = entityOf(kind);
 
@@ -50,17 +47,25 @@ function FieldsSheetBody({
 	});
 
 	if (field) {
-		const entityLabel = ENTITY_TABS.find((tab) => tab.kind === kind)?.label;
+		const entityLabel = ENTITY_TABS.find((tab) => tab.kind === kind)?.key;
 		const filled = coverage.data;
 
 		return (
 			<>
 				<DetailSheetHeader
-					title={editing?.label ?? (editingKey ? "" : NEW_FIELD)}
+					title={
+						editing?.label ?? (editingKey ? "" : common("fields.newField"))
+					}
 					description={
 						filled
-							? `${entityLabel} · ${filled.filled} of ${filled.total} filled`
+							? common("fields.coverageSummary", {
+									entity: entityLabel ? common(entityLabel) : "",
+									filled: filled.filled,
+									total: filled.total,
+								})
 							: entityLabel
+								? common(entityLabel)
+								: undefined
 					}
 					onBack={() => onEdit(null)}
 					onClose={onClose}
@@ -84,8 +89,8 @@ function FieldsSheetBody({
 	return (
 		<>
 			<DetailSheetHeader
-				title={SHEET_TITLE}
-				description={subtitleFor(kind)}
+				title={common("fields.sheetTitle")}
+				description={common(subtitleKey(kind))}
 				onClose={onClose}
 				note={
 					<Tabs
@@ -95,7 +100,7 @@ function FieldsSheetBody({
 						<TabsList>
 							{ENTITY_TABS.map((tab) => (
 								<TabsTrigger key={tab.kind} value={tab.kind}>
-									{tab.label}
+									{common(tab.key)}
 								</TabsTrigger>
 							))}
 						</TabsList>
