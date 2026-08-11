@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "i18n Foundation (next-intl)"
-status: pending
+status: complete
 priority: P1
 dependencies: []
 ---
@@ -129,16 +129,52 @@ introduce a `[locale]` segment to solve it.
    client probe and keep the server one.
 10. `bun run check-types && bun run lint`. Commit.
 
+## Spike result
+
+Run on the `ad1d702` base, 2026-08-11. Three builds:
+
+1. Plugin + `getRequestConfig` reading `cookies()` + one `getTranslations` call
+   inside `[slug]`'s existing `Suspense`-scoped async component: **builds clean**,
+   route table byte-identical to baseline (`/` still `○` static).
+2. `LocaleProvider` mounted naked in the root layout: **fails broadly** — every
+   prerendered route errors with `Next.js encountered uncached or runtime data
+   during prerendering` (cookie read above every boundary), exactly the predicted
+   failure.
+3. `LocaleProvider` inside a `Suspense` boundary in the root layout: **builds
+   clean with `cacheComponents: true` retained.** No fallback-ladder escalation
+   needed; `cacheComponents` was not removed.
+
+Prerender status vs baseline: `/` went `○` static → `◐` partial prerender — the
+document shell (html, fonts, body) still prerenders (3.9KB static shell, postponed
+body) and the translated tree streams, the mitigation the plan pre-accepted.
+`/sign-in` unchanged `◐`. `/grant-access`, `/onboarding`, `/onboarding/research`
+**improved** `ƒ` dynamic → `◐` partial prerender (the new root boundary gives them
+a prerenderable shell). All `[slug]/**` unchanged `◐`. `/t/crm.js` unchanged `○`.
+
+`<html lang>` stays static `lang="en"` this round — it sits above the Suspense
+boundary, and reading the cookie there re-trips the broad failure from build 2.
+Phase 2's client switcher patches `document.documentElement.lang`; known
+limitation recorded per the plan.
+
+Loop proof: `common.appName` rendered via one server (`getTranslations`) and one
+client (`useTranslations`) probe on `/` under `IS_MARKETING=true` — identical
+output (`Comp AI CRM`) with no cookie, `NEXT_LOCALE=en`, and `NEXT_LOCALE=zz`
+(fallback, no throw). Deviation from step 9: both probes were then removed, not
+just the client one — the only place a kept server probe could render without
+changing visible output is a page owned by phase 6 or 8, and a hidden DOM node
+would violate the no-visual-change rule. The catalog keeps `appName`; phase 6's
+`generateMetadata` conversion consumes it.
+
 ## Success Criteria
 
-- [ ] `next-intl` present at an exact pinned version in `apps/app/package.json` and `bun.lock`.
-- [ ] `bun run build` succeeds with `cacheComponents: true` still enabled in `next.config.ts`.
-- [ ] Spike outcome written into this file under a short "Spike result" heading — build status, prerender status, chosen `<html lang>` approach.
-- [ ] Setting `NEXT_LOCALE=en` by hand resolves; setting `NEXT_LOCALE=zz` falls back to `en` and does not throw.
-- [ ] All ten namespace files exist and load; a missing namespace is a build error, not a runtime blank.
-- [ ] One `useTranslations` and one `getTranslations` call site render identical output.
-- [ ] `bun run check-types` and `bun run lint` clean.
-- [ ] No new env var; `.env.example` untouched.
+- [x] `next-intl` present at an exact pinned version in `apps/app/package.json` and `bun.lock`.
+- [x] `bun run build` succeeds with `cacheComponents: true` still enabled in `next.config.ts`.
+- [x] Spike outcome written into this file under a short "Spike result" heading — build status, prerender status, chosen `<html lang>` approach.
+- [x] Setting `NEXT_LOCALE=en` by hand resolves; setting `NEXT_LOCALE=zz` falls back to `en` and does not throw.
+- [x] All ten namespace files exist and load; a missing namespace is a build error, not a runtime blank.
+- [x] One `useTranslations` and one `getTranslations` call site render identical output.
+- [x] `bun run check-types` and `bun run lint` clean.
+- [x] No new env var; `.env.example` untouched.
 
 ## Risk Assessment
 
