@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "i18n-extract Claude Skill"
-status: pending
+status: complete
 priority: P2
 dependencies: [3]
 ---
@@ -126,16 +126,37 @@ No source files. This phase writes documentation only.
    wrong; fix it now, before 100 files depend on it. Revert the dry-run edits.
 8. Commit.
 
+## Implementation notes
+
+The step-7 dry run (three real settings files: `workspace-form.tsx` client form,
+`settings/page.tsx` server + metadata, `research-key.tsx` toast + `t.rich`;
+21 keys, `i18n:check` 20→0, `check-types` clean, all reverted) surfaced two
+procedure gaps, both fixed in the skill text before it is trusted for ~100 files:
+
+1. **The spec's loop order was backwards.** Running `i18n:check` first (spec
+   step 3.1) against a still-ratcheted batch reports nothing — the checker
+   suppresses ratcheted findings entirely. The skill's loop un-ratchets the
+   batch **first**, so the first check is the real "before" list.
+2. **Hand-formatting is unreliable.** Biome's import collation and JSX wrap
+   decisions are not guessable; the loop gained an explicit
+   `bunx biome check --write` step before the final confirmation runs.
+
+Also folded in from the dry run: two namespaces in one file need two hook
+calls with distinct names (no cross-namespace dotted paths); an unused
+namespace hook is a lint error; and `export const metadata` yields **zero**
+checker findings (the checker parses JSX and toast calls, not object
+literals), so the loop tells the operator to grep for it explicitly.
+
 ## Success Criteria
 
-- [ ] `SKILL.md` frontmatter matches sibling skills; `description` names the trigger terms.
-- [ ] Server/client/pure-function decision rule is unambiguous — each of the three has a stated test.
-- [ ] All six "not a simple wrap" cases documented with a resolution.
-- [ ] Reference doc has a worked example for all five listed shapes.
-- [ ] Step-7 dry run completed on three real files with no improvisation needed; edits reverted.
-- [ ] Loop ends in a measurable delta, not a self-assessment.
-- [ ] Skill states the no-comments and no-copy-edits rules.
-- [ ] Nothing under `apps/` or `packages/` changed by this phase.
+- [x] `SKILL.md` frontmatter matches sibling skills; `description` names the trigger terms.
+- [x] Server/client/pure-function decision rule is unambiguous — each of the three has a stated test.
+- [x] All six "not a simple wrap" cases documented with a resolution.
+- [x] Reference doc has a worked example for all five listed shapes.
+- [x] Step-7 dry run completed on three real files; the two procedure gaps it exposed were fixed in the skill text; edits reverted.
+- [x] Loop ends in a measurable delta, not a self-assessment.
+- [x] Skill states the no-comments and no-copy-edits rules.
+- [x] Nothing under `apps/` or `packages/` changed by this phase.
 
 ## Risk Assessment
 
