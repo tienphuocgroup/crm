@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Extraction Tooling (checker + pseudo-locale)"
-status: pending
+status: complete
 priority: P1
 dependencies: [1]
 ---
@@ -136,18 +136,51 @@ layout is not being stress-tested here; only coverage is. Loading it needs
 9. Add both root scripts. Confirm `bun run i18n:check` exits 0 with the seeded ratchet.
 10. `bun run lint`. Commit.
 
+## Implementation notes
+
+- A **fourth rule** was required: `jsx-expression`. Sanity case 2 (the pagination
+  `Showing … of …` template) is not a `JsxText` node — it sits in a JSX child
+  expression container. The rule unwraps parentheses, conditionals and
+  `??`/`||`/`&&` only, then flags terminal string/template literals with letters.
+  It deliberately does not descend into calls, objects or arrow bodies, keeping
+  the "object literals not flagged this round" boundary intact. 120 of 810 raw
+  findings came from it.
+- Scan results on the `ad1d702`-based tree: 293 files scanned in ~0.45s; 810 raw
+  findings (520 jsx-text, 120 jsx-expression, 112 jsx-attribute, 58
+  toast-literal); after the allowlist, 784 findings across **115 files**, all
+  ratcheted. No file qualified for allowlist-only treatment (checked
+  programmatically — every flagged file holds at least one real string).
+- Allowlist: 39 entries, every one with a reason. Matching is **exact, not
+  substring** — a substring match would let `Comp AI` silently exempt whole
+  sentences. `logo.tsx`'s `Comp AI Logo` is a `path::string` entry.
+- Ratchet matching is exact-path-first, glob-second: real paths contain `[slug]`
+  and `(app)`, which Bun's `Glob` reads as metacharacters, so pure glob matching
+  would never match them.
+- The pseudo dynamic import keys on `../messages/${locale}/…` (not a hardcoded
+  `pseudo/` segment) so a fresh clone without the gitignored directory falls back
+  to `en` at runtime instead of failing the build.
+- Pseudo maps all 52 ASCII letters, not just the illustrative subset — an
+  unmapped letter would be a blind spot in exactly the coverage the pseudo run
+  exists to prove.
+- End-to-end verified against a dev server via a temporary probe on `/sign-in`
+  (reverted): no cookie → `Comp AI CRM`; `NEXT_LOCALE=pseudo` → `Çôṁþ ÅÌ ÇŔṀ`.
+  ICU round-trip proven through `use-intl` with a plural + embedded tag + nested
+  placeholder in both `en` and pseudo.
+- In production builds `pseudo` is rejected by `isActiveLocale` —
+  `SUPPORTED_LOCALES` stays `["en"]` and the shipped behavior is unchanged.
+
 ## Success Criteria
 
-- [ ] `bun run i18n:check` exits 0 on the current tree with the ratchet seeded.
-- [ ] Removing one path from the ratchet makes it exit 1 with correct `file:line:col`.
-- [ ] All five step-6 sanity cases behave as specified.
-- [ ] `toast.error(error.message)` is not flagged; `toast.success("Saved")` is.
-- [ ] Scan of both workspaces completes in under 10s.
-- [ ] `bun run i18n:pseudo` writes `messages/pseudo/`; setting the cookie to `pseudo` in dev renders accented text.
-- [ ] Pseudo output preserves ICU placeholders — no `Šàvêd {çôûnt}` breakage; a plural message still selects correctly.
-- [ ] Every allowlist entry has a reason string.
-- [ ] `messages/pseudo/` is gitignored.
-- [ ] No new dependency in any shipped `package.json`.
+- [x] `bun run i18n:check` exits 0 on the current tree with the ratchet seeded.
+- [x] Removing one path from the ratchet makes it exit 1 with correct `file:line:col`.
+- [x] All five step-6 sanity cases behave as specified.
+- [x] `toast.error(error.message)` is not flagged; `toast.success("Saved")` is.
+- [x] Scan of both workspaces completes in under 10s.
+- [x] `bun run i18n:pseudo` writes `messages/pseudo/`; setting the cookie to `pseudo` in dev renders accented text.
+- [x] Pseudo output preserves ICU placeholders — no `Šàvêd {çôûnt}` breakage; a plural message still selects correctly.
+- [x] Every allowlist entry has a reason string.
+- [x] `messages/pseudo/` is gitignored.
+- [x] No new dependency in any shipped `package.json`.
 
 ## Risk Assessment
 
