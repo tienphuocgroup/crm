@@ -1,5 +1,5 @@
 import { NextIntlClientProvider } from "next-intl";
-import { resolveLocale } from "@/i18n/locale";
+import { resolveLocale } from "@/i18n/resolve-locale";
 
 export async function LocaleProvider({
 	children,

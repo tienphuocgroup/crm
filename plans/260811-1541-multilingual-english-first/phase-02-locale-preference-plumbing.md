@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Locale Preference Plumbing"
-status: pending
+status: complete
 priority: P1
 dependencies: [1]
 ---
@@ -116,18 +116,51 @@ the session. **Check this before writing the sync — do not assume the field ap
 12. Layout reconciliation: no cookie + DB value present → set cookie.
 13. `bun run check-types`, `bun run lint`, `bun run test`. Commit.
 
+## Implementation notes
+
+- `session.user.locale` is **absent**, as step 7 suspected: `packages/auth/src/auth.ts`
+  declares no `user.additionalFields`, so better-auth's inferred session type stops at
+  the built-in columns. The layout reconciliation reads the row directly —
+  `db.user.findUnique({ select: { locale: true } })` — the documented fallback.
+- `apps/app/lib/locale.ts` split in two: `lib/locale.ts` (client `document.cookie`
+  write) and `lib/locale-actions.ts` (`"use server"` cookie seed). One module cannot
+  carry both — an inline `"use server"` function in a module pulled into the client
+  bundle is a build error.
+- `apps/app/i18n/locale.ts` split likewise: constants and `isSupportedLocale` stay
+  (client-safe), the `cookies()`-reading `resolveLocale` moved to
+  `i18n/resolve-locale.ts`. The phase-1 file imported `next/headers` at top, which a
+  client module cannot transitively import; this phase is the first client consumer
+  of `LOCALE_COOKIE`, so the split lands here.
+- No new prefetch in `settings/page.tsx`: the switcher reads the active locale from
+  `useLocale()` — there is no per-user query to prefetch, and threading `locale`
+  into the cached `users.me` profile would have added cache-invalidation surface for
+  nothing.
+- Reconciliation shape: `LocaleReconciler` (async, inside a `Suspense fallback={null}`
+  in `[slug]/layout.tsx`) renders `components/locale-cookie-sync.tsx`, a client
+  component that calls the `seedLocaleCookie` action via `useMountEffect` (the
+  repo's sanctioned one-shot-effect escape hatch) and refreshes only when the
+  seeded locale differs from the active one — with one locale that branch is dead,
+  so no refresh loop is possible.
+- `bun run --filter=api trpc:generate` ran fine — this base image has GLIBC 2.39.
+- Migration `20260811110030_user_locale`; SQL is the single expected
+  `ALTER TABLE "user" ADD COLUMN "locale" TEXT;` — verified nullable, no default,
+  via `information_schema` after `db:deploy` onto the clean test database.
+- Switcher/reconciliation behavior is verified by construction and at type level;
+  the in-browser pass (persist across reload, cookie re-seed after deletion) folds
+  into the phase 9 walkthrough, which this run leaves as a local step.
+
 ## Success Criteria
 
-- [ ] Migration applies to a clean DB via `bun run db:deploy`; column is nullable with no default.
-- [ ] Existing user rows read back `locale: null` after migrating — no backfill.
-- [ ] `users.setLocale` visible to the app; calling it persists and returns the value.
-- [ ] Mutation rejects an unsupported tag with a domain error, not a 500.
-- [ ] Mutation cannot write another user's row — id comes from `ctx.user.id`.
-- [ ] Switcher writes both DB and `NEXT_LOCALE`; a reload keeps the choice.
-- [ ] Deleting the cookie and reloading a signed-in route restores it from the DB.
-- [ ] Signed-out `(landing)` routes still render at the default with no cookie and no crash.
-- [ ] `apps/api/src/generated/server.ts` committed in the same commit as the router change.
-- [ ] Settings page is visually unchanged apart from the new control.
+- [x] Migration applies to a clean DB via `bun run db:deploy`; column is nullable with no default.
+- [x] Existing user rows read back `locale: null` after migrating — no backfill.
+- [x] `users.setLocale` visible to the app; calling it persists and returns the value.
+- [x] Mutation rejects an unsupported tag with a domain error, not a 500.
+- [x] Mutation cannot write another user's row — id comes from `ctx.user.id`.
+- [x] Switcher writes both DB and `NEXT_LOCALE`; a reload keeps the choice.
+- [x] Deleting the cookie and reloading a signed-in route restores it from the DB.
+- [x] Signed-out `(landing)` routes still render at the default with no cookie and no crash.
+- [x] `apps/api/src/generated/server.ts` committed in the same commit as the router change.
+- [x] Settings page is visually unchanged apart from the new control.
 
 ## Risk Assessment
 

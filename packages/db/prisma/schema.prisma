@@ -18,6 +18,7 @@ model User {
   email         String
   emailVerified Boolean   @default(false)
   image         String?
+  locale        String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   sessions      Session[]

@@ -9,7 +9,7 @@ import landing from "../messages/en/landing.json";
 import nav from "../messages/en/nav.json";
 import settings from "../messages/en/settings.json";
 import ui from "../messages/en/ui.json";
-import { resolveLocale } from "./locale";
+import { resolveLocale } from "./resolve-locale";
 
 export default getRequestConfig(async () => {
 	const locale = await resolveLocale();

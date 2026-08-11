@@ -19,4 +19,15 @@ export class UsersService {
 			orderBy: [{ name: "asc" }, { email: "asc" }],
 		});
 	}
+
+	async setLocale(
+		userId: string,
+		locale: string,
+	): Promise<{ locale: string | null }> {
+		return this.db.user.update({
+			where: { id: userId },
+			data: { locale },
+			select: { locale: true },
+		});
+	}
 }
