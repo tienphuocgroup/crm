@@ -1,7 +1,14 @@
 {
+	"chat": "Chat",
+	"closeNavigation": "Close navigation",
 	"companies": "Companies",
 	"contacts": "Contacts",
 	"deals": "Deals",
+	"mobileNavTitle": "Navigation",
+	"mobileNavTitleWithChats": "Navigation and agent chats",
+	"openNavigation": "Open navigation",
+	"overview": "Overview",
+	"primaryNavLabel": "Primary",
 	"settings": {
 		"ariaLabel": "Workspace settings",
 		"connections": "Connections",
@@ -10,5 +17,6 @@
 		"members": "Members",
 		"sso": "SSO",
 		"tracking": "Tracking & Analytics"
-	}
+	},
+	"settingsLabel": "Settings"
 }

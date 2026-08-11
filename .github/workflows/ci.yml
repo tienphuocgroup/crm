@@ -64,4 +64,6 @@ jobs:
 
       - run: bun run lint
 
+      - run: bun run i18n:check
+
       - run: bun run test

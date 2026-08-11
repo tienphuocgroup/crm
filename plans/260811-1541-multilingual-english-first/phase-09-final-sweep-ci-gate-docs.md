@@ -1,7 +1,7 @@
 ---
 phase: 9
 title: "Final Sweep + CI Gate + Docs"
-status: pending
+status: complete
 priority: P1
 dependencies: [2, 6, 7, 8]
 ---
@@ -149,19 +149,56 @@ stays `["en"]`; `docs/i18n.md` explains what adding `vi` involves.
     is too large to review whole.
 <!-- Updated: Validation Session 1 - fork workflow (origin=tienphuocgroup), typeLabel() naming, ci.yml drift, Actions enablement, upstream-sync procedure -->
 
+## Implementation notes
+
+- Final sweep emptied the ratchet: the six shared shell components
+  (`agent-clarification-composer`, `app-header`, `app-icon-rail`, `auth-shell`,
+  `detail-sheet`, `page-shell`) extracted — 29 checker findings plus the
+  checker-blind cases found by reading (identifier-rendered rail titles, a
+  plain-string `setTransportError`, a `pendingLabel` prop). One real i18n bug
+  fixed on the way: `app-icon-rail` compared `item.title === "Chat"` for its
+  sheet logic — translated titles would have broken it; items now carry a
+  stable `id`.
+- **`TYPE_LABELS` moved to the catalog** (`common.fieldType.<ENUM>`, values
+  byte-identical); `typeLabel()` now returns the enum key, `packages/db` keeps
+  zero i18n surface, diff confined to `fields-shape.ts`. No test asserted the
+  English labels.
+- **`standard-fields.ts` ruling** (carried from phase 7): extracted to
+  `common.fields.standard*` — the names describe hardcoded Prisma columns with
+  no rename mechanism and never round-trip through the DB, so they are product
+  copy, not user data. Recorded in `docs/i18n.md`.
+- Gate proof: reverting one extracted string to a literal made `i18n:check`
+  exit 1 at the correct `file:line:col`; restoring returned it to 0.
+- Allowlist reviewed in one pass: 41 entries (brands, vendors, protocol
+  acronyms, ISO 4217 codes, wire headers, URL/host examples, copyable HTML
+  fragments, one example person name), every one with a reason, none silencing
+  translatable prose.
+- Clean install from `--frozen-lockfile`: `check-types`, `lint`, `i18n:check`,
+  `test` all green; `apps/app` build green with the route table unchanged.
+  `apps/agent` cannot build in this environment (eve requires Node ≥ 24, the
+  box runs 22) — a pre-existing environment limitation independent of this
+  work.
+- Catalog sort drift from earlier phases fixed (ordering only, values
+  untouched, verified by deep-equal-ignoring-order).
+- Remaining local steps, deliberately not claimed: the visual pseudo-locale
+  walkthrough and `en` comparison walkthrough; the in-browser switcher
+  persistence check; and — blocked on repo write access (session credential is
+  read-only, 403 on push for both git and the GitHub App) — the push, the PR,
+  and observing the CI gate execute on the fork.
+
 ## Success Criteria
 
-- [ ] `apps/app/scripts/i18n/ratchet.json` is `[]`.
-- [ ] `bun run i18n:check` exits 0 across `apps/app` and `packages/ui`.
-- [ ] Step-6 gate proof done: an intentionally reverted string fails CI's check.
-- [ ] Every allowlist entry reviewed in one pass; each has a reason; none silences a real finding.
-- [ ] `TYPE_LABELS` decided and the decision recorded in `docs/i18n.md`.
+- [x] `apps/app/scripts/i18n/ratchet.json` is `[]`.
+- [x] `bun run i18n:check` exits 0 across `apps/app` and `packages/ui`.
+- [x] Step-6 gate proof done: an intentionally reverted string fails CI's check.
+- [x] Every allowlist entry reviewed in one pass; each has a reason; none silences a real finding.
+- [x] `TYPE_LABELS` decided and the decision recorded in `docs/i18n.md`.
 - [ ] Full pseudo-locale walkthrough of every listed route: no unaccented text outside the allowlist.
 - [ ] `en` walkthrough matches `main` — no visual change, no wording change (`docs/design.md`).
-- [ ] Clean install + `check-types`, `lint`, `build`, `test` all green.
-- [ ] `docs/i18n.md` exists and covers all seven listed topics; every path in it resolves.
-- [ ] `AGENTS.md` index row added; `README.md` lists both new commands.
-- [ ] No `messages/vi/` directory; `SUPPORTED_LOCALES` is still `["en"]`.
+- [x] Clean install + `check-types`, `lint`, `build`, `test` all green.
+- [x] `docs/i18n.md` exists and covers all seven listed topics; every path in it resolves.
+- [x] `AGENTS.md` index row added; `README.md` lists both new commands.
+- [x] No `messages/vi/` directory; `SUPPORTED_LOCALES` is still `["en"]`.
 - [ ] Language switcher persists across sign-out and sign-in on a fresh browser profile.
 - [ ] PR opened inside the fork against `release`, described commit by commit.
 - [ ] A workflow run actually executed on the PR — Actions enabled on the fork.

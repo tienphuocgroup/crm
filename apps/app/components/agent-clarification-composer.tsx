@@ -14,6 +14,7 @@ import {
 	QuestionnaireTitle,
 } from "@crm/ui/components/questionnaire";
 import type { EveMessageInputRequest } from "eve/react";
+import { useTranslations } from "next-intl";
 import { type FormEvent, useState } from "react";
 import { AGENT_COMPOSER_CLASS_NAME } from "./agent-composer-frame";
 
@@ -32,6 +33,7 @@ export function AgentClarificationComposer({
 	pending: boolean;
 	onSubmit: (response: ClarificationResponse) => Promise<void>;
 }) {
+	const t = useTranslations("agent-panel");
 	const options = question.options ?? [];
 	const [transportError, setTransportError] = useState<string | null>(null);
 	const showFreeform =
@@ -69,9 +71,7 @@ export function AgentClarificationComposer({
 			) satisfies ClarificationResponse;
 			await onSubmit(response);
 		} catch {
-			setTransportError(
-				"Unable to submit. Check your connection and try again.",
-			);
+			setTransportError(t("clarificationSubmitFailed"));
 		}
 	};
 
@@ -87,8 +87,8 @@ export function AgentClarificationComposer({
 				<QuestionnaireTitle>{question.prompt}</QuestionnaireTitle>
 				<QuestionnaireDescription>
 					{options.length > 0
-						? "Choose an answer, then submit."
-						: "Add the detail the agent needs to continue."}
+						? t("clarificationChooseAnswer")
+						: t("clarificationAddDetail")}
 				</QuestionnaireDescription>
 				<QuestionnaireChoices>
 					{options.map((option) => (
@@ -107,8 +107,12 @@ export function AgentClarificationComposer({
 					))}
 					{showFreeform ? (
 						<QuestionnaireInput
-							aria-label={options.length > 0 ? "Another answer" : "Your answer"}
-							placeholder="Add the detail the agent needs"
+							aria-label={
+								options.length > 0
+									? t("clarificationAnotherAnswerAriaLabel")
+									: t("clarificationYourAnswerAriaLabel")
+							}
+							placeholder={t("clarificationInputPlaceholder")}
 							disabled={pending}
 						/>
 					) : null}
@@ -124,9 +128,9 @@ export function AgentClarificationComposer({
 				<QuestionnaireSubmit disabled={pending} aria-busy={pending} size="sm">
 					<AsyncButtonContent
 						status={pending ? "pending" : "idle"}
-						pendingLabel="Submitting"
+						pendingLabel={t("submittingLabel")}
 					>
-						Submit answer
+						{t("clarificationSubmitLabel")}
 					</AsyncButtonContent>
 				</QuestionnaireSubmit>
 			</QuestionnaireActions>

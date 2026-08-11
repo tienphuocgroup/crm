@@ -185,7 +185,7 @@ export function FieldsList({
 								key={field}
 								className="px-5 py-1 text-muted-foreground text-xs"
 							>
-								{field}
+								{common(`fields.${field}`)}
 							</li>
 						))}
 					</ul>
@@ -274,7 +274,7 @@ export function FieldsList({
 												variant="mono"
 												className="w-18 shrink-0 justify-center"
 											>
-												{field.typeLabel}
+												{common(`fieldType.${field.type}`)}
 											</Badge>
 
 											<DropdownMenu>

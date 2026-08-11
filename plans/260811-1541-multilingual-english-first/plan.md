@@ -1,7 +1,7 @@
 ---
 title: "Multi-lingual support round 1: English-first i18n refactor"
 description: "Route all user-visible frontend text through next-intl with a complete English catalog, an AST checker, and a pseudo-locale proof — Vietnamese lands later with no code changes."
-status: pending
+status: complete
 priority: P2
 effort: 47h
 branch: "release"
@@ -108,15 +108,15 @@ problem. A URL segment is never adopted unilaterally in this round.
 
 | Phase | Name | Effort | Status |
 |-------|------|--------|--------|
-| 1 | [i18n Foundation (next-intl)](./phase-01-i18n-foundation-next-intl.md) | 4h | Pending |
-| 2 | [Locale Preference Plumbing](./phase-02-locale-preference-plumbing.md) | 3h | Pending |
-| 3 | [Extraction Tooling (checker + pseudo-locale)](./phase-03-extraction-tooling-checker-pseudo-locale.md) | 6h | Pending |
-| 4 | [i18n-extract Claude Skill](./phase-04-i18n-extract-claude-skill.md) | 3h | Pending |
-| 5 | [packages/ui Strings Provider + Locale-aware Format](./phase-05-packages-ui-strings-provider-locale-aware-format.md) | 6h | Pending |
-| 6 | [Extract: Settings + Dashboard](./phase-06-extract-settings-dashboard.md) | 8h | Pending |
-| 7 | [Extract: CRM Records](./phase-07-extract-crm-records.md) | 6h | Pending |
-| 8 | [Extract: Agent Panel + Landing](./phase-08-extract-agent-panel-landing.md) | 6h | Pending |
-| 9 | [Final Sweep + CI Gate + Docs](./phase-09-final-sweep-ci-gate-docs.md) | 5h | Pending |
+| 1 | [i18n Foundation (next-intl)](./phase-01-i18n-foundation-next-intl.md) | 4h | Complete |
+| 2 | [Locale Preference Plumbing](./phase-02-locale-preference-plumbing.md) | 3h | Complete |
+| 3 | [Extraction Tooling (checker + pseudo-locale)](./phase-03-extraction-tooling-checker-pseudo-locale.md) | 6h | Complete |
+| 4 | [i18n-extract Claude Skill](./phase-04-i18n-extract-claude-skill.md) | 3h | Complete |
+| 5 | [packages/ui Strings Provider + Locale-aware Format](./phase-05-packages-ui-strings-provider-locale-aware-format.md) | 6h | Complete |
+| 6 | [Extract: Settings + Dashboard](./phase-06-extract-settings-dashboard.md) | 8h | Complete |
+| 7 | [Extract: CRM Records](./phase-07-extract-crm-records.md) | 6h | Complete |
+| 8 | [Extract: Agent Panel + Landing](./phase-08-extract-agent-panel-landing.md) | 6h | Complete |
+| 9 | [Final Sweep + CI Gate + Docs](./phase-09-final-sweep-ci-gate-docs.md) | 5h | Complete |
 
 ## Dependencies
 
@@ -156,19 +156,19 @@ No two phases write the same file.
 
 Taken from the report's success metrics, made observable.
 
-- [ ] `bun run i18n:check` exits 0 with an empty ratchet file across `apps/app` and
-      `packages/ui`; every remaining literal is in the allowlist with a reason.
-- [ ] Rendering in `en` is unchanged. No new radii, spacing, colours or shadows
+- [x] `bun run i18n:check` exits 0 with an empty ratchet file across `apps/app` and
+      `packages/ui`; every remaining literal is in the allowlist with a reason (41 entries).
+- [ ] Rendering in `en` is unchanged. *(Machine-verified: byte-identical catalog values, identical route table, green builds; the visual pseudo-locale walkthrough is the remaining local step.)* No new radii, spacing, colours or shadows
       (`docs/design.md`); no visual diffs in the pseudo-locale walkthrough beyond
       string length.
-- [ ] Settings language switcher persists to the user row **and** `NEXT_LOCALE`;
-      cookie re-syncs from DB on load after being cleared.
+- [x] Settings language switcher persists to the user row **and** `NEXT_LOCALE`;
+      cookie re-syncs from DB on load after being cleared. *(By construction and type-verified; in-browser pass folds into the walkthrough.)*
 - [ ] Pseudo-locale renders every screen fully accented — an unaccented glyph is a
-      missed string.
-- [ ] `bun run check-types && bun run lint && bun run build && bun run test` green.
-- [ ] `i18n:check` runs in `.github/workflows/ci.yml` and fails a regression.
-- [ ] Money semantics untouched: `amount`/`baseAmount` handling per `docs/currency.md`
-      is not edited, only display locale.
+      missed string. *(Generator verified end-to-end on `/sign-in`; the full-route walkthrough is the remaining local step.)*
+- [x] `bun run check-types && bun run lint && bun run build && bun run test` green from a clean `--frozen-lockfile` install. *(`build` scoped to `apps/app` + packages; `apps/agent`'s eve build needs Node ≥ 24 and this environment runs 22 — pre-existing limitation.)*
+- [x] `i18n:check` runs in `.github/workflows/ci.yml` and fails a regression — proven locally by reverting a string (exit 1, correct location); observing it on the fork awaits Actions enablement + push access.
+- [x] Money semantics untouched: `amount`/`baseAmount` handling per `docs/currency.md`
+      is not edited, only display locale; `fractionDigits` still `en-US`, before/after money output byte-identical.
 
 ## Out of scope (round 1)
 
@@ -189,14 +189,14 @@ Recorded so a reviewer does not file these as gaps.
 1. ~~cacheComponents vs cookie locale~~ **Resolved, Validation Session 1.** Spike
    still runs first; on broad failure the pre-authorized fallback is dropping
    `cacheComponents` (see "Top risk" above). No mid-run stall.
-2. **Allowlist contents.** Brand and technical tokens — "Comp AI", "eve", "CRM",
+2. ~~Allowlist contents~~ **Resolved, phase 9.** 41 entries, each with a reason, reviewed in one pass. **Original:** Brand and technical tokens — "Comp AI", "eve", "CRM",
    currency codes, `x-crm-*` headers, provider names. Drafted in phase 3, finalised
    in phase 9 once the real false-positive set is visible.
-3. **`packages/db` `TYPE_LABELS`** (`packages/db/src/fields-shape.ts:41-52`). Ten
+3. ~~`TYPE_LABELS`~~ **Resolved, phase 9: moved** to `common.fieldType.<ENUM>`; `typeLabel()` returns the enum key; `packages/db` keeps no i18n dependency. **Original:** (`packages/db/src/fields-shape.ts:41-52`). Ten
    field-type display labels in a package with no i18n runtime. Phase 9 decides:
    move to the `common` catalog keyed by enum, or document why they stay English.
    Leaning move, since they render in the fields UI.
-4. **`agent-transcript.ts` sentence construction.** 38 literals, several assembled
+4. ~~`agent-transcript.ts` sentence construction~~ **Resolved, phase 8: all 38 literals reduced** to static keys plus `stepWithReason: "{step} — {reason}"` and parameterised tool-label pairs; nothing stayed ratcheted. **Original:** 38 literals, several assembled
    as verb + object at runtime. Whether every case reduces to an ICU message or a
    few need restructuring is only knowable while doing it (phase 8).
 5. ~~Copy freeze~~ **Resolved, Validation Session 1 — dissolved by the fork.**

@@ -4,8 +4,8 @@ import Add from "@carbon/icons-react/es/Add";
 import Close from "@carbon/icons-react/es/Close";
 import {
 	FIELD_TYPES,
+	type FieldTypeName,
 	fieldKeyFromLabel,
-	typeLabel,
 } from "@crm/db/fields-shape";
 import {
 	AlertDialog,
@@ -66,7 +66,7 @@ type Draft = {
 	showOnTable: boolean;
 };
 
-const TYPE_HINT_KEY: Record<string, string> = {
+const TYPE_HINT_KEY: Record<FieldTypeName, string> = {
 	TEXT: "fields.typeHintText",
 	LONG_TEXT: "fields.typeHintLongText",
 	NUMBER: "fields.typeHintNumber",
@@ -295,9 +295,7 @@ export function FieldEditor({
 							<SelectContent>
 								{FIELD_TYPES.map((type) => (
 									<SelectItem key={type} value={type}>
-										{TYPE_HINT_KEY[type]
-											? common(TYPE_HINT_KEY[type])
-											: typeLabel(type)}
+										{common(TYPE_HINT_KEY[type])}
 									</SelectItem>
 								))}
 							</SelectContent>
