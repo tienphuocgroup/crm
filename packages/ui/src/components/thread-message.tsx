@@ -1,4 +1,7 @@
+"use client";
+
 import { PersonAvatar } from "@crm/ui/components/person-avatar";
+import { useUiStrings } from "@crm/ui/components/ui-strings-provider";
 import { cn } from "@crm/ui/lib/utils";
 import type * as React from "react";
 
@@ -21,6 +24,7 @@ function ThreadMessage({
 	body: string | null;
 	action?: React.ReactNode;
 }) {
+	const strings = useUiStrings();
 	const outbound = direction === "OUTBOUND";
 
 	return (
@@ -59,7 +63,7 @@ function ThreadMessage({
 					</p>
 				) : (
 					<p className="text-muted-foreground text-xs italic">
-						No message body.
+						{strings.threadMessageEmpty}
 					</p>
 				)}
 

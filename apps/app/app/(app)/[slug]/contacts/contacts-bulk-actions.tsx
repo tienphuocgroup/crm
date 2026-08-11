@@ -11,8 +11,8 @@ import {
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
 } from "@crm/ui/components/dropdown-menu";
-import { formatCount } from "@crm/ui/lib/format";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -24,10 +24,6 @@ import {
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 
-function contacts(count: number): string {
-	return formatCount(count, "contact");
-}
-
 export function ContactsBulkActions({
 	ids,
 	onDone,
@@ -35,11 +31,14 @@ export function ContactsBulkActions({
 	ids: string[];
 	onDone: () => void;
 }) {
+	const t = useTranslations("contacts");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 	const users = useQuery(trpc.users.list.queryOptions());
 	const companies = useQuery(trpc.companies.options.queryOptions({ q: "" }));
 	const [confirming, setConfirming] = useState(false);
+
+	const contacts = (count: number) => t("contactCount", { count });
 
 	const onError = (error: { message: string }) => toast.error(error.message);
 

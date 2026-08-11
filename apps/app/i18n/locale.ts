@@ -8,6 +8,12 @@ export const PSEUDO_LOCALE = "pseudo";
 
 export type ActiveLocale = SupportedLocale | typeof PSEUDO_LOCALE;
 
+const INTL_LOCALES: Record<SupportedLocale, string> = {
+	en: "en-US",
+};
+
+export const DEFAULT_INTL_LOCALE = INTL_LOCALES[DEFAULT_LOCALE];
+
 export const LOCALE_COOKIE = "NEXT_LOCALE";
 
 export const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
@@ -23,4 +29,8 @@ export function isPseudoLocaleEnabled(): boolean {
 export function isActiveLocale(value: string): value is ActiveLocale {
 	if (isSupportedLocale(value)) return true;
 	return value === PSEUDO_LOCALE && isPseudoLocaleEnabled();
+}
+
+export function intlLocale(value: string): string {
+	return isSupportedLocale(value) ? INTL_LOCALES[value] : DEFAULT_INTL_LOCALE;
 }

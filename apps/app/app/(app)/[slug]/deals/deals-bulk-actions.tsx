@@ -22,8 +22,8 @@ import {
 import { Field, FieldLabel } from "@crm/ui/components/field";
 import { Spinner } from "@crm/ui/components/spinner";
 import { Textarea } from "@crm/ui/components/textarea";
-import { formatCount } from "@crm/ui/lib/format";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -36,10 +36,6 @@ import { DEAL_STAGE_OPTIONS, LOSING_STAGES } from "@/lib/deal-stage";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 
-function deals(count: number): string {
-	return formatCount(count, "deal");
-}
-
 export function DealsBulkActions({
 	ids,
 	onDone,
@@ -47,6 +43,7 @@ export function DealsBulkActions({
 	ids: string[];
 	onDone: () => void;
 }) {
+	const t = useTranslations("deals");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 	const users = useQuery(trpc.users.list.queryOptions());
@@ -54,6 +51,8 @@ export function DealsBulkActions({
 	const [confirming, setConfirming] = useState(false);
 	const [closing, setClosing] = useState<DealStage | null>(null);
 	const [reason, setReason] = useState("");
+
+	const deals = (count: number) => t("dealCount", { count });
 
 	const onError = (error: { message: string }) => toast.error(error.message);
 

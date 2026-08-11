@@ -1,1 +1,3 @@
-{}
+{
+	"contactCount": "{count, plural, one {# contact} other {# contacts}}"
+}

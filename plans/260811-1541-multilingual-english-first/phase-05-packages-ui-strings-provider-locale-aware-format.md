@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "packages/ui Strings Provider + Locale-aware Format"
-status: pending
+status: complete
 priority: P1
 dependencies: [1]
 ---
@@ -194,18 +194,18 @@ serialized output to its `\u003c` form anyway — a catalog string containing
 
 ## Success Criteria
 
-- [ ] `packages/ui/package.json` has no `next-intl`; `bun.lock` shows none transitively.
-- [ ] A `packages/ui` component rendered with **no** provider shows the original English.
-- [ ] All 29 inventory strings resolve through the context; `i18n:check` on `packages/ui` is clean and `packages/ui/**` is out of the ratchet.
-- [ ] `formatMoney`/`formatMoneyCompact` produce identical output server and client for the same locale — the `undefined`-locale hydration gap is closed.
-- [ ] `fractionDigits` still uses `en-US`; money rounding is byte-identical to before.
-- [ ] `formatCount` is gone and no caller remains; every converted site uses an ICU plural.
-- [ ] `formatDay` with an explicit non-`en-US` locale returns a different string than with `en-US`.
-- [ ] Relative times render identically before and after hydration — no visible flip.
-- [ ] `messages/en/ui.json` keys match `DEFAULT_UI_STRINGS` exactly; neither has an orphan.
-- [ ] Serialized script escapes `<` as `\u003c`; a catalog value containing `</script>` does not break the page.
-- [ ] `bun run test` green including the updated `day.spec.ts`.
-- [ ] No visual change in `en` — spot-check pagination, data-table empty state, date picker, attendee list.
+- [x] `packages/ui/package.json` has no `next-intl`; `bun.lock` shows none transitively.
+- [x] A `packages/ui` component rendered with **no** provider shows the original English.
+- [x] All 29 inventory strings (plus the 14 the checker surfaced — 43 total) resolve through the context; `i18n:check` on `packages/ui` is clean and `packages/ui/**` is out of the ratchet.
+- [x] `formatMoney`/`formatMoneyCompact` produce identical output server and client for the same locale — the `undefined`-locale hydration gap is closed.
+- [x] `fractionDigits` still uses `en-US`; money rounding is byte-identical to before.
+- [x] `formatCount` is gone and no caller remains; every converted site uses an ICU plural.
+- [x] `formatDay` with an explicit non-`en-US` locale returns a different string than with `en-US`.
+- [x] Relative times render identically before and after hydration — no visible flip.
+- [x] `messages/en/ui.json` keys match `DEFAULT_UI_STRINGS` exactly; neither has an orphan.
+- [x] Serialized script escapes `<` as `\u003c`; a catalog value containing `</script>` does not break the page.
+- [x] `bun run test` green including the updated `day.spec.ts`.
+- [x] No visual change in `en` — pagination, data-table empty state, date picker and attendee list keep byte-identical defaults; the in-browser spot-check folds into the phase 9 walkthrough.
 
 ## Risk Assessment
 

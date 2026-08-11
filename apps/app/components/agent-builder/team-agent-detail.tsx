@@ -28,6 +28,8 @@ import {
 	DropdownMenuTrigger,
 } from "@crm/ui/components/dropdown-menu";
 import { Icon } from "@crm/ui/components/icon";
+import { useUiLocale } from "@crm/ui/components/ui-strings-provider";
+import { dateTimeFormat } from "@crm/ui/lib/format";
 import { cn } from "@crm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -65,7 +67,7 @@ type ActivityRow = Omit<Activity[number], "before" | "after"> & {
 	before: unknown;
 	after: unknown;
 };
-const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+const DATE_OPTIONS = {
 	month: "short",
 	day: "numeric",
 	hour: "numeric",
@@ -73,14 +75,14 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
 	second: "2-digit",
 	timeZone: "UTC",
 	timeZoneName: "short",
-});
-const TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
+} as const;
+const TIME_OPTIONS = {
 	hour: "2-digit",
 	minute: "2-digit",
 	second: "2-digit",
 	hour12: false,
 	timeZone: "UTC",
-});
+} as const;
 
 export function TeamAgentDetail({
 	agentId,
@@ -93,6 +95,7 @@ export function TeamAgentDetail({
 	initialRuns: Runs;
 	initialActivity: Activity;
 }) {
+	const locale = useUiLocale();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const [tab, setTab] = useState<AgentTab>(() =>
@@ -225,7 +228,7 @@ export function TeamAgentDetail({
 							{isDraft
 								? "Private draft"
 								: nextRun
-									? formatDate(nextRun)
+									? formatDate(nextRun, locale)
 									: "Manual only"}
 						</span>
 						<div className="mt-1 flex flex-wrap gap-2">
@@ -657,6 +660,7 @@ function DetailRow({ label, value }: { label: string; value: ReactNode }) {
 }
 
 function AgentRuns({ runs }: { runs: Runs }) {
+	const locale = useUiLocale();
 	const [outcome, setOutcome] = useState("ALL");
 	const [expanded, setExpanded] = useState<string | null>(null);
 	const visible = runs.filter(
@@ -712,8 +716,9 @@ function AgentRuns({ runs }: { runs: Runs }) {
 								</span>
 							</span>
 							<span className="mt-1 block wrap-break-word font-mono text-muted-foreground text-xs leading-5 sm:mt-0">
-								{humanStatus(run.triggerType)} · {formatDate(run.createdAt)} ·
-								Version {run.version.number}
+								{humanStatus(run.triggerType)} ·{" "}
+								{formatDate(run.createdAt, locale)} · Version{" "}
+								{run.version.number}
 							</span>
 						</span>
 						<span className="flex min-w-0 items-center justify-between gap-3 font-mono text-muted-foreground text-xs sm:shrink-0 sm:justify-start sm:gap-4">
@@ -745,6 +750,7 @@ function AgentRuns({ runs }: { runs: Runs }) {
 }
 
 function ExpandedRun({ run }: { run: RunRow }) {
+	const locale = useUiLocale();
 	const events = run.events.filter(
 		(event) => event.type !== "message.appended",
 	);
@@ -769,7 +775,7 @@ function ExpandedRun({ run }: { run: RunRow }) {
 						className="grid min-h-8 min-w-0 grid-cols-[68px_minmax(0,1fr)] items-start gap-x-3 border-t px-4 py-2 first:border-t-0 sm:flex sm:items-center sm:gap-5 sm:px-5 sm:py-1.5"
 					>
 						<span className="shrink-0 font-mono text-muted-foreground text-xs sm:w-[78px]">
-							{formatTime(event.emittedAt)}
+							{formatTime(event.emittedAt, locale)}
 						</span>
 						<span className="min-w-0 flex-1 wrap-break-word text-sm">
 							{eventLabel(event.type, event.data)}
@@ -787,6 +793,7 @@ function ExpandedRun({ run }: { run: RunRow }) {
 						<span className="shrink-0 font-mono text-muted-foreground text-xs sm:w-[78px]">
 							{formatTime(
 								action.completedAt ?? action.startedAt ?? action.plannedAt,
+								locale,
 							)}
 						</span>
 						<span className="min-w-0 flex-1">
@@ -837,6 +844,7 @@ function RunMeta({
 }
 
 function AgentActivity({ activity }: { activity: Activity }) {
+	const locale = useUiLocale();
 	const [kind, setKind] = useState("ALL");
 	const rows = activity as unknown as ActivityRow[];
 	const visible = rows.filter(
@@ -879,7 +887,7 @@ function AgentActivity({ activity }: { activity: Activity }) {
 						className="flex min-h-11 min-w-0 flex-col items-start gap-2 border-t px-4 py-3 first:border-t-0 sm:flex-row sm:items-center sm:gap-0 sm:px-5"
 					>
 						<span className="shrink-0 font-mono text-muted-foreground text-xs sm:w-[166px]">
-							{formatDate(event.emittedAt)}
+							{formatDate(event.emittedAt, locale)}
 						</span>
 						<span className="min-w-0 flex-1">
 							<span className="block wrap-break-word text-sm">
@@ -923,12 +931,12 @@ function humanStatus(value: string): string {
 		.replace(/^./, (character) => character.toUpperCase());
 }
 
-function formatDate(value: string): string {
-	return DATE_FORMATTER.format(new Date(value));
+function formatDate(value: string, locale: string): string {
+	return dateTimeFormat(locale, DATE_OPTIONS).format(new Date(value));
 }
 
-function formatTime(value: string): string {
-	return TIME_FORMATTER.format(new Date(value));
+function formatTime(value: string, locale: string): string {
+	return dateTimeFormat(locale, TIME_OPTIONS).format(new Date(value));
 }
 
 function duration(startedAt: string | null, finishedAt: string | null): string {

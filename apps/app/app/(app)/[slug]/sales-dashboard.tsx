@@ -10,12 +10,12 @@ import type { ChartConfig } from "@crm/ui/components/chart";
 import { DashboardRow, StatGroup } from "@crm/ui/components/dashboard";
 import { StatCard, type StatDelta } from "@crm/ui/components/stat-card";
 import {
-	formatCount,
 	formatMoney,
 	formatMoneyCompact,
 	formatPercent,
 } from "@crm/ui/lib/format";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { AreaTrend, DonutStat } from "@/components/dashboard-charts";
 import { dealStageColor, dealStageLabel } from "@/lib/deal-stage";
@@ -44,6 +44,7 @@ function changeDelta(
 }
 
 export function SalesDashboard({ summary }: { summary: Summary }) {
+	const t = useTranslations("dashboard");
 	const workspaceUrl = useWorkspaceUrl();
 
 	const {
@@ -91,12 +92,12 @@ export function SalesDashboard({ summary }: { summary: Summary }) {
 						wonPrevMonth.valueCents,
 						"vs. last month",
 					)}
-					description={`${formatCount(wonThisMonth.count, "deal")} · ${money(wonPrevMonth.valueCents)} last month`}
+					description={`${t("dealCount", { count: wonThisMonth.count })} · ${money(wonPrevMonth.valueCents)} last month`}
 				/>
 				<StatCard
 					label="Open pipeline"
 					value={money(pipeline.totalCents)}
-					description={`${formatCount(pipeline.totalDeals, "deal")} in progress · ${money(closingThisMonthTotal.valueCents)} due this month`}
+					description={`${t("dealCount", { count: pipeline.totalDeals })} in progress · ${money(closingThisMonthTotal.valueCents)} due this month`}
 				/>
 				<StatCard
 					label={`Win rate (${performance.windowDays}d)`}
@@ -129,7 +130,7 @@ export function SalesDashboard({ summary }: { summary: Summary }) {
 			{unconverted.count > 0 ? (
 				<p className="text-muted-foreground text-xs">
 					Every figure above is in {reportingCurrency}.{" "}
-					{formatCount(unconverted.count, "deal")} in{" "}
+					{t("dealCount", { count: unconverted.count })} in{" "}
 					{unconverted.currencies.join(", ")}{" "}
 					{unconverted.count === 1 ? "is" : "are"} not included — there is no
 					rate to convert {unconverted.currencies.length === 1 ? "it" : "them"}{" "}

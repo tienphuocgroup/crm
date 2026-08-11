@@ -1,1 +1,4 @@
-{}
+{
+	"dealCount": "{count, plural, one {# deal} other {# deals}}",
+	"taskCount": "{count, plural, one {# task} other {# tasks}}"
+}

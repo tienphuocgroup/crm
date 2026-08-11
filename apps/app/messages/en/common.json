@@ -1,3 +1,10 @@
 {
-	"appName": "Comp AI CRM"
+	"appName": "Comp AI CRM",
+	"relativeTimeDays": "{count}d",
+	"relativeTimeEmpty": "—",
+	"relativeTimeFuture": "in {distance}",
+	"relativeTimeHours": "{count}h",
+	"relativeTimeJustNow": "just now",
+	"relativeTimeMinutes": "{count}m",
+	"relativeTimePast": "{distance} ago"
 }

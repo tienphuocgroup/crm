@@ -25,9 +25,10 @@ import {
 import { Spinner } from "@crm/ui/components/spinner";
 import { StatusIndicator } from "@crm/ui/components/status-indicator";
 import { TableCell } from "@crm/ui/components/table";
-import { formatCount, formatMoneyCompact } from "@crm/ui/lib/format";
+import { formatMoneyCompact } from "@crm/ui/lib/format";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useQueryState } from "nuqs";
 import type { CSSProperties, ReactNode } from "react";
 import { toast } from "sonner";
@@ -89,6 +90,7 @@ const ACTIVITY_COLUMNS: SimpleTableColumn[] = [
 ];
 
 export function DashboardSummary() {
+	const t = useTranslations("dashboard");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 	const openRecord = useOpenRecord();
@@ -198,7 +200,7 @@ export function DashboardSummary() {
 						<CardDescription>
 							{overdueTasks.length === 0
 								? "Every task you have logged is either done or still to come"
-								: `${formatCount(overdueTasks.length, "task")} past due`}
+								: `${t("taskCount", { count: overdueTasks.length })} past due`}
 						</CardDescription>
 					</CardHeader>
 					<CardPanel>

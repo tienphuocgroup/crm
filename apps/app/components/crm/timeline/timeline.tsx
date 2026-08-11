@@ -10,6 +10,8 @@ import { Button } from "@crm/ui/components/button";
 import type { CarbonIcon } from "@crm/ui/components/icon";
 import { Spinner } from "@crm/ui/components/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@crm/ui/components/toggle-group";
+import { useUiLocale } from "@crm/ui/components/ui-strings-provider";
+import { dateTimeFormat } from "@crm/ui/lib/format";
 import { cn } from "@crm/ui/lib/utils";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useQueryState } from "nuqs";
@@ -84,14 +86,14 @@ const EMPTY_ICONS: Record<TimelineTab, CarbonIcon> = {
 	done: Checkmark,
 };
 
-const dayFormat = new Intl.DateTimeFormat("en-US", {
+const DAY_OPTIONS = {
 	weekday: "short",
 	month: "short",
 	day: "numeric",
 	year: "numeric",
-});
+} as const;
 
-function dayLabel(day: string, local: boolean): string {
+function dayLabel(day: string, local: boolean, locale: string): string {
 	const now = new Date();
 	const today = dayKey(now.toISOString(), local);
 	const yesterdayDate = local
@@ -101,10 +103,12 @@ function dayLabel(day: string, local: boolean): string {
 
 	if (day === today) return "Today";
 	if (day === yesterday) return "Yesterday";
-	return dayFormat.format(new Date(`${day}T00:00:00`));
+	return dateTimeFormat(locale, DAY_OPTIONS).format(
+		new Date(`${day}T00:00:00`),
+	);
 }
 
-function byDay(entries: TimelineEntryData[], local: boolean) {
+function byDay(entries: TimelineEntryData[], local: boolean, locale: string) {
 	const groups = new Map<
 		string,
 		{ day: string; label: string; entries: TimelineEntryData[] }
@@ -117,7 +121,11 @@ function byDay(entries: TimelineEntryData[], local: boolean) {
 		if (group) {
 			group.entries.push(entry);
 		} else {
-			groups.set(day, { day, label: dayLabel(day, local), entries: [entry] });
+			groups.set(day, {
+				day,
+				label: dayLabel(day, local, locale),
+				entries: [entry],
+			});
 		}
 	}
 
@@ -158,6 +166,7 @@ function TimelineDay({
 }
 
 export function Timeline({ anchor }: { anchor: TimelineAnchor }) {
+	const locale = useUiLocale();
 	const trpc = useTRPC();
 	const hydrated = useHydrated();
 
@@ -231,7 +240,7 @@ export function Timeline({ anchor }: { anchor: TimelineAnchor }) {
 						/>
 					) : null}
 
-					{byDay(entries, hydrated).map((group) => (
+					{byDay(entries, hydrated, locale).map((group) => (
 						<TimelineDay
 							key={group.day}
 							label={group.label}

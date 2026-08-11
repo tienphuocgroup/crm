@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Suspense } from "react";
-import { LocalDateTimeHydrator } from "@/components/local-date-time";
+import { LocalDateTimeHydrator } from "@/components/local-date-time-hydrator";
 import { LocaleProvider } from "@/components/locale-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TRPCReactProvider } from "@/lib/trpc/client";
@@ -61,7 +61,9 @@ export default function RootLayout({
 						</Suspense>
 					</TRPCReactProvider>
 				</NuqsAdapter>
-				<LocalDateTimeHydrator />
+				<Suspense>
+					<LocalDateTimeHydrator />
+				</Suspense>
 			</body>
 		</html>
 	);

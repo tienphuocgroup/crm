@@ -1,6 +1,8 @@
 "use client";
 
 import { Skeleton } from "@crm/ui/components/skeleton";
+import { useUiStrings } from "@crm/ui/components/ui-strings-provider";
+import { fillUiString } from "@crm/ui/lib/ui-strings";
 import { cn } from "@crm/ui/lib/utils";
 import { domAnimation, LazyMotion, m, useReducedMotion } from "motion/react";
 import {
@@ -39,6 +41,7 @@ export function SkeletonSwap({
 	label,
 	className,
 }: SkeletonSwapProps) {
+	const strings = useUiStrings();
 	const [showSkeleton, setShowSkeleton] = useState(false);
 	const shownAt = useRef(0);
 	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -117,7 +120,9 @@ export function SkeletonSwap({
 				</m.div>
 				{label ? (
 					<span role="status" aria-live="polite" className="sr-only">
-						{loading ? "" : `${label} loaded`}
+						{loading
+							? ""
+							: fillUiString(strings.skeletonSwapLoaded, { label })}
 					</span>
 				) : null}
 			</div>

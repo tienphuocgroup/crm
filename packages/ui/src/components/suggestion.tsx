@@ -5,6 +5,7 @@ import Close from "@carbon/icons-react/es/Close";
 import { Button } from "@crm/ui/components/button";
 import { Icon } from "@crm/ui/components/icon";
 import { Spinner } from "@crm/ui/components/spinner";
+import { useUiStrings } from "@crm/ui/components/ui-strings-provider";
 import type * as React from "react";
 
 export function Suggestion({
@@ -20,6 +21,8 @@ export function Suggestion({
 	onAccept: () => void;
 	onDismiss: () => void;
 }) {
+	const strings = useUiStrings();
+
 	return (
 		<div
 			data-slot="suggestion"
@@ -41,7 +44,7 @@ export function Suggestion({
 							variant="ghost"
 							size="icon-xs"
 							onClick={onAccept}
-							aria-label="Accept"
+							aria-label={strings.suggestionAccept}
 						>
 							<Icon icon={Checkmark} />
 						</Button>
@@ -49,7 +52,7 @@ export function Suggestion({
 							variant="ghost"
 							size="icon-xs"
 							onClick={onDismiss}
-							aria-label="Dismiss"
+							aria-label={strings.suggestionDismiss}
 						>
 							<Icon icon={Close} />
 						</Button>

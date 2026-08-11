@@ -100,18 +100,5 @@
 	"apps/app/components/landing/product-shot/company-sheet.tsx",
 	"apps/app/components/landing/product-shot/product-shot.tsx",
 	"apps/app/components/landing/setup-prompt-button.tsx",
-	"apps/app/components/page-shell.tsx",
-	"packages/ui/src/components/data-table.tsx",
-	"packages/ui/src/components/date-picker.tsx",
-	"packages/ui/src/components/dialog.tsx",
-	"packages/ui/src/components/message-scroller.tsx",
-	"packages/ui/src/components/questionnaire.tsx",
-	"packages/ui/src/components/reasoning.tsx",
-	"packages/ui/src/components/sheet.tsx",
-	"packages/ui/src/components/skeleton-swap.tsx",
-	"packages/ui/src/components/sortable-list.tsx",
-	"packages/ui/src/components/spinner.tsx",
-	"packages/ui/src/components/suggestion.tsx",
-	"packages/ui/src/components/table-pagination.tsx",
-	"packages/ui/src/components/thread-message.tsx"
+	"apps/app/components/page-shell.tsx"
 ]

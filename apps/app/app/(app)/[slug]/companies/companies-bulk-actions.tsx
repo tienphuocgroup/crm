@@ -7,8 +7,8 @@ import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,
 } from "@crm/ui/components/dropdown-menu";
-import { formatCount } from "@crm/ui/lib/format";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -20,10 +20,6 @@ import {
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 
-function companies(count: number): string {
-	return formatCount(count, "company", "companies");
-}
-
 export function CompaniesBulkActions({
 	ids,
 	onDone,
@@ -31,10 +27,13 @@ export function CompaniesBulkActions({
 	ids: string[];
 	onDone: () => void;
 }) {
+	const t = useTranslations("companies");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 	const users = useQuery(trpc.users.list.queryOptions());
 	const [confirming, setConfirming] = useState(false);
+
+	const companies = (count: number) => t("companyCount", { count });
 
 	const onError = (error: { message: string }) => toast.error(error.message);
 

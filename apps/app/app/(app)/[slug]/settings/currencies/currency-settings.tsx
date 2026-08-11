@@ -28,8 +28,8 @@ import {
 import { Spinner } from "@crm/ui/components/spinner";
 import { StatusIndicator } from "@crm/ui/components/status-indicator";
 import { TableCell } from "@crm/ui/components/table";
-import { formatCount } from "@crm/ui/lib/format";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 import { LocalRelativeTime } from "@/components/local-date-time";
@@ -53,6 +53,7 @@ const USAGE_COLUMNS: SimpleTableColumn[] = [
 ];
 
 export function CurrencySettings() {
+	const t = useTranslations("settings");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 
@@ -302,7 +303,7 @@ export function CurrencySettings() {
 					<CardDescription>
 						{unconverted.count === 0
 							? "Every deal with an amount can be converted into the reporting currency."
-							: `${formatCount(unconverted.count, "deal")} cannot be converted, so ${unconverted.count === 1 ? "it is" : "they are"} left out of every total.`}
+							: `${t("dealCount", { count: unconverted.count })} cannot be converted, so ${unconverted.count === 1 ? "it is" : "they are"} left out of every total.`}
 						{refreshedAt ? (
 							<>
 								{" "}

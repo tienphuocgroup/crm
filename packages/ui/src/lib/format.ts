@@ -1,16 +1,46 @@
-export function formatCount(
-	count: number,
-	noun: string,
-	plural = `${noun}s`,
-): string {
-	return `${count} ${count === 1 ? noun : plural}`;
-}
+export const DEFAULT_FORMAT_LOCALE = "en-US";
 
 const WELL_FORMED_CURRENCY_CODE = /^[A-Za-z]{3}$/;
-const percentFormat = new Intl.NumberFormat("en-US", {
+
+const PERCENT_OPTIONS: Intl.NumberFormatOptions = {
 	style: "percent",
 	maximumFractionDigits: 0,
-});
+};
+
+const DAY_OPTIONS: Intl.DateTimeFormatOptions = {
+	month: "short",
+	day: "numeric",
+	year: "numeric",
+};
+
+const numberFormats = new Map<string, Intl.NumberFormat>();
+const dateTimeFormats = new Map<string, Intl.DateTimeFormat>();
+
+export function numberFormat(
+	locale: string,
+	options?: Intl.NumberFormatOptions,
+): Intl.NumberFormat {
+	const key = `${locale}|${options ? JSON.stringify(options) : ""}`;
+	const cached = numberFormats.get(key);
+	if (cached) return cached;
+
+	const formatter = new Intl.NumberFormat(locale, options);
+	numberFormats.set(key, formatter);
+	return formatter;
+}
+
+export function dateTimeFormat(
+	locale: string,
+	options?: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
+	const key = `${locale}|${options ? JSON.stringify(options) : ""}`;
+	const cached = dateTimeFormats.get(key);
+	if (cached) return cached;
+
+	const formatter = new Intl.DateTimeFormat(locale, options);
+	dateTimeFormats.set(key, formatter);
+	return formatter;
+}
 
 function displayCurrencyCode(currency: string): string {
 	return WELL_FORMED_CURRENCY_CODE.test(currency)
@@ -34,12 +64,16 @@ function fractionDigits(code: string): number {
 	return digits;
 }
 
-export function formatMoney(cents: number, currency = "usd"): string {
+export function formatMoney(
+	cents: number,
+	currency = "usd",
+	locale = DEFAULT_FORMAT_LOCALE,
+): string {
 	const code = displayCurrencyCode(currency);
 	const whole = cents % 100 === 0;
 	const digits = fractionDigits(code);
 
-	return new Intl.NumberFormat(undefined, {
+	return numberFormat(locale, {
 		style: "currency",
 		currency: code,
 		minimumFractionDigits: whole ? 0 : Math.min(2, digits),
@@ -47,8 +81,12 @@ export function formatMoney(cents: number, currency = "usd"): string {
 	}).format(cents / 100);
 }
 
-export function formatMoneyCompact(cents: number, currency = "usd"): string {
-	return new Intl.NumberFormat(undefined, {
+export function formatMoneyCompact(
+	cents: number,
+	currency = "usd",
+	locale = DEFAULT_FORMAT_LOCALE,
+): string {
+	return numberFormat(locale, {
 		style: "currency",
 		currency: displayCurrencyCode(currency),
 		notation: "compact",
@@ -56,15 +94,12 @@ export function formatMoneyCompact(cents: number, currency = "usd"): string {
 	}).format(cents / 100);
 }
 
-export function formatPercent(rate: number): string {
-	return percentFormat.format(rate);
+export function formatPercent(
+	rate: number,
+	locale = DEFAULT_FORMAT_LOCALE,
+): string {
+	return numberFormat(locale, PERCENT_OPTIONS).format(rate);
 }
-
-const dayFormat = new Intl.DateTimeFormat("en-US", {
-	month: "short",
-	day: "numeric",
-	year: "numeric",
-});
 
 function pad(value: number): string {
 	return String(value).padStart(2, "0");
@@ -82,9 +117,14 @@ export function fromDay(value: string | null | undefined): Date | undefined {
 	return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-export function formatDay(value: string | null | undefined): string {
+export function formatDay(
+	value: string | null | undefined,
+	locale = DEFAULT_FORMAT_LOCALE,
+): string {
 	const date = fromDay(value);
-	return date ? dayFormat.format(date) : (value ?? "—");
+	return date
+		? dateTimeFormat(locale, DAY_OPTIONS).format(date)
+		: (value ?? "—");
 }
 
 export function initialsFromName(name: string | null | undefined): string {

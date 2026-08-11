@@ -1,3 +1,5 @@
+"use client";
+
 import { PersonAvatar } from "@crm/ui/components/person-avatar";
 import {
 	type StatusTone,
@@ -8,6 +10,8 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@crm/ui/components/tooltip";
+import { useUiStrings } from "@crm/ui/components/ui-strings-provider";
+import type { UiStrings } from "@crm/ui/lib/ui-strings";
 import { cn } from "@crm/ui/lib/utils";
 import type * as React from "react";
 
@@ -27,11 +31,11 @@ const RESPONSE_TONE: Record<string, StatusTone> = {
 	needsAction: "neutral",
 };
 
-const RESPONSE_LABEL: Record<string, string> = {
-	accepted: "Accepted",
-	declined: "Declined",
-	tentative: "Maybe",
-	needsAction: "No reply",
+const RESPONSE_LABEL: Record<string, keyof UiStrings> = {
+	accepted: "attendeeListAccepted",
+	declined: "attendeeListDeclined",
+	tentative: "attendeeListTentative",
+	needsAction: "attendeeListNoReply",
 };
 
 function AttendeeList({
@@ -43,6 +47,8 @@ function AttendeeList({
 	attendees: readonly Attendee[];
 	max?: number;
 }) {
+	const strings = useUiStrings();
+
 	if (attendees.length === 0) return null;
 
 	const shown = attendees.slice(0, max);
@@ -75,8 +81,10 @@ function AttendeeList({
 								<StatusIndicator
 									tone={RESPONSE_TONE[attendee.responseStatus ?? "needsAction"] ?? "neutral"}
 									label={
-										RESPONSE_LABEL[attendee.responseStatus ?? "needsAction"] ??
-										"No reply"
+										strings[
+											RESPONSE_LABEL[attendee.responseStatus ?? "needsAction"] ??
+												"attendeeListNoReply"
+										]
 									}
 								/>
 							</span>

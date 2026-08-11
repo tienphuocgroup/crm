@@ -1,1 +1,3 @@
-{}
+{
+	"companyCount": "{count, plural, one {# company} other {# companies}}"
+}
