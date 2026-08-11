@@ -15,20 +15,23 @@ import {
 } from "@crm/ui/components/entity-logo";
 import { PersonAvatar } from "@crm/ui/components/person-avatar";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { useOpenRecord } from "@/components/crm/record-sheet/record-stack";
 import { useTRPC } from "@/lib/trpc/client";
 
-const GROUP_LABEL = {
-	company: "Companies",
-	contact: "Contacts",
-	deal: "Deals",
+const GROUP_LABEL_KEY = {
+	company: "companies",
+	contact: "contacts",
+	deal: "deals",
 } as const;
 
 const KINDS = ["company", "contact", "deal"] as const;
 
 export function QuickSwitcher() {
+	const t = useTranslations("nav");
+	const common = useTranslations("common");
 	const openRecord = useOpenRecord();
 	const trpc = useTRPC();
 
@@ -65,20 +68,20 @@ export function QuickSwitcher() {
 		<CommandDialog
 			open={open}
 			onOpenChange={(next) => setOpen(next || null)}
-			title="Search"
-			description="Jump to a company, contact or deal"
+			title={common("quickSwitcherTitle")}
+			description={common("quickSwitcherDescription")}
 		>
 			<Command shouldFilter={false}>
 				<CommandInput
-					placeholder="Search companies, contacts and deals…"
+					placeholder={common("quickSwitcherPlaceholder")}
 					value={query}
 					onValueChange={setQuery}
 				/>
 				<CommandList>
 					<CommandEmpty>
 						{query.trim().length < 2
-							? "Type at least two characters."
-							: "Nothing matches."}
+							? common("quickSwitcherMinChars")
+							: common("quickSwitcherNoResults")}
 					</CommandEmpty>
 
 					{KINDS.map((kind) => {
@@ -86,7 +89,7 @@ export function QuickSwitcher() {
 						if (group.length === 0) return null;
 
 						return (
-							<CommandGroup key={kind} heading={GROUP_LABEL[kind]}>
+							<CommandGroup key={kind} heading={t(GROUP_LABEL_KEY[kind])}>
 								{group.map((hit) => (
 									<CommandItem
 										key={`${hit.kind}:${hit.id}`}

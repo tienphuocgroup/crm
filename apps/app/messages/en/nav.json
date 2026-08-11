@@ -1,1 +1,14 @@
-{}
+{
+	"companies": "Companies",
+	"contacts": "Contacts",
+	"deals": "Deals",
+	"settings": {
+		"ariaLabel": "Workspace settings",
+		"connections": "Connections",
+		"currencies": "Currencies",
+		"general": "General",
+		"members": "Members",
+		"sso": "SSO",
+		"tracking": "Tracking & Analytics"
+	}
+}

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@crm/ui/components/tooltip";
 import { cn } from "@crm/ui/lib/utils";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { getTranslations } from "next-intl/server";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Suspense } from "react";
 import { LocalDateTimeHydrator } from "@/components/local-date-time-hydrator";
@@ -21,21 +22,25 @@ const fontMono = Geist_Mono({
 	subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-	title: {
-		default: "Comp AI - CRM",
-		template: "%s · Comp AI CRM",
-	},
-	description: "Customer Relationship Management for Comp AI",
-	icons: {
-		icon: [
-			{ url: "/favicon.svg", type: "image/svg+xml" },
-			{ url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
-		],
-		apple: "/apple-touch-icon.png",
-	},
-	manifest: "/site.webmanifest",
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const t = await getTranslations("common");
+
+	return {
+		title: {
+			default: t("metaTitleDefault"),
+			template: t("metaTitleTemplate"),
+		},
+		description: t("metaDescription"),
+		icons: {
+			icon: [
+				{ url: "/favicon.svg", type: "image/svg+xml" },
+				{ url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
+			],
+			apple: "/apple-touch-icon.png",
+		},
+		manifest: "/site.webmanifest",
+	};
+}
 
 export default function RootLayout({
 	children,

@@ -45,49 +45,74 @@ import { overviewParsers } from "./overview-search-params";
 import { SalesDashboard } from "./sales-dashboard";
 
 const CELL = "px-3 py-2.5 align-middle";
-const OPEN_COLUMNS: SimpleTableColumn[] = [
-	{ id: "deal", header: "Deal" },
-	{
-		id: "stage",
-		header: "Stage",
-		width: "w-32",
-		className: "hidden lg:table-cell",
-	},
-	{
-		id: "share",
-		srLabel: "Share of the largest",
-		width: "w-24",
-		className: "hidden sm:table-cell",
-	},
-	{ id: "value", header: "Value", width: "w-20", align: "right" },
-];
-const TASK_COLUMNS: SimpleTableColumn[] = [
-	{ id: "done", srLabel: "Done", width: "w-8" },
-	{ id: "task", header: "Task" },
-	{ id: "overdue", header: "Overdue", width: "w-24", align: "right" },
-];
-const ACTIVITY_COLUMNS: SimpleTableColumn[] = [
-	{ id: "activity", header: "Activity" },
-	{
-		id: "company",
-		header: "Company",
-		width: "w-44",
-		className: "hidden md:table-cell",
-	},
-	{
-		id: "deal",
-		header: "Deal",
-		width: "w-48",
-		className: "hidden lg:table-cell",
-	},
-	{
-		id: "who",
-		header: "Who",
-		width: "w-32",
-		className: "hidden md:table-cell",
-	},
-	{ id: "when", header: "When", width: "w-20", align: "right" },
-];
+
+function openColumns(
+	t: ReturnType<typeof useTranslations>,
+): SimpleTableColumn[] {
+	return [
+		{ id: "deal", header: t("dealColumnLabel") },
+		{
+			id: "stage",
+			header: t("stageColumnLabel"),
+			width: "w-32",
+			className: "hidden lg:table-cell",
+		},
+		{
+			id: "share",
+			srLabel: t("shareColumnLabel"),
+			width: "w-24",
+			className: "hidden sm:table-cell",
+		},
+		{
+			id: "value",
+			header: t("valueColumnLabel"),
+			width: "w-20",
+			align: "right",
+		},
+	];
+}
+
+function taskColumns(
+	t: ReturnType<typeof useTranslations>,
+): SimpleTableColumn[] {
+	return [
+		{ id: "done", srLabel: t("doneColumnLabel"), width: "w-8" },
+		{ id: "task", header: t("taskColumnLabel") },
+		{
+			id: "overdue",
+			header: t("overdueColumnLabel"),
+			width: "w-24",
+			align: "right",
+		},
+	];
+}
+
+function activityColumns(
+	t: ReturnType<typeof useTranslations>,
+): SimpleTableColumn[] {
+	return [
+		{ id: "activity", header: t("activityColumnLabel") },
+		{
+			id: "company",
+			header: t("companyColumnLabel"),
+			width: "w-44",
+			className: "hidden md:table-cell",
+		},
+		{
+			id: "deal",
+			header: t("dealColumnLabel"),
+			width: "w-48",
+			className: "hidden lg:table-cell",
+		},
+		{
+			id: "who",
+			header: t("whoColumnLabel"),
+			width: "w-32",
+			className: "hidden md:table-cell",
+		},
+		{ id: "when", header: t("whenColumnLabel"), width: "w-20", align: "right" },
+	];
+}
 
 export function DashboardSummary() {
 	const t = useTranslations("dashboard");
@@ -132,26 +157,22 @@ export function DashboardSummary() {
 			<div className="grid gap-6 @3xl/page-content:grid-cols-2">
 				<Card className="min-w-0">
 					<CardHeader>
-						<CardTitle>Deals in progress</CardTitle>
-						<CardDescription>
-							The largest open deals, and how long each has sat in its stage
-						</CardDescription>
+						<CardTitle>{t("dealsInProgressTitle")}</CardTitle>
+						<CardDescription>{t("dealsInProgressDescription")}</CardDescription>
 						<CardAction>
 							<Button asChild variant="contrast" size="sm">
-								<Link href={workspaceUrl("/deals")}>Open deals</Link>
+								<Link href={workspaceUrl("/deals")}>{t("openDealsLink")}</Link>
 							</Button>
 						</CardAction>
 					</CardHeader>
 					<CardPanel>
 						{biggestOpen.length === 0 ? (
-							<CardPanelEmpty>
-								Nothing open. Time to fill the pipeline.
-							</CardPanelEmpty>
+							<CardPanelEmpty>{t("dealsInProgressEmpty")}</CardPanelEmpty>
 						) : (
 							<SimpleTable
 								variant="panel"
 								surface="page"
-								columns={OPEN_COLUMNS}
+								columns={openColumns(t)}
 							>
 								{biggestOpen.map((deal) => (
 									<SimpleTableRow
@@ -196,21 +217,21 @@ export function DashboardSummary() {
 
 				<Card className="min-w-0">
 					<CardHeader>
-						<CardTitle>Overdue tasks</CardTitle>
+						<CardTitle>{t("overdueTasksTitle")}</CardTitle>
 						<CardDescription>
 							{overdueTasks.length === 0
-								? "Every task you have logged is either done or still to come"
-								: `${t("taskCount", { count: overdueTasks.length })} past due`}
+								? t("everyTaskDoneOrUpcoming")
+								: t("overdueTasksDescription", { count: overdueTasks.length })}
 						</CardDescription>
 					</CardHeader>
 					<CardPanel>
 						{overdueTasks.length === 0 ? (
-							<CardPanelEmpty>Nothing overdue. Good.</CardPanelEmpty>
+							<CardPanelEmpty>{t("overdueTasksEmpty")}</CardPanelEmpty>
 						) : (
 							<SimpleTable
 								variant="panel"
 								surface="page"
-								columns={TASK_COLUMNS}
+								columns={taskColumns(t)}
 							>
 								{overdueTasks.map((task) => (
 									<SimpleTableRow key={task.id}>
@@ -218,7 +239,7 @@ export function DashboardSummary() {
 											<Checkbox
 												checked={false}
 												disabled={complete.isPending}
-												aria-label="Mark as done"
+												aria-label={t("markAsDoneAriaLabel")}
 												onCheckedChange={() =>
 													complete.mutate({ id: task.id, completed: true })
 												}
@@ -247,7 +268,7 @@ export function DashboardSummary() {
 													task.dueAt ? (
 														<LocalRelativeTime date={task.dueAt} />
 													) : (
-														"No due date"
+														t("noDueDate")
 													)
 												}
 											/>
@@ -263,23 +284,23 @@ export function DashboardSummary() {
 			<Card className="min-w-0">
 				<CardHeader>
 					<CardTitle>
-						{mine ? "Your recent activity" : "Recent activity"}
+						{t("recentActivityTitle", { scope: mine ? "mine" : "all" })}
 					</CardTitle>
 					<CardDescription>
-						{mine
-							? "Every note, task and stage change you have logged"
-							: "Every note, task and stage change across the workspace"}
+						{t("recentActivityDescription", { scope: mine ? "mine" : "all" })}
 					</CardDescription>
 					<CardAction>
 						<Button asChild variant="contrast" size="sm">
-							<Link href={workspaceUrl("/companies")}>All companies</Link>
+							<Link href={workspaceUrl("/companies")}>
+								{t("allCompaniesLink")}
+							</Link>
 						</Button>
 					</CardAction>
 				</CardHeader>
 				{recentActivity.length === 0 ? (
-					<CardTableEmpty>Nothing has happened yet.</CardTableEmpty>
+					<CardTableEmpty>{t("recentActivityEmpty")}</CardTableEmpty>
 				) : (
-					<SimpleTable columns={ACTIVITY_COLUMNS}>
+					<SimpleTable columns={activityColumns(t)}>
 						{recentActivity.map((entry) => (
 							<SimpleTableRow key={entry.id}>
 								<TableCell className={CELL}>

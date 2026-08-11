@@ -1,10 +1,20 @@
 {
+	"actions": "Actions",
 	"appName": "Comp AI CRM",
+	"metaDescription": "Customer Relationship Management for Comp AI",
+	"metaTitleDefault": "Comp AI - CRM",
+	"metaTitleTemplate": "%s · Comp AI CRM",
+	"quickSwitcherDescription": "Jump to a company, contact or deal",
+	"quickSwitcherMinChars": "Type at least two characters.",
+	"quickSwitcherNoResults": "Nothing matches.",
+	"quickSwitcherPlaceholder": "Search companies, contacts and deals…",
+	"quickSwitcherTitle": "Search",
 	"relativeTimeDays": "{count}d",
 	"relativeTimeEmpty": "—",
 	"relativeTimeFuture": "in {distance}",
 	"relativeTimeHours": "{count}h",
 	"relativeTimeJustNow": "just now",
 	"relativeTimeMinutes": "{count}m",
-	"relativeTimePast": "{distance} ago"
+	"relativeTimePast": "{distance} ago",
+	"save": "Save"
 }

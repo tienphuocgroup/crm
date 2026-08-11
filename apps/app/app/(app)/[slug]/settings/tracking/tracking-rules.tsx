@@ -10,24 +10,28 @@ import {
 import { Label } from "@crm/ui/components/label";
 import { Switch } from "@crm/ui/components/switch";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 
-const RULES = [
-	{
-		flag: "crossDomain",
-		label: "Automatic cross-domain linking",
-		hint: "Carry the visitor between the domains below, so one journey is not counted as two people",
-	},
-	{
-		flag: "limitToDomains",
-		label: "Limit tracking to the domains below",
-		hint: "On any other domain the script loads and then does nothing",
-	},
-] as const;
+function rules(t: ReturnType<typeof useTranslations>) {
+	return [
+		{
+			flag: "crossDomain",
+			label: t("tracking.crossDomainLabel"),
+			hint: t("tracking.crossDomainHint"),
+		},
+		{
+			flag: "limitToDomains",
+			label: t("tracking.limitToDomainsLabel"),
+			hint: t("tracking.limitToDomainsHint"),
+		},
+	] as const;
+}
 
 export function TrackingRules() {
+	const t = useTranslations("settings");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 
@@ -47,14 +51,12 @@ export function TrackingRules() {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Tracking rules</CardTitle>
-				<CardDescription>
-					Where the script may run, and how it follows a visitor.
-				</CardDescription>
+				<CardTitle>{t("tracking.rulesTitle")}</CardTitle>
+				<CardDescription>{t("tracking.rulesDescription")}</CardDescription>
 			</CardHeader>
 
 			<CardContent>
-				{RULES.map((rule) => (
+				{rules(t).map((rule) => (
 					<div
 						key={rule.flag}
 						className="flex items-center justify-between gap-6"

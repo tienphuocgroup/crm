@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import {
 	PageShell,
@@ -15,20 +16,23 @@ import { getServerQueryClient, getServerTrpc } from "@/lib/trpc/server";
 import { GoogleConnection } from "./google-connection";
 import { MicrosoftConnection } from "./microsoft-connection";
 
-export const metadata: Metadata = {
-	title: "Connections",
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const t = await getTranslations("settings");
+	return { title: t("connections.metaTitle") };
+}
 
-export default function ConnectionsSettingsPage({
+export default async function ConnectionsSettingsPage({
 	searchParams,
 }: PageProps<"/[slug]/settings/connections">) {
+	const t = await getTranslations("settings");
+
 	return (
 		<PageShell>
 			<PageShellHeader>
 				<PageShellHeading>
-					<PageShellTitle>Connections</PageShellTitle>
+					<PageShellTitle>{t("connections.metaTitle")}</PageShellTitle>
 					<PageShellDescription>
-						Your meetings and email, on the companies they belong to.
+						{t("connections.pageDescription")}
 					</PageShellDescription>
 				</PageShellHeading>
 			</PageShellHeader>

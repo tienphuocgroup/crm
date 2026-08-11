@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: "Extract: Settings + Dashboard"
-status: pending
+status: complete
 priority: P2
 dependencies: [4, 5]
 ---
@@ -128,18 +128,42 @@ record itself call `t()`.
     the dashboard. Any unaccented word is a miss — fix before committing.
 14. Commit.
 
+## Implementation notes
+
+- Findings 261 → 0 across the batch (general 31, connections 58, currencies 28,
+  members 8, sso 31, tracking 64, settings nav 4, dashboard 33, quick-switcher 4).
+- Keys added: settings 252, dashboard 53, nav 10, common 10 (phase-5 keys left
+  untouched). Toasts: 25 literal conversions, 28 `error.message` passthroughs kept.
+- All six settings metadata exports converted; the **root `layout.tsx` metadata
+  converted too** — before/after builds show identical route markers
+  (`/` ◐, `/t/crm.js` ○, the rest unchanged), so the prerender risk did not
+  materialise (Next streams metadata under partial prerendering).
+- `overview-greeting.tsx` became one ICU `select` on `scope` with byte-identical
+  branch wording; `quick-switcher.tsx` `GROUP_LABEL` became a key map translated
+  at the render site per the pure-data rule.
+- Module-level column/label maps the checker cannot see (plain object literals)
+  were converted to functions taking `t`, so pseudo-locale coverage is real —
+  the checker-green state was not trusted on its own.
+- Two copy-fidelity bugs caught in self-review and fixed before handoff: a
+  `syncedItemsRemoved` singular form the app never had, and the
+  `unconvertedCurrenciesNotice` it/them pronoun driven off the wrong count —
+  both restored to byte-identical behavior (the latter with two independent
+  ICU selectors, `count` and `currencyCount`).
+- `language-form.tsx` labels extracted (`settings.general.language*`), so the
+  phase-2 switcher ships translated.
+
 ## Success Criteria
 
-- [ ] `i18n:check` clean for all owned paths; their ratchet entries removed.
-- [ ] All six metadata exports are `generateMetadata`; page titles still render in the browser tab.
-- [ ] Every literal-string toast converted; every `error.message` toast untouched.
-- [ ] Pseudo-locale walkthrough of all 6 settings pages + dashboard shows no unaccented text outside the allowlist.
-- [ ] `en` rendering identical — compare against `main` for the settings index and dashboard.
-- [ ] No wording changed. `git diff` on catalog values matches the previous literals character for character.
-- [ ] Keys follow the prefix table; no `settings.*` key in `dashboard.json` or vice versa.
-- [ ] Language switcher from phase 2 still works, now with its own labels translated.
-- [ ] `check-types`, `lint`, `test` green.
-- [ ] Zero code comments added.
+- [x] `i18n:check` clean for all owned paths; their ratchet entries removed.
+- [x] All six metadata exports are `generateMetadata`; page titles still render in the browser tab.
+- [x] Every literal-string toast converted; every `error.message` toast untouched.
+- [x] Pseudo-locale walkthrough of all 6 settings pages + dashboard shows no unaccented text outside the allowlist.
+- [x] `en` rendering identical — compare against `main` for the settings index and dashboard.
+- [x] No wording changed. `git diff` on catalog values matches the previous literals character for character.
+- [x] Keys follow the prefix table; no `settings.*` key in `dashboard.json` or vice versa.
+- [x] Language switcher from phase 2 still works, now with its own labels translated.
+- [x] `check-types`, `lint`, `test` green.
+- [x] Zero code comments added.
 
 ## Risk Assessment
 
