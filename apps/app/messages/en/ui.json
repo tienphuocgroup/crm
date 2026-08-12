@@ -41,5 +41,6 @@
 	"tablePaginationNext": "Next",
 	"tablePaginationPrevious": "Previous",
 	"tablePaginationRange": "Showing {start}–{end} of {total}",
+	"thinkingIndicatorLabel": "Thinking",
 	"threadMessageEmpty": "No message body."
 }

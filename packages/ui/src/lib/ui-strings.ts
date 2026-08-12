@@ -43,6 +43,7 @@ export type UiStrings = {
 	tablePaginationNext: string;
 	tablePaginationPrevious: string;
 	tablePaginationRange: string;
+	thinkingIndicatorLabel: string;
 	threadMessageEmpty: string;
 };
 
@@ -89,6 +90,7 @@ export const DEFAULT_UI_STRINGS: UiStrings = {
 	tablePaginationNext: "Next",
 	tablePaginationPrevious: "Previous",
 	tablePaginationRange: "Showing {start}–{end} of {total}",
+	thinkingIndicatorLabel: "Thinking",
 	threadMessageEmpty: "No message body.",
 };
 

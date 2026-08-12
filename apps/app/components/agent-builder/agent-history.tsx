@@ -18,6 +18,7 @@ import {
 import { Button } from "@crm/ui/components/button";
 import { Icon } from "@crm/ui/components/icon";
 import { cn } from "@crm/ui/lib/utils";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { runFailureReason } from "@/lib/agent-run-failure";
 import type { RouterOutputs } from "@/lib/trpc/types";
@@ -67,6 +68,7 @@ export function AgentRuns({
 	onRetry: (runId: string) => void;
 	retryingRunId?: string;
 }) {
+	const t = useTranslations("agent-panel");
 	const [outcome, setOutcome] = useState("ALL");
 	const [expanded, setExpanded] = useState<string | null>(null);
 	const [confirming, setConfirming] = useState<string | null>(null);
@@ -83,16 +85,18 @@ export function AgentRuns({
 				<select
 					value={outcome}
 					onChange={(event) => setOutcome(event.target.value)}
-					aria-label="Filter run outcomes"
+					aria-label={t("filterRunOutcomesAriaLabel")}
 					className="h-7 rounded-md border bg-muted px-2.5 font-medium text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 				>
-					<option value="ALL">All outcomes</option>
-					<option value="SUCCEEDED">Succeeded</option>
-					<option value="FAILED">Failed</option>
-					<option value="RUNNING">Running</option>
-					<option value="QUEUED">Queued</option>
-					<option value="WAITING_FOR_APPROVAL">Waiting for approval</option>
-					<option value="CANCELLED">Cancelled</option>
+					<option value="ALL">{t("runOutcomeAll")}</option>
+					<option value="SUCCEEDED">{t("runOutcomeSucceeded")}</option>
+					<option value="FAILED">{t("runOutcomeFailed")}</option>
+					<option value="RUNNING">{t("runOutcomeRunning")}</option>
+					<option value="QUEUED">{t("runOutcomeQueued")}</option>
+					<option value="WAITING_FOR_APPROVAL">
+						{t("runOutcomeWaitingForApproval")}
+					</option>
+					<option value="CANCELLED">{t("runOutcomeCancelled")}</option>
 				</select>
 			</div>
 
@@ -112,7 +116,9 @@ export function AgentRuns({
 							<span className="min-w-0 flex-1">
 								<span className="flex flex-wrap items-center gap-x-3 gap-y-1">
 									<span className="font-semibold text-sm">
-										Run #{String(runNumbers.get(run.id)).padStart(3, "0")}
+										{t("runNumberLabel", {
+											number: String(runNumbers.get(run.id)).padStart(3, "0"),
+										})}
 									</span>
 									<span
 										className={cn(
@@ -124,8 +130,8 @@ export function AgentRuns({
 									</span>
 								</span>
 								<span className="mt-1 block wrap-break-word font-mono text-muted-foreground text-xs leading-5 sm:mt-0">
-									{humanStatus(run.triggerType)} · {formatDate(run.createdAt)} ·
-									Version {run.version.number}
+									{humanStatus(run.triggerType)} · {formatDate(run.createdAt)}{" "}
+									{t("versionSeparator")} {run.version.number}
 								</span>
 								{run.status === "FAILED" || run.status === "CANCELLED" ? (
 									<span className="mt-1.5 flex min-w-0 items-start gap-2 rounded-md bg-destructive/10 px-2.5 py-1.5">
@@ -142,8 +148,7 @@ export function AgentRuns({
 							<span className="flex min-w-0 items-center justify-between gap-3 font-mono text-muted-foreground text-xs sm:shrink-0 sm:justify-start sm:gap-4">
 								<span>{duration(run.startedAt, run.finishedAt)}</span>
 								<span>
-									{run.actions.length} external{" "}
-									{run.actions.length === 1 ? "action" : "actions"}
+									{t("externalActionsCount", { count: run.actions.length })}
 								</span>
 								<Icon
 									icon={expanded === run.id ? ChevronUp : ChevronDown}
@@ -161,7 +166,7 @@ export function AgentRuns({
 									onClick={() => onRetry(run.id)}
 								>
 									<Icon icon={Renew} data-icon="inline-start" />
-									Retry
+									{t("retryButton")}
 								</Button>
 							</span>
 						) : null}
@@ -174,7 +179,7 @@ export function AgentRuns({
 									disabled={cancelling}
 									onClick={() => setConfirming(run.id)}
 								>
-									Stop
+									{t("stopButton")}
 								</Button>
 							</span>
 						) : null}
@@ -192,16 +197,14 @@ export function AgentRuns({
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Stop this run?</AlertDialogTitle>
+						<AlertDialogTitle>{t("stopRunConfirmTitle")}</AlertDialogTitle>
 						<AlertDialogDescription>
-							The agent stops where it is and the run is recorded as cancelled.
-							Anything it has already done — a note, a task, a Slack message —
-							stays done.
+							{t("stopRunConfirmDescription")}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 
 					<AlertDialogFooter>
-						<AlertDialogCancel>Keep running</AlertDialogCancel>
+						<AlertDialogCancel>{t("keepRunningButton")}</AlertDialogCancel>
 						<AlertDialogAction
 							variant="destructive"
 							onClick={() => {
@@ -209,7 +212,7 @@ export function AgentRuns({
 								setConfirming(null);
 							}}
 						>
-							Stop run
+							{t("stopRunConfirmAction")}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -217,7 +220,7 @@ export function AgentRuns({
 
 			{visible.length === 0 ? (
 				<p className="py-12 text-center text-muted-foreground text-sm">
-					No runs match this outcome.
+					{t("noRunsMatchOutcome")}
 				</p>
 			) : null}
 		</div>
@@ -225,6 +228,7 @@ export function AgentRuns({
 }
 
 function ExpandedRun({ run }: { run: RunRow }) {
+	const t = useTranslations("agent-panel");
 	const timeline = [
 		...run.events.map((event) => ({
 			kind: "event" as const,
@@ -241,13 +245,23 @@ function ExpandedRun({ run }: { run: RunRow }) {
 	return (
 		<div className="min-w-0 border-t">
 			<div className="grid grid-cols-2 gap-x-4 gap-y-3 border-b bg-background px-4 py-3 sm:min-h-[58px] sm:grid-cols-4 sm:items-center sm:gap-0 sm:px-5 sm:py-2">
-				<RunMeta label="Trigger" value={humanStatus(run.triggerType)} />
 				<RunMeta
-					label="Initiated by"
-					value={run.initiatedBy?.name ?? "Eve scheduler"}
+					label={t("runMetaTrigger")}
+					value={humanStatus(run.triggerType)}
 				/>
-				<RunMeta label="Model" value={run.modelId ?? "Gateway default"} />
-				<RunMeta label="Version" value={String(run.version.number)} last />
+				<RunMeta
+					label={t("runMetaInitiatedBy")}
+					value={run.initiatedBy?.name ?? t("eveSchedulerLabel")}
+				/>
+				<RunMeta
+					label={t("runMetaModel")}
+					value={run.modelId ?? t("gatewayDefaultLabel")}
+				/>
+				<RunMeta
+					label={t("runMetaVersion")}
+					value={String(run.version.number)}
+					last
+				/>
 			</div>
 
 			<div>
@@ -264,7 +278,7 @@ function ExpandedRun({ run }: { run: RunRow }) {
 								{eventLabel(entry.event.type, entry.event.data)}
 							</span>
 							<span className="hidden shrink-0 font-mono text-muted-foreground text-xs sm:inline">
-								event
+								{t("eventTypeLabel")}
 							</span>
 						</div>
 					) : (
@@ -294,8 +308,10 @@ function ExpandedRun({ run }: { run: RunRow }) {
 				)}
 				{run.eventsTruncated ? (
 					<div className="flex min-h-9 items-center border-t px-4 py-2 text-warning text-xs sm:px-5">
-						Showing the first {run.events.length} of {run.totalEvents} steps.
-						This run is too long to display in full.
+						{t("showingFirstOfSteps", {
+							shown: run.events.length,
+							total: run.totalEvents,
+						})}
 					</div>
 				) : null}
 			</div>
@@ -326,6 +342,7 @@ function RunMeta({
 }
 
 export function AgentActivity({ activity }: { activity: Activity }) {
+	const t = useTranslations("agent-panel");
 	const [kind, setKind] = useState("ALL");
 	const rows = activity as unknown as ActivityRow[];
 	const visible = rows.filter(
@@ -338,12 +355,12 @@ export function AgentActivity({ activity }: { activity: Activity }) {
 				<select
 					value={kind}
 					onChange={(event) => setKind(event.target.value)}
-					aria-label="Filter activity"
+					aria-label={t("filterActivityAriaLabel")}
 					className="h-7 rounded-md border bg-muted px-2.5 font-medium text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 				>
-					<option value="ALL">All changes</option>
-					<option value="agent.">Agent changes</option>
-					<option value="run.">Run requests</option>
+					<option value="ALL">{t("activityFilterAll")}</option>
+					<option value="agent.">{t("activityFilterAgentChanges")}</option>
+					<option value="run.">{t("activityFilterRunRequests")}</option>
 				</select>
 				<Button
 					variant="outline"
@@ -351,16 +368,18 @@ export function AgentActivity({ activity }: { activity: Activity }) {
 					onClick={() => exportJson("agent-activity.json", visible)}
 				>
 					<Icon icon={Download} data-icon="inline-start" />
-					Export
+					{t("exportButton")}
 				</Button>
 			</div>
 
 			<div className="min-w-0 overflow-hidden rounded-lg border bg-card">
 				<div className="hidden h-9 items-center border-b bg-background px-5 text-muted-foreground text-xs sm:flex">
-					<span className="w-[166px] shrink-0">Time</span>
-					<span className="min-w-0 flex-1">Change</span>
-					<span className="w-[140px] shrink-0">Actor</span>
-					<span className="w-[118px] shrink-0 text-right">Request</span>
+					<span className="w-[166px] shrink-0">{t("activityColumnTime")}</span>
+					<span className="min-w-0 flex-1">{t("activityColumnChange")}</span>
+					<span className="w-[140px] shrink-0">{t("activityColumnActor")}</span>
+					<span className="w-[118px] shrink-0 text-right">
+						{t("activityColumnRequest")}
+					</span>
 				</div>
 				{visible.map((event) => (
 					<div
@@ -381,18 +400,22 @@ export function AgentActivity({ activity }: { activity: Activity }) {
 							) : null}
 						</span>
 						<span className="min-w-0 wrap-break-word text-xs sm:w-[140px] sm:shrink-0 sm:text-sm">
-							<span className="text-muted-foreground sm:hidden">Actor · </span>
+							<span className="text-muted-foreground sm:hidden">
+								{t("activityActorPrefix")}
+							</span>
 							{event.actorUser?.name ?? event.actorId ?? event.actorType}
 						</span>
 						<span className="min-w-0 wrap-break-word font-mono text-muted-foreground text-xs sm:w-[118px] sm:shrink-0 sm:text-right">
-							<span className="font-sans sm:hidden">Request · </span>
+							<span className="font-sans sm:hidden">
+								{t("activityRequestPrefix")}
+							</span>
 							{event.requestId?.slice(0, 12) ?? "—"}
 						</span>
 					</div>
 				))}
 				{visible.length === 0 ? (
 					<p className="px-5 py-12 text-center text-muted-foreground text-sm">
-						No changes match this filter.
+						{t("noChangesMatchFilter")}
 					</p>
 				) : null}
 			</div>

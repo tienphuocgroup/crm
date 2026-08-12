@@ -87,14 +87,14 @@ export function TrackingScript() {
 		const clipboard = navigator.clipboard;
 
 		if (!value || !clipboard) {
-			toast.error("Could not copy the script. Select it instead.");
+			toast.error(t("tracking.scriptCopyUnavailable"));
 			return;
 		}
 
 		clipboard
 			.writeText(value)
-			.then(() => toast.success("Script copied."))
-			.catch(() => toast.error("Could not copy the script."));
+			.then(() => toast.success(t("tracking.scriptCopied")))
+			.catch(() => toast.error(t("tracking.scriptCopyFailed")));
 	};
 
 	return (
@@ -140,7 +140,7 @@ export function TrackingScript() {
 					onValueChange={setSection}
 				>
 					<AccordionItem value="html">
-						<AccordionTrigger>Paste it into your HTML</AccordionTrigger>
+						<AccordionTrigger>{t("tracking.pasteIntoHtml")}</AccordionTrigger>
 						<AccordionContent className="flex flex-col gap-4">
 							<pre className="overflow-x-auto rounded-md border bg-muted p-4 font-mono text-code-foreground text-xs/5">
 								<span className="text-code-accent">{"<script"}</span>
@@ -160,9 +160,7 @@ export function TrackingScript() {
 					</AccordionItem>
 
 					<AccordionItem value="gtm">
-						<AccordionTrigger>
-							Add it through Google Tag Manager
-						</AccordionTrigger>
+						<AccordionTrigger>{t("tracking.addViaGtm")}</AccordionTrigger>
 						<AccordionContent className="flex flex-col gap-4">
 							<pre className="overflow-x-auto rounded-md border bg-muted p-4 font-mono text-code-foreground text-xs/5">
 								<span className="text-code-accent">{"<script"}</span>
@@ -172,10 +170,8 @@ export function TrackingScript() {
 								<span className="text-code-accent">{"></script>"}</span>
 							</pre>
 							<ol className="flex list-decimal flex-col gap-1 pl-4 text-muted-foreground text-xs/relaxed">
-								<li>In Tag Manager, add a new Custom HTML tag.</li>
-								<li>
-									Paste this snippet — not the one above — as the tag's HTML.
-								</li>
+								<li>{t("tracking.gtmStep1")}</li>
+								<li>{t("tracking.gtmStep2")}</li>
 								<li>
 									{t("tracking.gtmStep3Prefix")}{" "}
 									<span className="font-mono text-foreground">{scriptUrl}</span>{" "}
@@ -183,10 +179,11 @@ export function TrackingScript() {
 								</li>
 							</ol>
 							<p className="text-muted-foreground text-xs/relaxed">
-								Tag Manager drops a{" "}
-								<span className="font-mono text-foreground">data-site</span>{" "}
-								attribute when it injects a script, so this form carries the
-								site ID in the URL instead.
+								{t.rich("tracking.gtmDataSiteAttributeNotice", {
+									code: (chunks) => (
+										<span className="font-mono text-foreground">{chunks}</span>
+									),
+								})}
 							</p>
 						</AccordionContent>
 					</AccordionItem>

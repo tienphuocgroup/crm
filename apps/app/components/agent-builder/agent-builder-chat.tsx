@@ -107,10 +107,6 @@ const BUILDER_STEP_ARTIFACTS = [
 	"agent/manifest.json",
 	"agent/README.md",
 ] as const;
-const FOLLOW_UP_SUGGESTION_KEYS = [
-	"followUpSuggestionRunOnce",
-	"followUpSuggestionAddTeammate",
-] as const;
 type DraftVersion = {
 	id: string;
 	status: string;
@@ -1373,7 +1369,8 @@ function DeployedAgentCard({
 	const nextRun =
 		enabledTriggers.length === 1 ? enabledTriggers[0]?.nextRunAt : null;
 	const triggerSummary =
-		enabledTriggers.map((trigger) => trigger.name).join(" · ") || "Manual only";
+		enabledTriggers.map((trigger) => trigger.name).join(" · ") ||
+		t("manualOnlyLabel");
 
 	return (
 		<div className="flex flex-col gap-[18px]">
@@ -1382,14 +1379,13 @@ function DeployedAgentCard({
 					{t("deployedAgentLive", { name: agent.name })}
 				</p>
 				<p className="text-muted-foreground text-sm leading-5">
-					I created the Eve agent, applied its bounded CRM and integration
-					access, and made it live for the team.
+					{t("deployedAgentLiveDescription")}
 				</p>
 			</div>
 			<AgentCardShell name={agent.name} status={t("agentStatusLive")}>
 				<div className="flex flex-col gap-2 p-4">
 					<ReviewRow
-						label="Trigger"
+						label={t("runMetaTrigger")}
 						value={
 							nextRun ? (
 								<LocalDateTime
@@ -1448,7 +1444,7 @@ function DeployedAgentCard({
 				<p className="flex h-7 items-center text-muted-foreground text-sm">
 					{t("suggestedFollowUps")}
 				</p>
-				{["Add another teammate to the notification"].map((suggestion) => (
+				{[t("followUpSuggestionAddTeammate")].map((suggestion) => (
 					<button
 						key={suggestion}
 						type="button"
@@ -1601,18 +1597,17 @@ function manifestOf(value: unknown, t: ReturnType<typeof useTranslations>) {
 			triggers
 				.map((trigger) =>
 					trigger.type === "MANUAL"
-						? "On demand"
+						? t("triggerOnDemand")
 						: compactSummary(
 								trigger.summary,
-								trigger.type === "EVENT" ? "On CRM event" : "On schedule",
+								trigger.type === "EVENT"
+									? t("triggerOnEvent")
+									: t("triggerOnSchedule"),
 							),
 				)
-				.join(" · ") || "On demand",
-		looksAt: textOf(dataScope.summary, "CRM records in the approved scope"),
-		action: compactSummary(
-			actions[0]?.summary,
-			"Perform the requested team action",
-		),
+				.join(" · ") || t("triggerOnDemand"),
+		looksAt: textOf(dataScope.summary, t("scopeApprovedFallback")),
+		action: compactSummary(actions[0]?.summary, t("actionRequestedFallback")),
 		access,
 	};
 }

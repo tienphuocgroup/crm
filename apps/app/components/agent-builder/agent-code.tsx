@@ -10,6 +10,7 @@ import {
 import { Editor, type EditorOptions } from "@pierre/diffs/edit";
 import { EditProvider, File, FileDiff, Virtualizer } from "@pierre/diffs/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc/client";
@@ -41,6 +42,8 @@ export function AgentCode({
 	agentId: string;
 	canManage: boolean;
 }) {
+	const t = useTranslations("agent-panel");
+	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 
@@ -95,8 +98,8 @@ export function AgentCode({
 		if (failed || remaining.length > 0) return;
 
 		setEditing(false);
-		toast.success("Saved.");
-	}, [agentId, queryClient, save, trpc]);
+		toast.success(t("codeSavedToast"));
+	}, [agentId, queryClient, save, t, trpc]);
 
 	const editorOptions = useMemo<EditorOptions<undefined>>(
 		() => ({
@@ -146,9 +149,7 @@ export function AgentCode({
 	if (files.length === 0) {
 		return (
 			<p className="text-muted-foreground text-sm">
-				{code.isPending
-					? "Reading the agent's files…"
-					: "This agent has no files yet. The builder writes them when it deploys."}
+				{code.isPending ? t("readingAgentFilesLabel") : t("noAgentFilesYet")}
 			</p>
 		);
 	}
@@ -158,10 +159,10 @@ export function AgentCode({
 			<section className="flex flex-col gap-3.5">
 				<div className="flex items-end justify-between gap-4">
 					<div>
-						<h2 className="font-semibold text-lg tracking-tight">Code</h2>
-						<p className="text-muted-foreground text-sm">
-							What the agent actually runs.
-						</p>
+						<h2 className="font-semibold text-lg tracking-tight">
+							{t("codeTabLabel")}
+						</h2>
+						<p className="text-muted-foreground text-sm">{t("codeSubtitle")}</p>
 					</div>
 
 					<div className="flex items-center gap-2">
@@ -171,7 +172,7 @@ export function AgentCode({
 								size="sm"
 								variant="outline"
 							>
-								{showDiff ? "Hide changes" : "Changes"}
+								{showDiff ? t("hideChangesButton") : t("changesTabLabel")}
 							</Button>
 						) : null}
 						{canManage ? (
@@ -183,7 +184,7 @@ export function AgentCode({
 								size="sm"
 								variant="outline"
 							>
-								{editing ? "Done" : "Edit"}
+								{editing ? t("doneEditingButton") : t("editCodeButton")}
 							</Button>
 						) : null}
 					</div>
@@ -228,12 +229,14 @@ export function AgentCode({
 			</section>
 
 			<SaveBar
-				description={`${changed.length} file${changed.length === 1 ? "" : "s"} changed. Saving writes a new revision.`}
+				description={t("agentCodeChangesDescription", {
+					count: changed.length,
+				})}
 				open={changed.length > 0}
-				title="Unsaved code"
+				title={t("unsavedCodeTitle")}
 			>
 				<Button disabled={saving} onClick={discard} size="sm" variant="outline">
-					Discard
+					{t("discardButton")}
 				</Button>
 				<Button
 					disabled={saving}
@@ -242,7 +245,7 @@ export function AgentCode({
 					}}
 					size="sm"
 				>
-					{saving ? "Saving…" : "Save"}
+					{saving ? t("savingLabel") : common("save")}
 				</Button>
 			</SaveBar>
 		</EditProvider>

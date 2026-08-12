@@ -26,11 +26,11 @@ import {
 } from "@crm/ui/components/dropdown-menu";
 import { Icon } from "@crm/ui/components/icon";
 import { SaveBarViewport } from "@crm/ui/components/save-bar";
+import { useUiLocale } from "@crm/ui/components/ui-strings-provider";
+import { dateTimeFormat } from "@crm/ui/lib/format";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useUiLocale } from "@crm/ui/components/ui-strings-provider";
-import { dateTimeFormat } from "@crm/ui/lib/format";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
@@ -116,7 +116,7 @@ export function TeamAgentDetail({
 			onSuccess: async () => {
 				await invalidate();
 				setRunsOpen(true);
-				toast.success("Agent run queued.");
+				toast.success(t("agentRunQueuedToast"));
 			},
 			onError: (error) => toast.error(error.message),
 		}),
@@ -137,7 +137,7 @@ export function TeamAgentDetail({
 		trpc.agents.retryRun.mutationOptions({
 			onSuccess: async () => {
 				await invalidate();
-				toast.success("Run queued again.");
+				toast.success(t("agentRunRequeuedToast"));
 			},
 			onError: (error) => toast.error(error.message),
 		}),
@@ -147,7 +147,9 @@ export function TeamAgentDetail({
 			onSuccess: async (result) => {
 				await invalidate();
 				toast.success(
-					result.cancelled ? "Run stopped." : "That run had already finished.",
+					result.cancelled
+						? t("runCancelledToast")
+						: t("runAlreadyFinishedToast"),
 				);
 			},
 			onError: (error) => toast.error(error.message),
@@ -207,7 +209,8 @@ export function TeamAgentDetail({
 	const nextRun =
 		enabledTriggers.length === 1 ? enabledTriggers[0]?.nextRunAt : null;
 	const triggerSummary =
-		enabledTriggers.map((trigger) => trigger.name).join(" · ") || "Manual only";
+		enabledTriggers.map((trigger) => trigger.name).join(" · ") ||
+		t("manualOnlyLabel");
 
 	return (
 		<PageShell className="min-h-0" contained>
@@ -232,7 +235,7 @@ export function TeamAgentDetail({
 				<PageShellActions className="col-start-1 row-start-3 justify-self-start sm:col-start-2 sm:row-start-1 sm:justify-self-end">
 					<div className="flex min-w-0 flex-col items-start gap-2 sm:items-end">
 						<span className="text-muted-foreground text-xs">
-							{isDraft ? "Visibility" : "Trigger"}
+							{isDraft ? t("agentVisibilityLabel") : t("runMetaTrigger")}
 						</span>
 						<span className="font-mono text-sm">
 							{isDraft
@@ -243,13 +246,15 @@ export function TeamAgentDetail({
 						</span>
 						<div className="mt-1 flex flex-wrap gap-2">
 							<Button onClick={() => setRunsOpen(true)} variant="outline">
-								Runs
+								{t("runsTabLabel")}
 								<span className="font-mono text-muted-foreground">
 									{data.runCount}
 								</span>
 							</Button>
 							<Button asChild variant="outline">
-								<Link href={workspaceUrl("/chat")}>Open in chat</Link>
+								<Link href={workspaceUrl("/chat")}>
+									{t("openInChatButton")}
+								</Link>
 							</Button>
 							{isDraft && data.canManage ? (
 								<DraftAgentActions
@@ -543,10 +548,12 @@ function AgentOverview({ agent }: { agent: AgentDetail }) {
 	const deployed = agent.currentVersion !== null;
 	const canEdit = agent.canManage && deployed;
 
+	const t = useTranslations("agent-panel");
+
 	if (!capabilities) {
 		return (
 			<p className="text-muted-foreground text-sm">
-				This agent has no deployed version yet.
+				{t("noDeployedVersionYet")}
 			</p>
 		);
 	}
@@ -556,8 +563,7 @@ function AgentOverview({ agent }: { agent: AgentDetail }) {
 			<div className="flex flex-col gap-9">
 				{deployed ? null : (
 					<p className="text-muted-foreground text-sm">
-						This is a draft. Deploy it to the team before you change what it can
-						do.
+						{t("draftDeployBeforeEditNotice")}
 					</p>
 				)}
 				<AgentCapabilities

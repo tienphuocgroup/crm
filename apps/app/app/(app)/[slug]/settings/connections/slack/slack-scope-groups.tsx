@@ -10,6 +10,7 @@ import {
 	AccordionTrigger,
 } from "@crm/ui/components/accordion";
 import { Icon } from "@crm/ui/components/icon";
+import { useTranslations } from "next-intl";
 
 export type ScopeLine = {
 	scope: string;
@@ -33,13 +34,14 @@ export function SlackScopeGroups({
 	groups: ScopeGroup[];
 	withheld: ScopeLine[];
 }) {
+	const t = useTranslations("settings");
+
 	return (
 		<section className="flex flex-col gap-3 px-(--spacing-block-inline)">
 			<div>
 				<h2 className="font-medium text-sm">{title}</h2>
 				<p className="text-muted-foreground text-xs">
-					Broad means the whole workspace, not one channel. Open a group to see
-					the details.
+					{t("connections.slackScopeGroupsHint")}
 				</p>
 			</div>
 
@@ -57,7 +59,10 @@ export function SlackScopeGroups({
 									</span>
 								</span>
 								<span className="shrink-0 whitespace-nowrap pt-0.5 pr-2 font-normal text-muted-foreground text-xs">
-									{broad} broad of {group.scopes.length}
+									{t("connections.slackScopeBroadOfTotal", {
+										broad,
+										total: group.scopes.length,
+									})}
 								</span>
 							</AccordionTrigger>
 
@@ -94,11 +99,11 @@ export function SlackScopeGroups({
 								{entry.grant}
 							</span>
 							<span className="text-muted-foreground text-xs">
-								Slack held this one back, so it is off.
+								{t("connections.slackScopeHeldBack")}
 							</span>
 						</span>
 						<span className="shrink-0 whitespace-nowrap pt-0.5 pr-2 text-muted-foreground text-xs">
-							Not granted
+							{t("connections.slackScopeNotGranted")}
 						</span>
 					</div>
 				))}

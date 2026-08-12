@@ -4,6 +4,7 @@ import { Button } from "@crm/ui/components/button";
 import { Spinner } from "@crm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { SLACK_CHANNELS } from "@/components/slack/use-slack-channels";
 import { useCrmCache } from "@/lib/trpc/cache";
@@ -29,6 +30,7 @@ export function SlackPeopleMatches({
 	slug: string;
 	initialMatches: { rows: MatchRow[]; sync: SlackSync };
 }) {
+	const t = useTranslations("settings");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 	const matches = useQuery({
@@ -49,8 +51,10 @@ export function SlackPeopleMatches({
 		<div className="flex flex-col gap-4 px-(--spacing-block-inline)">
 			<div className="flex items-center justify-center gap-3">
 				<p className="font-medium text-xs">
-					{rows.filter((row) => row.match?.slackUserId).length} of {rows.length}{" "}
-					matched
+					{t("connections.slackPeopleMatchedCountLabel", {
+						matched: rows.filter((row) => row.match?.slackUserId).length,
+						total: rows.length,
+					})}
 				</p>
 				<Button
 					variant="outline"
@@ -59,19 +63,20 @@ export function SlackPeopleMatches({
 					onClick={() => refresh.mutate()}
 				>
 					{refreshing ? <Spinner data-icon="inline-start" /> : null}
-					{refreshing ? "Refreshing…" : "Refresh from Slack"}
+					{refreshing
+						? t("connections.slackRefreshingLabel")
+						: t("connections.slackRefreshFromSlack")}
 				</Button>
 			</div>
 			{matches.data.sync === "stalled" ? (
 				<p className="text-center text-warning text-xs">
-					Comp AI is not reading Slack right now. These matches can be out of
-					date.
+					{t("connections.slackSyncStalledPeopleNotice")}
 				</p>
 			) : null}
 			<div className="flex flex-col divide-y border-y">
 				{rows.length === 0 ? (
 					<p className="py-5 text-center text-muted-foreground text-sm">
-						No CRM teammates are available to match.
+						{t("connections.slackNoTeammatesToMatch")}
 					</p>
 				) : null}
 				{rows.map((row) => (
@@ -92,7 +97,7 @@ export function SlackPeopleMatches({
 								</div>
 							) : (
 								<p className="px-2.5 py-2 text-muted-foreground text-xs">
-									No exact email match
+									{t("connections.slackNoExactEmailMatch")}
 								</p>
 							)}
 						</div>
@@ -100,13 +105,13 @@ export function SlackPeopleMatches({
 				))}
 			</div>
 			<p className="text-muted-foreground text-xs leading-relaxed">
-				Refresh after a Slack email changes. The CRM matches exact email
-				addresses only. Someone with no exact match stays unmatched, and an
-				agent stops instead of guessing at a similar name.
+				{t("connections.slackMatchRefreshHint")}
 			</p>
 			<div className="flex justify-end">
 				<Button asChild>
-					<Link href={`/${slug}/settings/connections/slack`}>Continue</Link>
+					<Link href={`/${slug}/settings/connections/slack`}>
+						{t("connections.slackPeopleContinueButton")}
+					</Link>
 				</Button>
 			</div>
 		</div>

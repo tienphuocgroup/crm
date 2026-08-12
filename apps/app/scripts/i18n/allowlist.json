@@ -20,6 +20,15 @@
 	"Slack": {
 		"reason": "Vendor name. Never translated."
 	},
+	"Google Workspace": {
+		"reason": "Product name. Also used as an identifier in the connected-list equality check in add-connection-dialog.tsx and connections/page.tsx — translating it would break that comparison."
+	},
+	"Microsoft 365": {
+		"reason": "Product name. Also used as an identifier in the connected-list equality check in add-connection-dialog.tsx and connections/page.tsx — translating it would break that comparison."
+	},
+	"Docusign": {
+		"reason": "Vendor name (lowercase s per its 2024 rebrand, docs/connections.md). Never translated."
+	},
 	"Stripe": {
 		"reason": "Vendor name used as an example company in a field placeholder."
 	},
@@ -115,6 +124,9 @@
 	},
 	"apps/app/app/(app)/[slug]/settings/tracking/tracking-script.tsx::async defer": {
 		"reason": "Literal HTML attributes in the copyable snippet."
+	},
+	"apps/app/app/(app)/[slug]/settings/tracking/tracking-script.tsx::\" ?site= \"": {
+		"reason": "Literal HTML attribute value and query-string syntax in the copyable Tag Manager snippet."
 	},
 	"apps/app/app/(app)/[slug]/settings/tracking/tracking-script.tsx::></script>": {
 		"reason": "Literal HTML in the copyable snippet."

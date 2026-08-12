@@ -5,6 +5,7 @@ import Locked from "@carbon/icons-react/es/Locked";
 import { Button } from "@crm/ui/components/button";
 import { Icon } from "@crm/ui/components/icon";
 import { cn } from "@crm/ui/lib/utils";
+import { useTranslations } from "next-intl";
 
 export type PickerChannel = {
 	id: string;
@@ -35,6 +36,8 @@ export function ChannelPicker({
 	pending?: boolean;
 	value?: string | null;
 }) {
+	const t = useTranslations("agent-panel");
+
 	return (
 		<div className="flex flex-col divide-y overflow-hidden rounded-lg border">
 			{channels.length === 0 ? empty : null}
@@ -56,7 +59,9 @@ export function ChannelPicker({
 					>
 						{onSelect && selectable ? (
 							<button
-								aria-label={`Choose #${channel.name}`}
+								aria-label={t("channelPickerChooseAriaLabel", {
+									name: channel.name,
+								})}
 								aria-pressed={selected}
 								className="absolute inset-0"
 								disabled={pending}
@@ -83,7 +88,7 @@ export function ChannelPicker({
 								{channel.name}
 							</span>
 							<span className="text-muted-foreground text-xs">
-								{describe(channel, canInviteItself)}
+								{describe(channel, canInviteItself, t)}
 							</span>
 						</span>
 
@@ -101,7 +106,9 @@ export function ChannelPicker({
 									size="xs"
 									variant="outline"
 								>
-									{channel.inviteRequestedAt ? "Ask again" : "Request"}
+									{channel.inviteRequestedAt
+										? t("channelPickerAskAgain")
+										: t("channelPickerRequest")}
 								</Button>
 							) : !channel.isMember && onAdd ? (
 								<Button
@@ -110,7 +117,7 @@ export function ChannelPicker({
 									size="xs"
 									variant="outline"
 								>
-									Add
+									{t("channelPickerAdd")}
 								</Button>
 							) : null}
 						</span>
@@ -121,15 +128,21 @@ export function ChannelPicker({
 	);
 }
 
-function describe(channel: PickerChannel, canInviteItself: boolean): string {
+function describe(
+	channel: PickerChannel,
+	canInviteItself: boolean,
+	t: ReturnType<typeof useTranslations>,
+): string {
 	const people =
-		channel.memberCount === null ? "" : ` · ${channel.memberCount} people`;
+		channel.memberCount === null
+			? ""
+			: ` ${t("channelPickerMemberCount", { count: channel.memberCount })}`;
 
-	if (channel.isMember) return `Comp AI is in${people}`;
-	if (!channel.classified) return `Not read from Slack yet${people}`;
-	if (!channel.isPrivate) return `Comp AI can join this one${people}`;
-	if (canInviteItself) return `Private. Comp AI joins as you${people}`;
+	if (channel.isMember) return `${t("channelPickerIsMember")}${people}`;
+	if (!channel.classified) return `${t("channelPickerNotClassified")}${people}`;
+	if (!channel.isPrivate) return `${t("channelPickerJoinable")}${people}`;
+	if (canInviteItself) return `${t("channelPickerPrivateAutoJoin")}${people}`;
 	if (channel.inviteRequestedAt)
-		return `Private. Waiting on an invite${people}`;
-	return `Private. Someone inside has to invite Comp AI${people}`;
+		return `${t("channelPickerPrivateRequested")}${people}`;
+	return `${t("channelPickerPrivateNeedsInvite")}${people}`;
 }

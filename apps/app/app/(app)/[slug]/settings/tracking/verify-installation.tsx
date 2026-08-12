@@ -61,10 +61,7 @@ export function VerifyInstallation() {
 						{result ? <Indicator result={result} /> : null}
 					</div>
 				</CardTitle>
-				<CardDescription>
-					We load one page and look for the script, then read your Tag Manager
-					container if it is not in the HTML.
-				</CardDescription>
+				<CardDescription>{t("tracking.verifyDescription")}</CardDescription>
 
 				<CardAction>
 					<Button
@@ -142,7 +139,7 @@ function Indicator({ result }: { result: Result }) {
 			<StatusIndicator
 				size="sm"
 				tone="warning"
-				label="Tag Manager needs a fix"
+				label={t("tracking.tagManagerNeedsFixLabel")}
 			/>
 		);
 	}
@@ -185,12 +182,15 @@ function Outcome({ result, siteId }: { result: Result; siteId: string }) {
 					{t("tracking.noScriptOn", { host: result.host })}
 				</AlertTitle>
 				<AlertDescription>
-					The page answered in {result.responseMs} ms, but the tag was not in
-					the HTML. Check that it sits in the head, above anything that rewrites
-					the page.
-					{result.containers.length > 0
-						? ` We also read Tag Manager container ${result.containers.join(" and ")}, and the tag is not in there either.`
-						: ""}
+					{t("tracking.scriptMissingDescription", { ms: result.responseMs })}
+					{result.containers.length > 0 ? (
+						<>
+							{" "}
+							{t("tracking.scriptMissingContainersSuffix", {
+								containers: result.containers.join(" and "),
+							})}
+						</>
+					) : null}
 				</AlertDescription>
 			</Alert>
 		);
@@ -200,16 +200,14 @@ function Outcome({ result, siteId }: { result: Result; siteId: string }) {
 		return (
 			<Alert variant="destructive">
 				<Icon icon={Warning} />
-				<AlertTitle>Tag Manager will drop the site ID</AlertTitle>
+				<AlertTitle>{t("tracking.tagManagerDropsSiteIdTitle")}</AlertTitle>
 				<AlertDescription>
-					Container {result.container.id} carries the tag, but the site ID is
-					not in the script URL. Tag Manager keeps only the URL when it injects
-					a script, so a data-site attribute never reaches the page and the
-					tracker never starts. Copy the Tag Manager snippet above and replace
-					the tag's HTML.
-					{result.pageView
-						? " A page view did arrive in the last five minutes, so something on this site is still recording."
-						: ""}
+					{t("tracking.tagManagerDropsSiteIdDescription", {
+						containerId: result.container.id,
+					})}
+					{result.pageView ? (
+						<> {t("tracking.pageViewDespiteMissingSiteId")}</>
+					) : null}
 				</AlertDescription>
 			</Alert>
 		);
@@ -220,18 +218,25 @@ function Outcome({ result, siteId }: { result: Result; siteId: string }) {
 			<Icon icon={CheckmarkFilled} className="text-success" />
 			<AlertTitle>
 				{result.container
-					? `Script found in container ${result.container.id}`
-					: `Script found on ${result.host}`}
+					? t("tracking.scriptFoundInContainer", {
+							containerId: result.container.id,
+						})
+					: t("tracking.scriptFoundOn", { host: result.host })}
 			</AlertTitle>
 			<AlertDescription>
-				It answered in {result.responseMs} ms. Site ID {siteId} matched, and
-				this domain is {result.allowed ? "on" : "not on"} the allow list.
-				{result.container
-					? " The tag is not in the HTML, so it only runs once Tag Manager fires it — a page view is the proof."
-					: ""}
-				{result.pageView
-					? " A page view arrived in the last five minutes."
-					: " No page view has arrived yet — open the page in a browser to send one."}
+				{t("tracking.scriptFoundDescription", {
+					ms: result.responseMs,
+					siteId,
+					allowed: result.allowed ? "yes" : "no",
+				})}
+				{result.container ? (
+					<> {t("tracking.tagManagerFiresLaterNotice")}</>
+				) : null}
+				{result.pageView ? (
+					<> {t("tracking.pageViewRecent")}</>
+				) : (
+					<> {t("tracking.pageViewNotYet")}</>
+				)}
 			</AlertDescription>
 		</Alert>
 	);
