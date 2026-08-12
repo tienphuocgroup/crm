@@ -8,6 +8,7 @@ import { SimpleTableRow } from "@crm/ui/components/simple-table";
 import { Spinner } from "@crm/ui/components/spinner";
 import { TableCell } from "@crm/ui/components/table";
 import { formatMoney } from "@crm/ui/lib/format";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import {
 	DetailSheetHeader,
@@ -41,6 +42,7 @@ export function RecordSheetFrame({
 	tab: string;
 	onTabChange: (tab: string) => void;
 }) {
+	const common = useTranslations("common");
 	const { stack, close, closeAll } = useRecordStack();
 
 	return (
@@ -61,7 +63,9 @@ export function RecordSheetFrame({
 				</div>
 			) : error ? (
 				<div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 p-6 text-center">
-					<p className="font-medium text-sm">This record could not be loaded</p>
+					<p className="font-medium text-sm">
+						{common("recordSheet.recordCouldNotLoad")}
+					</p>
 					<p className="text-muted-foreground text-xs">{error}</p>
 				</div>
 			) : (

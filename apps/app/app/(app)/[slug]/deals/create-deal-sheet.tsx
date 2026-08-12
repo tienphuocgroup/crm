@@ -31,21 +31,24 @@ import {
 } from "@crm/ui/components/sheet";
 import { Spinner } from "@crm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import { type ComponentProps, Suspense, useId, useState } from "react";
 import { toast } from "sonner";
 import { useOpenRecord } from "@/components/crm/record-sheet/record-stack";
-import { dealStageLabel, OPEN_STAGES } from "@/lib/deal-stage";
+import { dealStageLabelKey, OPEN_STAGES } from "@/lib/deal-stage";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 
 const UNSET = "";
 
 function AddButton(props: ComponentProps<typeof Button>) {
+	const t = useTranslations("deals");
+
 	return (
 		<Button {...props}>
 			<Icon icon={Add} data-icon="inline-start" />
-			New deal
+			{t("createTitle")}
 		</Button>
 	);
 }
@@ -59,6 +62,8 @@ export function CreateDealSheet({ companyId }: { companyId?: string }) {
 }
 
 function CreateDealForm({ companyId }: { companyId?: string }) {
+	const t = useTranslations("deals");
+	const common = useTranslations("common");
 	const openRecord = useOpenRecord();
 	const trpc = useTRPC();
 	const cache = useCrmCache();
@@ -92,7 +97,7 @@ function CreateDealForm({ companyId }: { companyId?: string }) {
 		trpc.deals.create.mutationOptions({
 			onSuccess: async (deal) => {
 				await cache.deal(deal.id);
-				toast.success(`${deal.name} added.`);
+				toast.success(t("createdToast", { name: deal.name }));
 				await setOpen(null);
 				setName("");
 				setAmount("");
@@ -114,10 +119,8 @@ function CreateDealForm({ companyId }: { companyId?: string }) {
 			</SheetTrigger>
 			<SheetContent side="right">
 				<SheetHeader>
-					<SheetTitle>New deal</SheetTitle>
-					<SheetDescription>
-						Every deal belongs to a company and has someone's name against it.
-					</SheetDescription>
+					<SheetTitle>{t("createTitle")}</SheetTitle>
+					<SheetDescription>{t("createDescription")}</SheetDescription>
 				</SheetHeader>
 
 				<form
@@ -141,7 +144,7 @@ function CreateDealForm({ companyId }: { companyId?: string }) {
 				>
 					<FieldGroup>
 						<Field>
-							<FieldLabel htmlFor={nameId}>Name</FieldLabel>
+							<FieldLabel htmlFor={nameId}>{t("nameLabel")}</FieldLabel>
 							<Input
 								id={nameId}
 								value={name}
@@ -153,10 +156,12 @@ function CreateDealForm({ companyId }: { companyId?: string }) {
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor="create-deal-company">Company</FieldLabel>
+							<FieldLabel htmlFor="create-deal-company">
+								{t("companyLabel")}
+							</FieldLabel>
 							<Select value={company} onValueChange={setCompany}>
 								<SelectTrigger id="create-deal-company">
-									<SelectValue placeholder="Choose a company" />
+									<SelectValue placeholder={t("chooseCompanyPlaceholder")} />
 								</SelectTrigger>
 								<SelectContent>
 									{(companies.data ?? []).map((option) => (
@@ -169,10 +174,12 @@ function CreateDealForm({ companyId }: { companyId?: string }) {
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor="create-deal-owner">Owner</FieldLabel>
+							<FieldLabel htmlFor="create-deal-owner">
+								{common("ownerLabel")}
+							</FieldLabel>
 							<Select value={resolvedOwner} onValueChange={setOwnerId}>
 								<SelectTrigger id="create-deal-owner">
-									<SelectValue placeholder="Choose an owner" />
+									<SelectValue placeholder={t("chooseOwnerPlaceholder")} />
 								</SelectTrigger>
 								<SelectContent>
 									{(users.data ?? []).map((user) => (
@@ -185,7 +192,9 @@ function CreateDealForm({ companyId }: { companyId?: string }) {
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor="create-deal-stage">Stage</FieldLabel>
+							<FieldLabel htmlFor="create-deal-stage">
+								{t("stageLabel")}
+							</FieldLabel>
 							<Select value={stage} onValueChange={setStage}>
 								<SelectTrigger id="create-deal-stage">
 									<SelectValue />
@@ -193,31 +202,28 @@ function CreateDealForm({ companyId }: { companyId?: string }) {
 								<SelectContent>
 									{OPEN_STAGES.map((value) => (
 										<SelectItem key={value} value={value}>
-											{dealStageLabel(value)}
+											{t(dealStageLabelKey(value))}
 										</SelectItem>
 									))}
 								</SelectContent>
 							</Select>
-							<FieldDescription>
-								A new deal is an open deal — close it from the pipeline once
-								there is an outcome to record.
-							</FieldDescription>
+							<FieldDescription>{t("stageHelp")}</FieldDescription>
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor={amountId}>Amount</FieldLabel>
+							<FieldLabel htmlFor={amountId}>{t("amountLabel")}</FieldLabel>
 							<div className="flex gap-2">
 								<Input
 									id={amountId}
 									value={amount}
 									onChange={(event) => setAmount(event.target.value)}
-									placeholder="24000"
+									placeholder={t("amountPlaceholder")}
 									inputMode="decimal"
 									autoComplete="off"
 								/>
 								<Select value={resolvedCurrency} onValueChange={setCurrency}>
 									<SelectTrigger
-										aria-label="Currency"
+										aria-label={t("currencyLabel")}
 										className="w-28 shrink-0"
 									>
 										<SelectValue />
@@ -234,12 +240,14 @@ function CreateDealForm({ companyId }: { companyId?: string }) {
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor={closeDateId}>Expected close date</FieldLabel>
+							<FieldLabel htmlFor={closeDateId}>
+								{t("closeDateFieldLabel")}
+							</FieldLabel>
 							<DatePicker
 								id={closeDateId}
 								value={closeDate}
 								onChange={setCloseDate}
-								placeholder="No date yet"
+								placeholder={t("closeDatePlaceholder")}
 							/>
 						</Field>
 					</FieldGroup>
@@ -252,10 +260,10 @@ function CreateDealForm({ companyId }: { companyId?: string }) {
 						disabled={create.isPending || !ready}
 					>
 						{create.isPending ? <Spinner /> : null}
-						Add deal
+						{t("createSubmit")}
 					</Button>
 					<SheetClose asChild>
-						<Button variant="outline">Cancel</Button>
+						<Button variant="outline">{common("cancel")}</Button>
 					</SheetClose>
 				</SheetFooter>
 			</SheetContent>

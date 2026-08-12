@@ -8,22 +8,25 @@ import Time from "@carbon/icons-react/es/Time";
 import SlackLogo from "@crm/ui/components/brand-logos/slack";
 import { cn } from "@crm/ui/lib/utils";
 import Image from "next/image";
+import { getTranslations } from "next-intl/server";
 import type * as React from "react";
 import { Chip } from "./chip";
 import { SectionHeading } from "./section-heading";
 
-export function AgentSection() {
+export async function AgentSection() {
+	const t = await getTranslations("landing");
+
 	return (
 		<section className="relative flex w-full shrink-0 flex-col items-center px-6 pt-20 md:pt-30">
 			<div className="flex w-full max-w-6xl flex-col gap-12">
 				<SectionHeading
-					title="Agents that automate your CRM."
-					lede="Describe how your CRM should act. Create agents to automate every process."
+					title={t("agentSectionTitle")}
+					lede={t("agentSectionLede")}
 				/>
 
 				<div className="flex w-full flex-col items-center gap-7 rounded-xl border border-border bg-background px-6 py-12 md:px-12 md:py-[88px]">
 					<p className="text-balance text-center font-medium text-2xl/8 tracking-[-0.01em] md:text-[32px]/10">
-						What should we get done, Lewis?
+						{t("agentSectionGreeting")}
 					</p>
 
 					<Composer />
@@ -34,24 +37,24 @@ export function AgentSection() {
 	);
 }
 
-function Composer() {
+async function Composer() {
+	const t = await getTranslations("landing");
+
 	return (
 		<div className="flex min-h-24 w-3xl max-w-full shrink-0 select-none flex-col justify-between rounded-lg border border-[#3D3D3D] bg-muted p-[11px]">
 			<p className="flex flex-wrap items-center gap-1 p-1 text-[13px]/6">
-				<span className="text-[#00805E]">/Create agent</span>
-				<span className="text-white">Send a new message to</span>
+				<span className="text-[#00805E]">{t("composerCommand")}</span>
+				<span className="text-white">{t("composerSendMessageTo")}</span>
 				<Chip className="gap-1 text-white">
 					<SlackLogo className="size-[15px] shrink-0" />
 					Slack
 				</Chip>
-				<span className="text-white">and ping</span>
+				<span className="text-white">{t("composerAndPing")}</span>
 				<Chip className="gap-1 text-white">
 					<DanAvatar />
 					Dan
 				</Chip>
-				<span className="text-white">
-					when a company misses their invoice deadline
-				</span>
+				<span className="text-white">{t("composerInvoiceDeadline")}</span>
 			</p>
 
 			<div className="flex items-center">
@@ -69,49 +72,50 @@ function Composer() {
 	);
 }
 
-function SuggestedActions() {
+async function SuggestedActions() {
+	const t = await getTranslations("landing");
+
 	return (
 		<div className="flex w-3xl max-w-full shrink-0 select-none flex-col pt-1">
 			<div className="flex h-7 shrink-0 items-center gap-1.5 text-muted-foreground">
-				<span className="text-[13px]/4">Suggested actions</span>
+				<span className="text-[13px]/4">{t("suggestedActionsHeading")}</span>
 				<ChevronDown size={12} />
 			</div>
 
 			<SuggestedAction>
-				<span className="shrink-0">Create a</span>
+				<span className="shrink-0">{t("suggestedActionCreateA")}</span>
 				<Chip>
 					<SlackLogo className="size-[14px] shrink-0" />
 					Slack
 				</Chip>
-				<span className="shrink-0">
-					channel and invite the owner when a deal hits
-				</span>
+				<span className="shrink-0">{t("suggestedActionChannelInvite")}</span>
 				<Chip className="gap-1.5 px-2">
 					<span className="size-1.5 shrink-0 rounded-full bg-success" />
-					Closed won
+					{t("suggestedActionClosedWon")}
 				</Chip>
 			</SuggestedAction>
 
 			<SuggestedAction className="gap-3">
-				<span className="shrink-0">Ping</span>
+				<span className="shrink-0">{t("suggestedActionPing")}</span>
 				<Chip>
 					<DanAvatar />
 					Dan
 				</Chip>
 				<span className="min-w-0 grow">
-					when a contract has been out five days unsigned
+					{t("suggestedActionContractUnsigned")}
 				</span>
 			</SuggestedAction>
 
 			<SuggestedAction>
-				<span className="shrink-0">Every Monday,</span>
+				<span className="shrink-0">{t("suggestedActionEveryMonday")}</span>
 				<Chip className="px-2">
 					<Renew size={13} className="shrink-0" />
-					re-enrich contacts
+					{t("suggestedActionReEnrichContacts")}
 				</Chip>
-				<span className="shrink-0">that haven't been contacted in</span>
+				<span className="shrink-0">{t("suggestedActionNotContactedIn")}</span>
 				<Chip className="px-2">
-					<Time size={13} className="shrink-0 text-muted-foreground" />4 weeks
+					<Time size={13} className="shrink-0 text-muted-foreground" />
+					{t("suggestedActionFourWeeks")}
 				</Chip>
 			</SuggestedAction>
 		</div>

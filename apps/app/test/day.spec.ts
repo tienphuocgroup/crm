@@ -17,6 +17,13 @@ describe("day strings", () => {
 		expect(fromDay("2026-12-31T00:00:00.000Z")?.getDate()).toBe(31);
 	});
 
+	it("renders the day in the locale it is given", () => {
+		const day = "2026-12-31T00:00:00.000Z";
+		expect(formatDay(day, "en-US")).toBe("Dec 31, 2026");
+		expect(formatDay(day, "de-DE")).not.toBe(formatDay(day, "en-US"));
+		expect(formatDay(day, "de-DE")).toBe("31. Dez. 2026");
+	});
+
 	it("has nothing to show for nothing", () => {
 		expect(fromDay(null)).toBeUndefined();
 		expect(fromDay("")).toBeUndefined();

@@ -5,6 +5,7 @@ import { Questionnaire as QuestionnairePrimitive } from "@shadcn/react/questionn
 import type * as React from "react";
 import { buttonVariants, type Button } from "./button";
 import { Icon } from "./icon";
+import { useUiStrings } from "./ui-strings-provider";
 import { cn } from "../lib/utils";
 
 function Questionnaire({
@@ -204,6 +205,8 @@ function QuestionnairePrevious({
 	...props
 }: React.ComponentProps<typeof QuestionnairePrimitive.Previous> &
 	Pick<React.ComponentProps<typeof Button>, "size" | "variant">) {
+	const strings = useUiStrings();
+
 	return (
 		<QuestionnairePrimitive.Previous
 			data-slot="questionnaire-previous"
@@ -216,7 +219,7 @@ function QuestionnairePrevious({
 			)}
 			{...props}
 		>
-			{children ?? "Previous"}
+			{children ?? strings.questionnairePrevious}
 		</QuestionnairePrimitive.Previous>
 	);
 }
@@ -229,6 +232,8 @@ function QuestionnaireSkip({
 	...props
 }: React.ComponentProps<typeof QuestionnairePrimitive.Skip> &
 	Pick<React.ComponentProps<typeof Button>, "size" | "variant">) {
+	const strings = useUiStrings();
+
 	return (
 		<QuestionnairePrimitive.Skip
 			data-slot="questionnaire-skip"
@@ -241,7 +246,7 @@ function QuestionnaireSkip({
 			)}
 			{...props}
 		>
-			{children ?? "Skip"}
+			{children ?? strings.questionnaireSkip}
 		</QuestionnairePrimitive.Skip>
 	);
 }
@@ -254,6 +259,8 @@ function QuestionnaireNext({
 	...props
 }: React.ComponentProps<typeof QuestionnairePrimitive.Next> &
 	Pick<React.ComponentProps<typeof Button>, "size" | "variant">) {
+	const strings = useUiStrings();
+
 	return (
 		<QuestionnairePrimitive.Next
 			data-slot="questionnaire-next"
@@ -266,7 +273,7 @@ function QuestionnaireNext({
 			)}
 			{...props}
 		>
-			{children ?? "Next"}
+			{children ?? strings.questionnaireNext}
 		</QuestionnairePrimitive.Next>
 	);
 }
@@ -279,6 +286,8 @@ function QuestionnaireSubmit({
 	...props
 }: React.ComponentProps<typeof QuestionnairePrimitive.Submit> &
 	Pick<React.ComponentProps<typeof Button>, "size" | "variant">) {
+	const strings = useUiStrings();
+
 	return (
 		<QuestionnairePrimitive.Submit
 			data-slot="questionnaire-submit"
@@ -291,7 +300,7 @@ function QuestionnaireSubmit({
 			)}
 			{...props}
 		>
-			{children ?? "Submit"}
+			{children ?? strings.questionnaireSubmit}
 		</QuestionnairePrimitive.Submit>
 	);
 }

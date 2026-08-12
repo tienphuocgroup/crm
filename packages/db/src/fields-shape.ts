@@ -38,25 +38,12 @@ const COLUMNS: Record<FieldTypeName, FieldValueColumn> = {
 	USER: "userId",
 };
 
-const TYPE_LABELS: Record<FieldTypeName, string> = {
-	TEXT: "Text",
-	LONG_TEXT: "Long text",
-	NUMBER: "Number",
-	DATE: "Date",
-	CHECKBOX: "Checkbox",
-	SELECT: "Select",
-	URL: "URL",
-	EMAIL: "Email",
-	PHONE: "Phone",
-	USER: "User",
-};
-
 export function columnFor(type: FieldTypeName): FieldValueColumn {
 	return COLUMNS[type];
 }
 
 export function typeLabel(type: FieldTypeName): string {
-	return TYPE_LABELS[type];
+	return type;
 }
 
 export function usesOptions(type: FieldTypeName): boolean {

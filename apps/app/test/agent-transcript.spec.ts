@@ -14,7 +14,7 @@ import {
 	resolveThread,
 	sourcesOf,
 	splitMarkdownTable,
-	TOOL_VERBS,
+	TOOL_VERB_KEYS,
 	toTranscript,
 } from "../lib/agent-transcript";
 
@@ -338,9 +338,11 @@ describe("eventStreamSettled", () => {
 
 describe("describe", () => {
 	it("says what happened in a rep's words, not the tool's", () => {
-		expect(describeStep(tool("read_crm_history") as never)).toBe(
-			"Read our emails and meetings with them",
-		);
+		expect(describeStep(tool("read_crm_history") as never)).toEqual({
+			key: "toolVerbReadCrmHistory",
+			fallback: "Read crm history",
+			reason: null,
+		});
 	});
 
 	it("carries the reason a write did not happen", () => {
@@ -348,11 +350,17 @@ describe("describe", () => {
 			output: { written: false, reason: "the account is named somebody else" },
 		});
 
-		expect(describeStep(step as never)).toContain("named somebody else");
+		expect(describeStep(step as never).reason).toBe(
+			"the account is named somebody else",
+		);
 	});
 
 	it("falls back to a readable form of an unknown tool", () => {
-		expect(describeStep(tool("some_new_tool") as never)).toBe("Some new tool");
+		expect(describeStep(tool("some_new_tool") as never)).toEqual({
+			key: null,
+			fallback: "Some new tool",
+			reason: null,
+		});
 	});
 });
 
@@ -623,7 +631,7 @@ describe("resolveThread", () => {
 	});
 });
 
-describe("every tool has a line of English", () => {
+describe("every tool has a line of copy", () => {
 	const BUILT_INS = [
 		"load_skill",
 		"web_search",
@@ -649,14 +657,17 @@ describe("every tool has a line of English", () => {
 		expect(authored.length).toBeGreaterThan(0);
 
 		for (const tool of [...authored, ...BUILT_INS]) {
-			expect(TOOL_VERBS[tool]).toBeString();
+			expect(TOOL_VERB_KEYS[tool]).toBeString();
 		}
 	});
 
-	it("writes them as sentences, not as slugs", () => {
-		for (const [tool, verb] of Object.entries(TOOL_VERBS)) {
-			expect(verb, tool).not.toContain("_");
-			expect(verb[0], tool).toBe(verb[0]?.toUpperCase() ?? "");
+	it("gives each tool a catalog key of its own, not the slug back", () => {
+		const seen = new Set<string>();
+
+		for (const [tool, key] of Object.entries(TOOL_VERB_KEYS)) {
+			expect(key, tool).toMatch(/^toolVerb[A-Z][A-Za-z0-9]*$/);
+			expect(seen.has(key), tool).toBe(false);
+			seen.add(key);
 		}
 	});
 });

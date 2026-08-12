@@ -1,3 +1,6 @@
+"use client";
+
+import { useUiStrings } from "@crm/ui/components/ui-strings-provider";
 import { cn } from "@crm/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 
@@ -24,11 +27,13 @@ function Spinner({
 	size,
 	...props
 }: React.ComponentProps<"svg"> & VariantProps<typeof spinnerVariants>) {
+	const strings = useUiStrings();
+
 	return (
 		<svg
 			data-slot="spinner"
 			role="status"
-			aria-label="Loading"
+			aria-label={strings.spinnerLabel}
 			xmlns="http://www.w3.org/2000/svg"
 			viewBox="-68 -68 648 648"
 			fill="none"

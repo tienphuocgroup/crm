@@ -17,7 +17,7 @@ export type TranscriptItem =
 	| {
 			kind: "did";
 			id: string;
-			label: string;
+			label: StepLabel;
 			input: Record<string, unknown> | null;
 			output: unknown;
 			tone: Tone;
@@ -28,6 +28,12 @@ export type TranscriptItem =
 	  };
 
 export type Tone = "neutral" | "success" | "warning";
+
+export type StepLabel = {
+	key: string | null;
+	fallback: string;
+	reason: string | null;
+};
 
 export type Source = {
 	url: string;
@@ -45,46 +51,46 @@ type AgentStreamEvent = {
 	data?: unknown;
 };
 
-const VERBS: Record<string, string> = {
-	read_crm_history: "Read our emails and meetings with them",
-	read_company_history: "Read everything we have on the company",
-	read_deal_history: "Read the deal and where it has been",
-	search_crm: "Looked the record up in the CRM",
-	resolve_linkedin_profile: "Searched for their LinkedIn profile",
-	get_linkedin_profile: "Read a LinkedIn profile",
-	get_contact_work_history: "Read their work history",
-	fetch_contact_photo: "Fetched their profile picture",
-	find_contact_socials: "Searched for their other profiles",
-	set_contact_socials: "Checked a profile against the account itself",
-	identify_contact: "Put a name to the address",
-	record_fact: "Recorded what it found",
-	write_brief: "Wrote the background",
-	write_workspace_profile: "Wrote up who we are",
-	research_person: "Researched them on the web",
-	research_company: "Read the company's site",
-	enrich_company: "Looked up the company",
-	schedule_recheck: "Decided when to look again",
-	record_job_change: "Raised a job change",
-	list_deals: "Reviewed the deal pipeline",
-	list_outstanding_work: "Looked for outstanding work",
-	set_chat_title: "Named this chat",
-	list_fields: "Read what this workspace tracks",
-	set_field_value: "Filled in a custom field",
-	manage_fields: "Changed what the CRM tracks",
-	archive_field: "Asked to retire a field",
+const VERB_KEYS: Record<string, string> = {
+	read_crm_history: "toolVerbReadCrmHistory",
+	read_company_history: "toolVerbReadCompanyHistory",
+	read_deal_history: "toolVerbReadDealHistory",
+	search_crm: "toolVerbSearchCrm",
+	resolve_linkedin_profile: "toolVerbResolveLinkedinProfile",
+	get_linkedin_profile: "toolVerbGetLinkedinProfile",
+	get_contact_work_history: "toolVerbGetContactWorkHistory",
+	fetch_contact_photo: "toolVerbFetchContactPhoto",
+	find_contact_socials: "toolVerbFindContactSocials",
+	set_contact_socials: "toolVerbSetContactSocials",
+	identify_contact: "toolVerbIdentifyContact",
+	record_fact: "toolVerbRecordFact",
+	write_brief: "toolVerbWriteBrief",
+	write_workspace_profile: "toolVerbWriteWorkspaceProfile",
+	research_person: "toolVerbResearchPerson",
+	research_company: "toolVerbResearchCompany",
+	enrich_company: "toolVerbEnrichCompany",
+	schedule_recheck: "toolVerbScheduleRecheck",
+	record_job_change: "toolVerbRecordJobChange",
+	list_deals: "toolVerbListDeals",
+	list_outstanding_work: "toolVerbListOutstandingWork",
+	set_chat_title: "toolVerbSetChatTitle",
+	list_fields: "toolVerbListFields",
+	set_field_value: "toolVerbSetFieldValue",
+	manage_fields: "toolVerbManageFields",
+	archive_field: "toolVerbArchiveField",
 
-	load_skill: "Read its instructions for this",
-	web_search: "Searched the web",
-	web_fetch: "Read a web page",
-	todo: "Updated its plan",
-	ask_question: "Asked a question",
-	agent: "Handed part of the job to a helper",
-	connection_search: "Looked for a tool it could use",
-	bash: "Ran a command",
-	read_file: "Read a file",
-	write_file: "Wrote a file",
-	glob: "Looked for files",
-	grep: "Searched inside the files",
+	load_skill: "toolVerbLoadSkill",
+	web_search: "toolVerbWebSearch",
+	web_fetch: "toolVerbWebFetch",
+	todo: "toolVerbTodo",
+	ask_question: "toolVerbAskQuestion",
+	agent: "toolVerbAgent",
+	connection_search: "toolVerbConnectionSearch",
+	bash: "toolVerbBash",
+	read_file: "toolVerbReadFile",
+	write_file: "toolVerbWriteFile",
+	glob: "toolVerbGlob",
+	grep: "toolVerbGrep",
 };
 
 function humanise(tool: string): string {
@@ -283,14 +289,17 @@ export function toolName(part: EveMessagePart): string {
 	return part.type.replace(/^tool-/, "");
 }
 
-export const TOOL_VERBS = VERBS;
+export const TOOL_VERB_KEYS = VERB_KEYS;
 
-export function describe(part: EveMessagePart): string {
+export function describe(part: EveMessagePart): StepLabel {
 	const tool = toolName(part);
-	const verb = VERBS[tool] ?? humanise(tool);
 	const reason = output(part)?.reason;
 
-	return typeof reason === "string" ? `${verb} — ${reason}` : verb;
+	return {
+		key: VERB_KEYS[tool] ?? null,
+		fallback: humanise(tool),
+		reason: typeof reason === "string" ? reason : null,
+	};
 }
 
 export function outcomeTone(part: EveMessagePart): Tone {

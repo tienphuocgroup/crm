@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import {
 	PageShell,
@@ -14,19 +15,21 @@ import { HydrateClient } from "@/lib/trpc/hydrate";
 import { getServerQueryClient, getServerTrpc } from "@/lib/trpc/server";
 import { TrackingSections } from "./tracking-sections";
 
-export const metadata: Metadata = {
-	title: "Tracking & Analytics",
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const t = await getTranslations("settings");
+	return { title: t("tracking.metaTitle") };
+}
 
-export default function TrackingSettingsPage() {
+export default async function TrackingSettingsPage() {
+	const t = await getTranslations("settings");
+
 	return (
 		<PageShell>
 			<PageShellHeader>
 				<PageShellHeading>
-					<PageShellTitle>Tracking &amp; Analytics</PageShellTitle>
+					<PageShellTitle>{t("tracking.metaTitle")}</PageShellTitle>
 					<PageShellDescription>
-						Track website visitors and automatically add contacts when a form is
-						submitted.
+						{t("tracking.pageDescription")}
 					</PageShellDescription>
 				</PageShellHeading>
 			</PageShellHeader>

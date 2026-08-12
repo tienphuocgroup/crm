@@ -15,6 +15,7 @@ import { SOURCED_VALUE, SourcedValue } from "@crm/ui/components/sourced-value";
 import { Spinner } from "@crm/ui/components/spinner";
 import { Textarea } from "@crm/ui/components/textarea";
 import { cn } from "@crm/ui/lib/utils";
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import { PROPERTY_LABEL, PROPERTY_ROW } from "@/components/detail-sheet";
 
@@ -336,7 +337,7 @@ export function InlineSelectField({
 	options,
 	onSave,
 	saving = false,
-	placeholder = "None",
+	placeholder,
 }: {
 	label: string;
 	value: string;
@@ -345,7 +346,9 @@ export function InlineSelectField({
 	saving?: boolean;
 	placeholder?: string;
 }) {
+	const common = useTranslations("common");
 	const id = useId();
+	const resolvedPlaceholder = placeholder ?? common("inlineFieldNoneOption");
 
 	return (
 		<div className={ROW}>
@@ -355,7 +358,7 @@ export function InlineSelectField({
 			<div className="flex min-w-0 items-center gap-1.5">
 				<Select value={value} onValueChange={onSave} disabled={saving}>
 					<SelectTrigger id={id} variant="ghost" className="w-full">
-						<SelectValue placeholder={placeholder} />
+						<SelectValue placeholder={resolvedPlaceholder} />
 					</SelectTrigger>
 					<SelectContent>
 						{options.map((option) => (

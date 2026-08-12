@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@crm/ui/components/button";
+import { useUiStrings } from "@crm/ui/components/ui-strings-provider";
 import { cn } from "@crm/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { XIcon } from "lucide-react";
@@ -80,6 +81,8 @@ function SheetContent({
 	size?: SheetSize;
 	showCloseButton?: boolean;
 }) {
+	const strings = useUiStrings();
+
 	return (
 		<SheetPortal>
 			<SheetOverlay />
@@ -98,7 +101,7 @@ function SheetContent({
 							size="icon-sm"
 						>
 							<XIcon />
-							<span className="sr-only">Close</span>
+							<span className="sr-only">{strings.close}</span>
 						</Button>
 					</SheetPrimitive.Close>
 				)}

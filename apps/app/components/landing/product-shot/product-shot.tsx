@@ -5,24 +5,27 @@ import Partnership from "@carbon/icons-react/es/Partnership";
 import Settings from "@carbon/icons-react/es/Settings";
 import Logo from "@crm/ui/components/logo";
 import Image from "next/image";
+import { getTranslations } from "next-intl/server";
 import { BuiltWith } from "../built-with";
 import { CompaniesList, CompaniesPage } from "./companies-page";
 import { CompanyDrawer, CompanySheet } from "./company-sheet";
 
 const RAIL = [
-	{ icon: Dashboard, label: "Overview", active: false },
-	{ icon: Building, label: "Companies", active: true },
-	{ icon: Group, label: "Contacts", active: false },
-	{ icon: Partnership, label: "Deals", active: false },
-	{ icon: Settings, label: "Settings", active: false },
-];
+	{ icon: Dashboard, labelKey: "railOverview", active: false },
+	{ icon: Building, labelKey: "railCompanies", active: true },
+	{ icon: Group, labelKey: "railContacts", active: false },
+	{ icon: Partnership, labelKey: "railDeals", active: false },
+	{ icon: Settings, labelKey: "railSettings", active: false },
+] as const;
 
-export function ProductShot() {
+export async function ProductShot() {
+	const t = await getTranslations("landing");
+
 	return (
 		<section className="relative flex w-full shrink-0 flex-col items-center px-6 pt-20">
 			<div
 				role="img"
-				aria-label="The companies list with an account open on its Agent tab"
+				aria-label={t("productShotAriaLabel")}
 				className="w-[1183px] max-w-full select-none overflow-clip rounded-xl border border-border bg-background"
 			>
 				<div className="relative hidden h-[690px] w-[1182px] shrink-0 flex-col overflow-clip lg:flex">
@@ -78,15 +81,17 @@ function AppHeader() {
 	);
 }
 
-function AppRail() {
+async function AppRail() {
+	const t = await getTranslations("landing");
+
 	return (
 		<div className="flex w-14 shrink-0 flex-col items-center gap-1 border-border border-r py-3">
-			{RAIL.map(({ icon: Icon, label, active }) => (
+			{RAIL.map(({ icon: Icon, labelKey, active }) => (
 				<span
-					key={label}
+					key={labelKey}
 					className={`flex size-8 shrink-0 items-center justify-center rounded-md ${active ? "bg-muted text-foreground" : "text-muted-foreground"}`}
 				>
-					<Icon size={16} aria-label={label} />
+					<Icon size={16} aria-label={t(labelKey)} />
 				</span>
 			))}
 		</div>

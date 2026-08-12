@@ -20,6 +20,7 @@ import { Separator } from "@crm/ui/components/separator";
 import { Skeleton } from "@crm/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { useMobileNav } from "@/components/mobile-nav";
@@ -31,6 +32,8 @@ import { workspaceLabel } from "@/lib/workspace-label";
 type User = { name: string; email: string; image: string | null };
 
 export function AppHeader({ user }: { user: User }) {
+	const t = useTranslations("nav");
+	const common = useTranslations("common");
 	const { setOpen: setMobileNavOpen } = useMobileNav();
 	const trpc = useTRPC();
 	const workspaceUrl = useWorkspaceUrl();
@@ -44,14 +47,14 @@ export function AppHeader({ user }: { user: User }) {
 					variant="ghost"
 					size="icon"
 					className="md:hidden"
-					aria-label="Open navigation"
+					aria-label={t("openNavigation")}
 					onClick={() => setMobileNavOpen(true)}
 				>
 					<Menu />
 				</Button>
 				<Link
 					href={workspaceUrl()}
-					aria-label="Homepage"
+					aria-label={common("homepageAriaLabel")}
 					className="hidden size-8 items-center justify-center text-foreground md:flex"
 				>
 					<Logo className="size-5" />
@@ -65,7 +68,7 @@ export function AppHeader({ user }: { user: User }) {
 					user={user}
 					onSignOut={() => {
 						signOutAndRedirect().catch(() =>
-							toast.error("Could not sign out."),
+							toast.error(common("signOutFailedToast")),
 						);
 					}}
 				/>
@@ -75,6 +78,8 @@ export function AppHeader({ user }: { user: User }) {
 }
 
 export function AppHeaderFallback() {
+	const common = useTranslations("common");
+
 	return (
 		<header
 			className="flex h-12 shrink-0 items-center gap-2 border-b px-3 [view-transition-name:app-header]"
@@ -94,13 +99,14 @@ export function AppHeaderFallback() {
 				</Avatar>
 			</div>
 			<span role="status" className="sr-only">
-				Loading workspace header…
+				{common("loadingWorkspaceHeader")}
 			</span>
 		</header>
 	);
 }
 
 function UserMenu({ user, onSignOut }: { user: User; onSignOut: () => void }) {
+	const common = useTranslations("common");
 	const { resolvedTheme, setTheme } = useTheme();
 	const isDark = resolvedTheme === "dark";
 
@@ -110,7 +116,7 @@ function UserMenu({ user, onSignOut }: { user: User; onSignOut: () => void }) {
 				<Button
 					variant="ghost"
 					size="icon"
-					aria-label="Account menu"
+					aria-label={common("accountMenuAriaLabel")}
 					className="hover:bg-transparent aria-expanded:bg-transparent dark:hover:bg-transparent"
 				>
 					<Avatar className="size-7">
@@ -134,12 +140,12 @@ function UserMenu({ user, onSignOut }: { user: User; onSignOut: () => void }) {
 					}}
 				>
 					{isDark ? <Light /> : <Asleep />}
-					{isDark ? "Light mode" : "Dark mode"}
+					{isDark ? common("switchToLightMode") : common("switchToDarkMode")}
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem onClick={onSignOut}>
 					<Logout />
-					Sign out
+					{common("signOutLabel")}
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

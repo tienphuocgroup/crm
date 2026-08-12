@@ -20,6 +20,7 @@ import {
 import { Icon } from "@crm/ui/components/icon";
 import { cn } from "@crm/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc/client";
@@ -32,6 +33,8 @@ export function ShareChatDialog({
 	conversationId: string;
 	title: string;
 }) {
+	const t = useTranslations("agent-panel");
+	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const workspaceUrl = useWorkspaceUrl();
 	const queryClient = useQueryClient();
@@ -77,7 +80,7 @@ export function ShareChatDialog({
 				setToken(null);
 				setChoice({ conversationId: input.id, value: false });
 				await invalidate();
-				toast.success("Chat link revoked.");
+				toast.success(t("chatLinkRevokedToast"));
 			},
 			onError: (error) => toast.error(error.message),
 		}),
@@ -88,7 +91,7 @@ export function ShareChatDialog({
 		await navigator.clipboard.writeText(
 			`${window.location.origin}${workspaceUrl(`/chat/${shareToken}`)}`,
 		);
-		toast.success("Chat link copied.");
+		toast.success(t("chatLinkCopiedToast"));
 	};
 	const createAction = useAsyncAction({
 		action: () => create.mutateAsync({ id: conversationId }),
@@ -109,7 +112,7 @@ export function ShareChatDialog({
 		>
 			<DialogTrigger asChild>
 				<Button variant="outline" size="sm">
-					Share chat
+					{t("shareChatButton")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent
@@ -118,7 +121,7 @@ export function ShareChatDialog({
 			>
 				<DialogHeader className="relative gap-1 border-b p-5 pr-14">
 					<DialogTitle className="font-semibold text-sm">
-						Share chat
+						{t("shareChatButton")}
 					</DialogTitle>
 					<DialogDescription>{title}</DialogDescription>
 					<DialogClose asChild>
@@ -128,7 +131,7 @@ export function ShareChatDialog({
 							className="absolute top-4 right-4"
 						>
 							<Icon icon={Close} />
-							<span className="sr-only">Close</span>
+							<span className="sr-only">{t("closeLabel")}</span>
 						</Button>
 					</DialogClose>
 				</DialogHeader>
@@ -139,7 +142,7 @@ export function ShareChatDialog({
 							role="status"
 							className="py-6 text-center text-muted-foreground text-sm"
 						>
-							Loading sharing status…
+							{t("loadingSharingStatus")}
 						</p>
 					) : status.isError ? (
 						<div
@@ -147,21 +150,21 @@ export function ShareChatDialog({
 							className="flex items-center justify-between gap-3 py-4"
 						>
 							<p className="text-muted-foreground text-sm">
-								Sharing status could not be loaded.
+								{t("sharingStatusLoadFailed")}
 							</p>
 							<Button
 								variant="outline"
 								size="sm"
 								onClick={() => status.refetch()}
 							>
-								Try again
+								{common("tryAgain")}
 							</Button>
 						</div>
 					) : (
 						<>
 							<ShareChoice
 								selected={shared === false}
-								label="Only you"
+								label={t("shareOnlyYou")}
 								disabled={createAction.pending || revokeAction.pending}
 								onSelect={() => {
 									if (shared || status.data.enabled) {
@@ -173,8 +176,8 @@ export function ShareChatDialog({
 							/>
 							<ShareChoice
 								selected={shared === true}
-								label="Anyone in Comp AI with the link"
-								detail="Read-only"
+								label={t("shareAnyoneWithLink")}
+								detail={t("readOnlyLabel")}
 								disabled={createAction.pending || revokeAction.pending}
 								onSelect={() => {
 									if (!shareToken) createAction.run();
@@ -187,7 +190,7 @@ export function ShareChatDialog({
 									<span className="min-w-0 flex-1 truncate font-mono text-xs">
 										{shareToken
 											? `${workspaceUrl(`/chat/${shareToken.slice(0, 12)}`)}…`
-											: "An active read-only link exists"}
+											: t("shareLinkPlaceholder")}
 									</span>
 									<Button
 										variant="outline"
@@ -206,21 +209,27 @@ export function ShareChatDialog({
 											status={
 												shareToken ? copyAction.status : createAction.status
 											}
-											pendingLabel={shareToken ? "Copying" : "Creating link"}
-											successLabel={shareToken ? "Copied" : "Link created"}
-											errorLabel="Try again"
+											pendingLabel={
+												shareToken ? t("copyingLabel") : t("creatingLinkLabel")
+											}
+											successLabel={
+												shareToken ? t("copiedLabel") : t("linkCreatedLabel")
+											}
+											errorLabel={common("tryAgain")}
 										>
 											{shareToken ? (
 												<Icon icon={Copy} data-icon="inline-start" />
 											) : null}
-											{shareToken ? "Copy link" : "Replace link"}
+											{shareToken
+												? t("copyLinkButton")
+												: t("replaceLinkButton")}
 										</AsyncButtonContent>
 									</Button>
 								</div>
 							) : null}
 
 							<p className="text-muted-foreground text-xs">
-								Sharing this chat does not change who can edit or run the agent.
+								{t("shareChatNotice")}
 							</p>
 						</>
 					)}
@@ -235,19 +244,19 @@ export function ShareChatDialog({
 					>
 						<AsyncButtonContent
 							status={revokeAction.status}
-							pendingLabel="Revoking"
-							successLabel="Revoked"
-							errorLabel="Try again"
+							pendingLabel={t("revokingLabel")}
+							successLabel={t("revokedLabel")}
+							errorLabel={common("tryAgain")}
 						>
-							Revoke link
+							{t("revokeLinkButton")}
 						</AsyncButtonContent>
 					</Button>
 					<div className="flex gap-3">
 						<DialogClose asChild>
-							<Button variant="outline">Cancel</Button>
+							<Button variant="outline">{common("cancel")}</Button>
 						</DialogClose>
 						<DialogClose asChild>
-							<Button>Done</Button>
+							<Button>{t("shareChatDone")}</Button>
 						</DialogClose>
 					</div>
 				</DialogFooter>

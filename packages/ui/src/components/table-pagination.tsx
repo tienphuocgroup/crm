@@ -4,9 +4,13 @@ import ChevronLeft from "@carbon/icons-react/es/ChevronLeft";
 import ChevronRight from "@carbon/icons-react/es/ChevronRight";
 import { Button } from "@crm/ui/components/button";
 import { Spinner } from "@crm/ui/components/spinner";
+import {
+	useUiLocale,
+	useUiStrings,
+} from "@crm/ui/components/ui-strings-provider";
+import { numberFormat } from "@crm/ui/lib/format";
+import { fillUiString } from "@crm/ui/lib/ui-strings";
 import type { ReactNode } from "react";
-
-const numberFormat = new Intl.NumberFormat();
 
 export function TablePagination({
 	page,
@@ -25,6 +29,9 @@ export function TablePagination({
 	loading?: boolean;
 	meta?: ReactNode;
 }) {
+	const strings = useUiStrings();
+	const locale = useUiLocale();
+	const numbers = numberFormat(locale);
 	const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
 	const rangeEnd = Math.min(page * pageSize, total);
 
@@ -34,10 +41,12 @@ export function TablePagination({
 				{loading && <Spinner />}
 				{meta ??
 					(total === 0
-						? "No results"
-						: `Showing ${numberFormat.format(rangeStart)}–${numberFormat.format(
-								rangeEnd,
-							)} of ${numberFormat.format(total)}`)}
+						? strings.tablePaginationEmpty
+						: fillUiString(strings.tablePaginationRange, {
+								start: numbers.format(rangeStart),
+								end: numbers.format(rangeEnd),
+								total: numbers.format(total),
+							}))}
 			</span>
 			{totalPages > 1 && (
 				<div className="flex items-center gap-2">
@@ -48,7 +57,7 @@ export function TablePagination({
 						onClick={() => onPageChange(Math.max(1, page - 1))}
 					>
 						<ChevronLeft data-icon="inline-start" />
-						Previous
+						{strings.tablePaginationPrevious}
 					</Button>
 					<span className="text-muted-foreground text-xs tabular-nums">
 						{page} / {totalPages}
@@ -59,7 +68,7 @@ export function TablePagination({
 						disabled={page >= totalPages}
 						onClick={() => onPageChange(page + 1)}
 					>
-						Next
+						{strings.tablePaginationNext}
 						<ChevronRight data-icon="inline-end" />
 					</Button>
 				</div>

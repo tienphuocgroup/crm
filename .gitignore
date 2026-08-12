@@ -43,3 +43,6 @@ yarn-error.log*
 # eve build output
 .eve
 .output
+
+# Generated pseudo-locale catalogs
+apps/app/messages/pseudo/

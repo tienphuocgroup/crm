@@ -1,6 +1,7 @@
 import { Skeleton } from "@crm/ui/components/skeleton";
 import { Spinner } from "@crm/ui/components/spinner";
 import { cn } from "@crm/ui/lib/utils";
+import { getTranslations } from "next-intl/server";
 import type * as React from "react";
 import { PageTransition } from "./page-transition";
 
@@ -137,7 +138,9 @@ function PageShellLoading() {
 	);
 }
 
-function PageShellFallback() {
+async function PageShellFallback() {
+	const t = await getTranslations("common");
+
 	return (
 		<PageShell aria-busy="true">
 			<div className="flex flex-col gap-6" aria-hidden="true">
@@ -152,7 +155,7 @@ function PageShellFallback() {
 				</div>
 			</div>
 			<span role="status" className="sr-only">
-				Loading page…
+				{t("loadingPage")}
 			</span>
 		</PageShell>
 	);

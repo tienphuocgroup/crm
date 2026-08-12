@@ -7,6 +7,7 @@ import {
 	AccordionTrigger,
 } from "@crm/ui/components/accordion";
 import { Shimmer } from "@crm/ui/components/shimmer";
+import { useUiStrings } from "@crm/ui/components/ui-strings-provider";
 import { cn } from "@crm/ui/lib/utils";
 import type { ReactNode } from "react";
 
@@ -14,13 +15,15 @@ export function Reasoning({
 	children,
 	className,
 	isStreaming = false,
-	label = "Reasoning",
+	label,
 }: {
 	children: ReactNode;
 	className?: string;
 	isStreaming?: boolean;
 	label?: string;
 }) {
+	const strings = useUiStrings();
+
 	return (
 		<Accordion
 			key={isStreaming ? "streaming" : "settled"}
@@ -31,7 +34,11 @@ export function Reasoning({
 		>
 			<AccordionItem value="reasoning">
 				<AccordionTrigger variant="subtle">
-					{isStreaming ? <Shimmer>Thinking…</Shimmer> : label}
+					{isStreaming ? (
+						<Shimmer>{strings.reasoningThinking}</Shimmer>
+					) : (
+						(label ?? strings.reasoningLabel)
+					)}
 				</AccordionTrigger>
 				<AccordionContent className="text-muted-foreground">
 					{children}

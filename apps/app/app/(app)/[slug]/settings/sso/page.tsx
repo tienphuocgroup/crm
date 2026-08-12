@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import {
 	PageShell,
@@ -17,21 +18,23 @@ import { AddSsoProviderSheet } from "./add-sso-provider-sheet";
 import { ssoSearchParams } from "./sso-search-params";
 import { SsoTable } from "./sso-table";
 
-export const metadata: Metadata = {
-	title: "SSO",
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const t = await getTranslations("settings");
+	return { title: t("sso.metaTitle") };
+}
 
-export default function SsoSettingsPage({
+export default async function SsoSettingsPage({
 	searchParams,
 }: PageProps<"/[slug]/settings/sso">) {
+	const t = await getTranslations("settings");
+
 	return (
 		<PageShell className="min-h-0">
 			<PageShellHeader>
 				<PageShellHeading>
-					<PageShellTitle>SSO</PageShellTitle>
+					<PageShellTitle>{t("sso.metaTitle")}</PageShellTitle>
 					<PageShellDescription>
-						Let your people sign in through your own identity provider. While
-						one is configured, the sign-in page offers it instead of Google.
+						{t("sso.pageDescription")}
 					</PageShellDescription>
 				</PageShellHeading>
 

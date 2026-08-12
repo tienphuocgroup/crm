@@ -10,6 +10,7 @@ import {
 	useState,
 } from "react";
 import { Spinner } from "@crm/ui/components/spinner";
+import { useUiStrings } from "@crm/ui/components/ui-strings-provider";
 
 const TRANSITION = {
 	type: "spring",
@@ -120,9 +121,12 @@ export function AsyncButtonContent({
 	status,
 	children,
 	pendingLabel,
-	successLabel = "Done",
-	errorLabel = "Try again",
+	successLabel,
+	errorLabel,
 }: AsyncButtonContentProps) {
+	const strings = useUiStrings();
+	const success = successLabel ?? strings.asyncActionSuccess;
+	const error = errorLabel ?? strings.asyncActionError;
 	const reduced = useReducedMotion() === true;
 	const states: Array<{ status: AsyncActionStatus; content: ReactNode }> = [
 		{ status: "idle", content: children },
@@ -140,7 +144,7 @@ export function AsyncButtonContent({
 			content: (
 				<>
 					<CheckIcon data-icon="inline-start" aria-hidden />
-					{successLabel}
+					{success}
 				</>
 			),
 		},
@@ -149,7 +153,7 @@ export function AsyncButtonContent({
 			content: (
 				<>
 					<CircleAlertIcon data-icon="inline-start" aria-hidden />
-					{errorLabel}
+					{error}
 				</>
 			),
 		},
@@ -181,9 +185,9 @@ export function AsyncButtonContent({
 					{status === "pending"
 						? pendingLabel
 						: status === "success"
-							? successLabel
+							? success
 							: status === "error"
-								? errorLabel
+								? error
 								: ""}
 				</span>
 			</span>

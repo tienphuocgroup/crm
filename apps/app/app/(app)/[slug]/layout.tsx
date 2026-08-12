@@ -1,3 +1,5 @@
+import { db } from "@crm/db";
+import { cookies } from "next/headers";
 import { notFound, unstable_rethrow } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -5,8 +7,10 @@ import { AppHeader, AppHeaderFallback } from "@/components/app-header";
 import { AppIconRail, AppIconRailFallback } from "@/components/app-icon-rail";
 import { QuickSwitcher } from "@/components/crm/quick-switcher";
 import { RecordSheetHost } from "@/components/crm/record-sheet/record-sheet-host";
+import { LocaleCookieSync } from "@/components/locale-cookie-sync";
 import { MobileNavProvider } from "@/components/mobile-nav";
-import { requireMailboxAccess } from "@/lib/session";
+import { isSupportedLocale, LOCALE_COOKIE } from "@/i18n/locale";
+import { getSession, requireMailboxAccess } from "@/lib/session";
 import { HydrateClient } from "@/lib/trpc/hydrate";
 import { getServerQueryClient, getServerTrpc } from "@/lib/trpc/server";
 
@@ -35,9 +39,30 @@ export default function AppLayout({
 				<Suspense fallback={null}>
 					<QuickSwitcher />
 				</Suspense>
+
+				<Suspense fallback={null}>
+					<LocaleReconciler />
+				</Suspense>
 			</div>
 		</MobileNavProvider>
 	);
+}
+
+async function LocaleReconciler() {
+	const store = await cookies();
+	if (store.has(LOCALE_COOKIE)) return null;
+
+	const session = await getSession();
+	if (!session) return null;
+
+	const user = await db.user.findUnique({
+		where: { id: session.user.id },
+		select: { locale: true },
+	});
+
+	if (!user?.locale || !isSupportedLocale(user.locale)) return null;
+
+	return <LocaleCookieSync locale={user.locale} />;
 }
 
 async function WorkspaceHeader({

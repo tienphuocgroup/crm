@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { AgentBuilderHome } from "@/components/agent-builder/agent-builder-home";
 import { AgentBuilderHomeFallback } from "@/components/agent-builder/agent-builder-route-fallback";
@@ -6,7 +7,10 @@ import { requireSession } from "@/lib/session";
 import { HydrateClient } from "@/lib/trpc/hydrate";
 import { getServerQueryClient, getServerTrpc } from "@/lib/trpc/server";
 
-export const metadata: Metadata = { title: "Chat" };
+export async function generateMetadata(): Promise<Metadata> {
+	const t = await getTranslations("agent-panel");
+	return { title: t("chatMetaTitle") };
+}
 
 export default function ChatPage() {
 	return (

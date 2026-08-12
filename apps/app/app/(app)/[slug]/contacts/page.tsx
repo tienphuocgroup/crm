@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import {
 	PageShell,
@@ -17,19 +18,22 @@ import { contactsSearchParams } from "./contacts-search-params";
 import { ContactsTable } from "./contacts-table";
 import { CreateContactSheet } from "./create-contact-sheet";
 
-export const metadata: Metadata = {
-	title: "Contacts",
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const t = await getTranslations("contacts");
+	return { title: t("metaTitle") };
+}
 
-export default function ContactsPage({
+export default async function ContactsPage({
 	searchParams,
 }: PageProps<"/[slug]/contacts">) {
+	const t = await getTranslations("contacts");
+
 	return (
 		<PageShell className="min-h-0">
 			<PageShellHeader>
 				<PageShellHeading>
-					<PageShellTitle>Contacts</PageShellTitle>
-					<PageShellDescription>Everyone in the pipeline.</PageShellDescription>
+					<PageShellTitle>{t("metaTitle")}</PageShellTitle>
+					<PageShellDescription>{t("pageDescription")}</PageShellDescription>
 				</PageShellHeading>
 				<PageShellActions>
 					<CreateContactSheet />

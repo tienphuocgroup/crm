@@ -35,7 +35,7 @@ const did = (
 ): TranscriptItem => ({
 	kind: "did",
 	id,
-	label: "Listed deals",
+	label: { key: "toolVerbListDeals", fallback: "List deals", reason: null },
 	input: null,
 	output,
 	errorText: null,

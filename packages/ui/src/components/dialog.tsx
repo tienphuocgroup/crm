@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@crm/ui/components/button";
+import { useUiStrings } from "@crm/ui/components/ui-strings-provider";
 import { cn } from "@crm/ui/lib/utils";
 import { XIcon } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
@@ -54,6 +55,8 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
 	showCloseButton?: boolean;
 }) {
+	const strings = useUiStrings();
+
 	return (
 		<DialogPortal>
 			<DialogOverlay />
@@ -74,7 +77,7 @@ function DialogContent({
 							size="icon-sm"
 						>
 							<XIcon />
-							<span className="sr-only">Close</span>
+							<span className="sr-only">{strings.close}</span>
 						</Button>
 					</DialogPrimitive.Close>
 				)}
@@ -101,6 +104,8 @@ function DialogFooter({
 }: React.ComponentProps<"div"> & {
 	showCloseButton?: boolean;
 }) {
+	const strings = useUiStrings();
+
 	return (
 		<div
 			data-slot="dialog-footer"
@@ -113,7 +118,7 @@ function DialogFooter({
 			{children}
 			{showCloseButton && (
 				<DialogPrimitive.Close asChild>
-					<Button variant="outline">Close</Button>
+					<Button variant="outline">{strings.close}</Button>
 				</DialogPrimitive.Close>
 			)}
 		</div>

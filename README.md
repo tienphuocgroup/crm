@@ -324,6 +324,8 @@ short version:
 | `bun run test` | Run the test suite |
 | `bun run check-types` | `tsc --noEmit` everywhere |
 | `bun run lint` / `format` | [Biome](https://biomejs.dev) |
+| `bun run i18n:check` | Scan `apps/app` and `packages/ui` for hardcoded user-visible strings |
+| `bun run i18n:pseudo` | Generate the accented pseudo-locale catalog for coverage checks |
 | `bun run db:migrate` | Create and apply a migration |
 | `bun run db:seed` | Top up the demo pipeline (idempotent) |
 | `bun run db:studio` | Prisma Studio |

@@ -1,0 +1,137 @@
+{
+	"Comp AI": {
+		"reason": "Brand name. Never translated."
+	},
+	"Comp AI CRM": {
+		"reason": "Product name. Never translated."
+	},
+	"eve": {
+		"reason": "Product name of the research agent. Never translated."
+	},
+	"CRM": {
+		"reason": "Product name. Never translated."
+	},
+	"Google": {
+		"reason": "Vendor name. Never translated."
+	},
+	"Microsoft": {
+		"reason": "Vendor name. Never translated."
+	},
+	"Slack": {
+		"reason": "Vendor name. Never translated."
+	},
+	"Google Workspace": {
+		"reason": "Product name. Also used as an identifier in the connected-list equality check in add-connection-dialog.tsx and connections/page.tsx — translating it would break that comparison."
+	},
+	"Microsoft 365": {
+		"reason": "Product name. Also used as an identifier in the connected-list equality check in add-connection-dialog.tsx and connections/page.tsx — translating it would break that comparison."
+	},
+	"Docusign": {
+		"reason": "Vendor name (lowercase s per its 2024 rebrand, docs/connections.md). Never translated."
+	},
+	"Stripe": {
+		"reason": "Vendor name used as an example company in a field placeholder."
+	},
+	"Vercel": {
+		"reason": "Vendor name. Never translated."
+	},
+	"Next.js": {
+		"reason": "Framework name. Never translated."
+	},
+	"SAML": {
+		"reason": "Protocol acronym. Identical in every locale."
+	},
+	"SSO": {
+		"reason": "Protocol acronym. Identical in every locale."
+	},
+	"https://": {
+		"reason": "URL scheme rendered as an input prefix. Not prose."
+	},
+	"acme.com": {
+		"reason": "Example hostname in a field placeholder. A hostname is locale-neutral."
+	},
+	"stripe.com": {
+		"reason": "Example hostname in a field placeholder. A hostname is locale-neutral."
+	},
+	"https://stripe.com": {
+		"reason": "Example URL in a field placeholder. A URL is locale-neutral."
+	},
+	"https://acme.okta.com": {
+		"reason": "Example SSO issuer URL in a field placeholder. A URL is locale-neutral."
+	},
+	"okta": {
+		"reason": "Example SSO provider slug in a field placeholder. It is an identifier, not prose."
+	},
+	"USD": {
+		"reason": "ISO 4217 currency code."
+	},
+	"EUR": {
+		"reason": "ISO 4217 currency code."
+	},
+	"JPY": {
+		"reason": "ISO 4217 currency code."
+	},
+	"GBP": {
+		"reason": "ISO 4217 currency code."
+	},
+	"CNY": {
+		"reason": "ISO 4217 currency code."
+	},
+	"AUD": {
+		"reason": "ISO 4217 currency code."
+	},
+	"CAD": {
+		"reason": "ISO 4217 currency code."
+	},
+	"CHF": {
+		"reason": "ISO 4217 currency code."
+	},
+	"HKD": {
+		"reason": "ISO 4217 currency code."
+	},
+	"SGD": {
+		"reason": "ISO 4217 currency code."
+	},
+	"ZAR": {
+		"reason": "ISO 4217 currency code."
+	},
+	"apps/app/lib/agent-record.ts::x-crm-contact": {
+		"reason": "Wire header value read at apps/app/app/eve/v1/[...path]/route.ts. Translating it breaks the agent bridge."
+	},
+	"apps/app/lib/agent-record.ts::x-crm-company": {
+		"reason": "Wire header value read at apps/app/app/eve/v1/[...path]/route.ts. Translating it breaks the agent bridge."
+	},
+	"apps/app/lib/agent-record.ts::x-crm-deal": {
+		"reason": "Wire header value read at apps/app/app/eve/v1/[...path]/route.ts. Translating it breaks the agent bridge."
+	},
+	"packages/ui/src/components/logo.tsx::Comp AI Logo": {
+		"reason": "Brand mark label. The wordmark is part of the logo artwork, not prose."
+	},
+	"apps/app/components/landing/built-with.tsx::Context": {
+		"reason": "Vendor name in the built-with row. Scoped to this file because the bare word is ordinary English elsewhere."
+	},
+	"apps/app/components/landing/agent-section.tsx::Dan": {
+		"reason": "Example teammate name in the marketing mockup composer. A personal name is locale-neutral."
+	},
+	"apps/app/app/(app)/[slug]/settings/tracking/tracking-script.tsx::<script": {
+		"reason": "Literal HTML the operator copies into their page. Translating it breaks the tag."
+	},
+	"apps/app/app/(app)/[slug]/settings/tracking/tracking-script.tsx::src=": {
+		"reason": "Literal HTML attribute in the copyable snippet."
+	},
+	"apps/app/app/(app)/[slug]/settings/tracking/tracking-script.tsx::data-site=": {
+		"reason": "Literal HTML attribute in the copyable snippet."
+	},
+	"apps/app/app/(app)/[slug]/settings/tracking/tracking-script.tsx::async defer": {
+		"reason": "Literal HTML attributes in the copyable snippet."
+	},
+	"apps/app/app/(app)/[slug]/settings/tracking/tracking-script.tsx::\" ?site= \"": {
+		"reason": "Literal HTML attribute value and query-string syntax in the copyable Tag Manager snippet."
+	},
+	"apps/app/app/(app)/[slug]/settings/tracking/tracking-script.tsx::></script>": {
+		"reason": "Literal HTML in the copyable snippet."
+	},
+	"apps/app/app/(app)/[slug]/deals/create-deal-sheet.tsx::Stripe — Comp AI": {
+		"reason": "Example deal name in a field placeholder, built from two already-allowlisted proper nouns (vendor name and product name). Locale-neutral."
+	}
+}

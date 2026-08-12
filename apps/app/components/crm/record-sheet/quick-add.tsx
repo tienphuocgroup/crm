@@ -13,6 +13,7 @@ import {
 } from "@crm/ui/components/select";
 import { Spinner } from "@crm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 import { contactName } from "@/components/crm/contact-name";
@@ -34,6 +35,8 @@ function QuickAddForm({
 	onCancel: () => void;
 	children: React.ReactNode;
 }) {
+	const common = useTranslations("common");
+
 	return (
 		<form
 			className="flex shrink-0 flex-col gap-4 border-b px-5 py-4"
@@ -48,7 +51,7 @@ function QuickAddForm({
 					disabled={pending}
 					onClick={onCancel}
 				>
-					Cancel
+					{common("cancel")}
 				</Button>
 				<Button type="submit" size="sm" disabled={pending || !ready}>
 					{pending ? <Spinner /> : null}
@@ -68,6 +71,7 @@ export function QuickAddContact({
 	ownerId: string | null;
 	onDone: () => void;
 }) {
+	const t = useTranslations("contacts");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 
@@ -85,7 +89,7 @@ export function QuickAddContact({
 		trpc.contacts.create.mutationOptions({
 			onSuccess: async (contact) => {
 				await cache.contact(contact.id);
-				toast.success(`${contact.firstName} added.`);
+				toast.success(t("createdToast", { name: contact.firstName }));
 				onDone();
 			},
 			onError: (error) => toast.error(error.message),
@@ -94,7 +98,7 @@ export function QuickAddContact({
 
 	return (
 		<QuickAddForm
-			submitLabel="Add contact"
+			submitLabel={t("addContactAction")}
 			pending={create.isPending}
 			ready={firstName.trim() !== ""}
 			onCancel={onDone}
@@ -110,7 +114,7 @@ export function QuickAddContact({
 			}
 		>
 			<Field>
-				<FieldLabel htmlFor={firstNameId}>First name</FieldLabel>
+				<FieldLabel htmlFor={firstNameId}>{t("firstNameLabel")}</FieldLabel>
 				<Input
 					id={firstNameId}
 					autoFocus
@@ -120,7 +124,7 @@ export function QuickAddContact({
 				/>
 			</Field>
 			<Field>
-				<FieldLabel htmlFor={lastNameId}>Last name</FieldLabel>
+				<FieldLabel htmlFor={lastNameId}>{t("lastNameLabel")}</FieldLabel>
 				<Input
 					id={lastNameId}
 					value={lastName}
@@ -129,7 +133,7 @@ export function QuickAddContact({
 				/>
 			</Field>
 			<Field>
-				<FieldLabel htmlFor={emailId}>Email</FieldLabel>
+				<FieldLabel htmlFor={emailId}>{t("emailLabel")}</FieldLabel>
 				<Input
 					id={emailId}
 					type="email"
@@ -139,12 +143,12 @@ export function QuickAddContact({
 				/>
 			</Field>
 			<Field>
-				<FieldLabel htmlFor={titleId}>Title</FieldLabel>
+				<FieldLabel htmlFor={titleId}>{t("titleLabel")}</FieldLabel>
 				<Input
 					id={titleId}
 					value={title}
 					onChange={(event) => setTitle(event.target.value)}
-					placeholder="Head of Security"
+					placeholder={t("titleFieldPlaceholder")}
 					autoComplete="off"
 				/>
 			</Field>
@@ -161,6 +165,7 @@ export function AttachDealContact({
 	companyName: string;
 	onDone: () => void;
 }) {
+	const t = useTranslations("deals");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 
@@ -182,8 +187,8 @@ export function AttachDealContact({
 				await cache.deal(dealId);
 				toast.success(
 					person
-						? `${contactName(person)} is on the deal.`
-						: "Added to the deal.",
+						? t("attachedToast", { name: contactName(person) })
+						: t("attachedFallbackToast"),
 				);
 				onDone();
 			},
@@ -194,14 +199,14 @@ export function AttachDealContact({
 	const nobody = !options.isPending && candidates.length === 0;
 
 	const placeholder = options.isPending
-		? "Loading…"
+		? t("attachPlaceholderLoading")
 		: nobody
-			? `Everybody at ${companyName} is already on it`
-			: "Choose somebody";
+			? t("attachPlaceholderNobody", { company: companyName })
+			: t("attachPlaceholderChoose");
 
 	return (
 		<QuickAddForm
-			submitLabel="Add to deal"
+			submitLabel={t("attachContactSubmit")}
 			pending={attach.isPending}
 			ready={contactId !== ""}
 			onCancel={onDone}
@@ -210,7 +215,7 @@ export function AttachDealContact({
 			}
 		>
 			<Field>
-				<FieldLabel htmlFor={personId}>Person</FieldLabel>
+				<FieldLabel htmlFor={personId}>{t("personLabel")}</FieldLabel>
 				<Select value={contactId} onValueChange={setContactId}>
 					<SelectTrigger id={personId} className="w-full" disabled={nobody}>
 						<SelectValue placeholder={placeholder} />
@@ -226,12 +231,12 @@ export function AttachDealContact({
 				</Select>
 			</Field>
 			<Field>
-				<FieldLabel htmlFor={roleId}>Role</FieldLabel>
+				<FieldLabel htmlFor={roleId}>{t("roleLabel")}</FieldLabel>
 				<Input
 					id={roleId}
 					value={role}
 					onChange={(event) => setRole(event.target.value)}
-					placeholder="Champion"
+					placeholder={t("rolePlaceholder")}
 					autoComplete="off"
 				/>
 			</Field>
@@ -250,6 +255,7 @@ export function QuickAddDeal({
 	ownerId: string | null;
 	onDone: () => void;
 }) {
+	const t = useTranslations("deals");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 
@@ -268,7 +274,7 @@ export function QuickAddDeal({
 		trpc.deals.create.mutationOptions({
 			onSuccess: async (deal) => {
 				await cache.deal(deal.id);
-				toast.success(`${deal.name} created.`);
+				toast.success(t("quickCreatedToast", { name: deal.name }));
 				onDone();
 			},
 			onError: (error) => toast.error(error.message),
@@ -277,7 +283,7 @@ export function QuickAddDeal({
 
 	const submit = () => {
 		if (!owner) {
-			toast.error("Could not work out who should own this deal.");
+			toast.error(t("ownerRequiredToast"));
 			return;
 		}
 
@@ -285,7 +291,7 @@ export function QuickAddDeal({
 		if (amount.trim() !== "") {
 			const parsed = Number.parseFloat(amount);
 			if (!Number.isFinite(parsed) || parsed < 0) {
-				toast.error("Amount has to be a number.");
+				toast.error(t("amountInvalidToast"));
 				return;
 			}
 			amountCents = Math.round(parsed * 100);
@@ -302,40 +308,40 @@ export function QuickAddDeal({
 
 	return (
 		<QuickAddForm
-			submitLabel="Create deal"
+			submitLabel={t("quickCreateSubmit")}
 			pending={create.isPending}
 			ready={name.trim() !== ""}
 			onCancel={onDone}
 			onSubmit={submit}
 		>
 			<Field className="sm:col-span-2">
-				<FieldLabel htmlFor={nameId}>Name</FieldLabel>
+				<FieldLabel htmlFor={nameId}>{t("nameLabel")}</FieldLabel>
 				<Input
 					id={nameId}
 					autoFocus
 					value={name}
 					onChange={(event) => setName(event.target.value)}
-					placeholder={`${companyName} — Comp AI`}
+					placeholder={t("namePlaceholder", { company: companyName })}
 					autoComplete="off"
 				/>
 			</Field>
 			<Field>
-				<FieldLabel htmlFor={amountId}>Amount</FieldLabel>
+				<FieldLabel htmlFor={amountId}>{t("amountLabel")}</FieldLabel>
 				<Input
 					id={amountId}
 					value={amount}
 					onChange={(event) => setAmount(event.target.value)}
-					placeholder="24000"
+					placeholder={t("amountPlaceholder")}
 					autoComplete="off"
 				/>
 			</Field>
 			<Field>
-				<FieldLabel htmlFor={closeId}>Expected close</FieldLabel>
+				<FieldLabel htmlFor={closeId}>{t("expectedCloseLabel")}</FieldLabel>
 				<DatePicker
 					id={closeId}
 					value={closeDate}
 					onChange={setCloseDate}
-					placeholder="No date yet"
+					placeholder={t("closeDatePlaceholder")}
 				/>
 			</Field>
 		</QuickAddForm>

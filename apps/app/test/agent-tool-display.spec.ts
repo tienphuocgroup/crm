@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { toolLabel } from "../lib/agent-tool-display";
 
-const base = { label: "Ran a tool", pending: false };
+const base = { pending: false };
 
 describe("toolLabel", () => {
 	it("names the artifact a builder file write produced", () => {
@@ -12,7 +12,7 @@ describe("toolLabel", () => {
 				input: { path: "agent/instructions.md" },
 				pending: true,
 			}),
-		).toBe("Writing instructions");
+		).toEqual({ key: "toolWritingInstructions" });
 	});
 
 	it("switches to the past tense once the write finished", () => {
@@ -22,7 +22,7 @@ describe("toolLabel", () => {
 				tool: "write_agent_file",
 				input: { path: "agent/manifest.json" },
 			}),
-		).toBe("Wrote the manifest");
+		).toEqual({ key: "toolWroteManifest" });
 	});
 
 	it("falls back to the raw path for an unmapped artifact", () => {
@@ -32,7 +32,7 @@ describe("toolLabel", () => {
 				tool: "write_agent_file",
 				input: { path: "agent/other.md" },
 			}),
-		).toBe("Wrote agent/other.md");
+		).toEqual({ key: "toolWroteFile", values: { name: "agent/other.md" } });
 	});
 
 	it("labels the draft save under the tool the builder actually calls", () => {
@@ -42,18 +42,21 @@ describe("toolLabel", () => {
 				tool: "save_agent_draft",
 				input: { name: "Collections nudge" },
 			}),
-		).toBe("Saved draft · Collections nudge");
+		).toEqual({
+			key: "toolSavedDraftNamed",
+			values: { name: "Collections nudge" },
+		});
 	});
 
 	it("keeps the generic label when the tool has no mapping", () => {
 		expect(
 			toolLabel({ ...base, tool: "web_search", input: { query: "acme" } }),
-		).toBe("Ran a tool");
+		).toBeNull();
 	});
 
 	it("keeps the generic label when the input is missing", () => {
-		expect(toolLabel({ ...base, tool: "write_agent_file", input: null })).toBe(
-			"Ran a tool",
-		);
+		expect(
+			toolLabel({ ...base, tool: "write_agent_file", input: null }),
+		).toBeNull();
 	});
 });

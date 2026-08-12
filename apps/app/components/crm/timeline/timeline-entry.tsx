@@ -4,11 +4,12 @@ import { Checkbox } from "@crm/ui/components/checkbox";
 import { StatusIndicator } from "@crm/ui/components/status-indicator";
 import { cn } from "@crm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { RecordLink } from "@/components/crm/record-sheet/record-link";
 import { LocalDateTime, LocalRelativeTime } from "@/components/local-date-time";
-import { activityLabel } from "@/lib/activity-presentation";
-import { dealStageLabel } from "@/lib/deal-stage";
+import { activityLabelKey } from "@/lib/activity-presentation";
+import { dealStageLabelKey } from "@/lib/deal-stage";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 import type { RouterOutputs } from "@/lib/trpc/types";
@@ -44,6 +45,8 @@ export function TimelineEntry({
 	entry: TimelineEntryData;
 	anchor: TimelineAnchor;
 }) {
+	const common = useTranslations("common");
+	const deals = useTranslations("deals");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 
@@ -68,12 +71,15 @@ export function TimelineEntry({
 	const synced = entry.meta?.synced === true;
 	const author = synced
 		? entry.emailThread
-			? "via Gmail"
-			: "via Calendar"
+			? common("timeline.viaGmail")
+			: common("timeline.viaCalendar")
 		: entry.createdBy.name;
 
 	const headline = change
-		? `${dealStageLabel(change.from as never)} → ${dealStageLabel(change.to as never)}`
+		? deals("stageChangeHeadline", {
+				from: deals(dealStageLabelKey(change.from as never)),
+				to: deals(dealStageLabelKey(change.to as never)),
+			})
 		: entry.subject;
 
 	const here = anchorId(anchor);
@@ -92,13 +98,17 @@ export function TimelineEntry({
 					<Checkbox
 						checked={done}
 						disabled={complete.isPending}
-						aria-label={done ? "Mark as not done" : "Mark as done"}
+						aria-label={
+							done
+								? common("timeline.markNotDone")
+								: common("timeline.markDone")
+						}
 						onCheckedChange={(checked) =>
 							complete.mutate({ id: entry.id, completed: checked === true })
 						}
 					/>
 				) : (
-					<span role="img" aria-label={activityLabel(entry.type)}>
+					<span role="img" aria-label={common(activityLabelKey(entry.type))}>
 						<ActivityIcon type={entry.type} />
 					</span>
 				)}
@@ -131,7 +141,7 @@ export function TimelineEntry({
 
 						{!headline && !entry.body ? (
 							<p className="text-muted-foreground">
-								{activityLabel(entry.type)}
+								{common(activityLabelKey(entry.type))}
 							</p>
 						) : null}
 					</div>
@@ -169,7 +179,9 @@ export function TimelineEntry({
 								tone={overdue ? "error" : "info"}
 								label={
 									<>
-										{overdue ? "Overdue" : "Due"}{" "}
+										{overdue
+											? common("timeline.overdueLabel")
+											: common("timeline.dueLabel")}{" "}
 										<LocalRelativeTime date={entry.dueAt} />
 									</>
 								}

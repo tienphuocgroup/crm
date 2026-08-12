@@ -11,6 +11,7 @@ import {
 	InputGroup,
 	InputGroupAddon,
 } from "@crm/ui/components/input-group";
+import { useUiStrings } from "@crm/ui/components/ui-strings-provider";
 
 import { cn } from "@crm/ui/lib/utils";
 import { Command as CommandPrimitive } from "cmdk";
@@ -34,8 +35,8 @@ function Command({
 }
 
 function CommandDialog({
-	title = "Command Palette",
-	description = "Search for a command to run...",
+	title,
+	description,
 	children,
 	className,
 	showCloseButton = false,
@@ -46,11 +47,15 @@ function CommandDialog({
 	className?: string;
 	showCloseButton?: boolean;
 }) {
+	const strings = useUiStrings();
+
 	return (
 		<Dialog {...props}>
 			<DialogHeader className="sr-only">
-				<DialogTitle>{title}</DialogTitle>
-				<DialogDescription>{description}</DialogDescription>
+				<DialogTitle>{title ?? strings.commandTitle}</DialogTitle>
+				<DialogDescription>
+					{description ?? strings.commandDescription}
+				</DialogDescription>
 			</DialogHeader>
 			<DialogContent
 				className={cn(

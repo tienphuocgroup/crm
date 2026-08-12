@@ -25,6 +25,7 @@ import {
 import { Spinner } from "@crm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 import { useCrmCache } from "@/lib/trpc/cache";
@@ -33,6 +34,8 @@ import { useWorkspaceSlug } from "@/lib/use-workspace-url";
 import { workspaceUrl } from "@/lib/workspace-url";
 
 export function WorkspaceForm() {
+	const t = useTranslations("settings");
+	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 	const router = useRouter();
@@ -52,7 +55,7 @@ export function WorkspaceForm() {
 			onSuccess: async (saved) => {
 				await cache.workspace();
 				setDraft(null);
-				toast.success("Workspace saved.");
+				toast.success(t("general.workspaceSaved"));
 
 				if (saved.slug !== slug) {
 					router.replace(workspaceUrl(saved.slug, "/settings"));
@@ -75,10 +78,8 @@ export function WorkspaceForm() {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Workspace</CardTitle>
-				<CardDescription>
-					The name and website of the company using this CRM.
-				</CardDescription>
+				<CardTitle>{t("general.workspaceTitle")}</CardTitle>
+				<CardDescription>{t("general.workspaceDescription")}</CardDescription>
 
 				<CardAction>
 					<Button
@@ -93,7 +94,7 @@ export function WorkspaceForm() {
 						}
 					>
 						{save.isPending ? <Spinner data-icon="inline-start" /> : null}
-						Save
+						{common("save")}
 					</Button>
 				</CardAction>
 			</CardHeader>
@@ -111,23 +112,27 @@ export function WorkspaceForm() {
 				>
 					<FieldGroup>
 						<Field>
-							<FieldLabel htmlFor={nameId}>Name</FieldLabel>
+							<FieldLabel htmlFor={nameId}>
+								{t("general.workspaceNameLabel")}
+							</FieldLabel>
 							<Input
 								id={nameId}
 								value={values.name}
 								onChange={(event) => edit({ name: event.target.value })}
-								placeholder="Acme Inc."
+								placeholder={t("general.workspaceNamePlaceholder")}
 								autoComplete="organization"
 								disabled={!canRename || save.isPending}
 								required
 							/>
 							<FieldDescription>
-								Shown wherever the CRM refers to your own company.
+								{t("general.workspaceNameDescription")}
 							</FieldDescription>
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor={websiteId}>Website</FieldLabel>
+							<FieldLabel htmlFor={websiteId}>
+								{t("general.workspaceWebsiteLabel")}
+							</FieldLabel>
 							<InputGroup>
 								<InputGroupAddon>
 									<InputGroupText>https://</InputGroupText>
@@ -145,14 +150,16 @@ export function WorkspaceForm() {
 									disabled={!canRename || save.isPending}
 								/>
 							</InputGroup>
-							<FieldDescription>Your own company's website.</FieldDescription>
+							<FieldDescription>
+								{t("general.workspaceWebsiteDescription")}
+							</FieldDescription>
 						</Field>
 					</FieldGroup>
 				</form>
 
 				{canRename ? null : (
 					<p className="text-muted-foreground text-xs">
-						Only an owner or an admin can change this.
+						{t("general.workspaceReadonlyNotice")}
 					</p>
 				)}
 			</CardContent>

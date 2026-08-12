@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import {
 	PageShell,
@@ -13,21 +14,25 @@ import { requireSession } from "@/lib/session";
 import { HydrateClient } from "@/lib/trpc/hydrate";
 import { getServerQueryClient, getServerTrpc } from "@/lib/trpc/server";
 import { AgentModel } from "./agent-model";
+import { LanguageForm } from "./language-form";
 import { ResearchKey } from "./research-key";
 import { WorkspaceForm } from "./workspace-form";
 
-export const metadata: Metadata = {
-	title: "General",
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const t = await getTranslations("settings");
+	return { title: t("general.metaTitle") };
+}
 
-export default function GeneralSettingsPage() {
+export default async function GeneralSettingsPage() {
+	const t = await getTranslations("settings");
+
 	return (
 		<PageShell>
 			<PageShellHeader>
 				<PageShellHeading>
-					<PageShellTitle>General</PageShellTitle>
+					<PageShellTitle>{t("general.metaTitle")}</PageShellTitle>
 					<PageShellDescription>
-						Who you are, and the model the research agent thinks with.
+						{t("general.pageDescription")}
 					</PageShellDescription>
 				</PageShellHeading>
 			</PageShellHeader>
@@ -60,6 +65,7 @@ async function Settings() {
 				<WorkspaceForm />
 				<ResearchKey />
 				<AgentModel />
+				<LanguageForm />
 			</div>
 		</HydrateClient>
 	);

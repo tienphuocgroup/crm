@@ -4,11 +4,9 @@ import Checkmark from "@carbon/icons-react/es/Checkmark";
 import Copy from "@carbon/icons-react/es/Copy";
 import ClaudeLogo from "@crm/ui/components/brand-logos/claude";
 import { Button } from "@crm/ui/components/button";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { type CtaLocation, captureLanding } from "./analytics";
-
-const SETUP_PROMPT =
-	"Set up trycompai/crm — install the dependencies, start Postgres, create my .env, and tell me which keys I still need.";
 
 /**
  * The page's leading action: hand the whole setup to a coding agent. It stands
@@ -16,10 +14,11 @@ const SETUP_PROMPT =
  * for, taking the prompt is what getting started means.
  */
 export function SetupPromptButton({ location }: { location: CtaLocation }) {
+	const t = useTranslations("landing");
 	const [copied, setCopied] = useState(false);
 
 	async function copy() {
-		await navigator.clipboard.writeText(SETUP_PROMPT);
+		await navigator.clipboard.writeText(t("setupPrompt"));
 		captureLanding("setup_prompt_copied", location);
 		setCopied(true);
 		setTimeout(() => setCopied(false), 2000);
@@ -30,10 +29,10 @@ export function SetupPromptButton({ location }: { location: CtaLocation }) {
 			variant="outline"
 			size="xl"
 			onClick={copy}
-			aria-label="Copy the setup prompt"
+			aria-label={t("copySetupPromptAriaLabel")}
 		>
 			<ClaudeLogo data-icon="inline-start" className="size-4" />
-			{copied ? "Copied to clipboard" : "Copy the setup prompt"}
+			{copied ? t("copiedToClipboard") : t("copySetupPromptAriaLabel")}
 			{copied ? (
 				<Checkmark
 					data-icon="inline-end"

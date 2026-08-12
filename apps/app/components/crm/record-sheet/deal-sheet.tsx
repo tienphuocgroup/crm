@@ -22,6 +22,7 @@ import {
 } from "@crm/ui/components/tooltip";
 import { formatMoney } from "@crm/ui/lib/format";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { AgentPanel } from "@/components/crm/agent-panel";
 import { contactName } from "@/components/crm/contact-name";
@@ -73,28 +74,34 @@ function dealCurrency(currency: string) {
 	return normalizeCurrency(currency) || currency;
 }
 
-function currencyOptions(currency: string) {
+function currencyOptions(
+	currency: string,
+	t: ReturnType<typeof useTranslations<"deals">>,
+) {
 	if (CURRENCY_OPTIONS.some((option) => option.value === currency)) {
 		return CURRENCY_OPTIONS;
 	}
 
 	return [
-		{ value: currency, label: `${currency} — no longer supported` },
+		{ value: currency, label: t("currencyUnsupportedOption", { currency }) },
 		...CURRENCY_OPTIONS,
 	];
 }
 
 function ReportedValue({ deal }: { deal: Deal }) {
+	const t = useTranslations("deals");
 	const currency = dealCurrency(deal.currency);
 
 	if (currency === deal.reportingCurrency) return null;
 	if (deal.amountCents === null) return null;
 
 	return (
-		<DetailSheetProperty label={`In ${deal.reportingCurrency}`}>
+		<DetailSheetProperty
+			label={t("reportedValueLabel", { currency: deal.reportingCurrency })}
+		>
 			{deal.baseAmountCents === null ? (
 				<span className="text-muted-foreground">
-					No {currency} rate — left out of totals
+					{t("noRateNote", { currency })}
 				</span>
 			) : (
 				<span className="tabular-nums text-muted-foreground">
@@ -105,14 +112,6 @@ function ReportedValue({ deal }: { deal: Deal }) {
 	);
 }
 
-const CONTACT_COLUMNS = [
-	{ id: "name", header: "Name", width: "w-[28%]", className: "pl-5" },
-	{ id: "role", header: "Role", width: "w-[20%]" },
-	{ id: "title", header: "Title", width: "w-[22%]" },
-	{ id: "email", header: "Email", width: "w-[22%]" },
-	{ id: "remove", srLabel: "Remove", width: "w-10" },
-];
-
 const DATE_OPTIONS: Intl.DateTimeFormatOptions = {
 	month: "short",
 	day: "numeric",
@@ -120,6 +119,8 @@ const DATE_OPTIONS: Intl.DateTimeFormatOptions = {
 };
 
 export function DealSheet({ dealId }: { dealId: string }) {
+	const t = useTranslations("deals");
+	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const openRecord = useOpenRecord();
 	const {
@@ -136,12 +137,12 @@ export function DealSheet({ dealId }: { dealId: string }) {
 		? [
 				{
 					value: "overview",
-					label: "Overview",
+					label: common("recordSheet.overviewTab"),
 					content: <DealOverview deal={deal} />,
 				},
 				{
 					value: "contacts",
-					label: "Contacts",
+					label: common("recordSheet.contactsTab"),
 					count: deal.contacts.length,
 					content: (
 						<DealContacts
@@ -154,12 +155,12 @@ export function DealSheet({ dealId }: { dealId: string }) {
 				},
 				{
 					value: "activity",
-					label: "Activity",
+					label: common("recordSheet.activityTab"),
 					content: <Timeline anchor={{ dealId: deal.id }} />,
 				},
 				{
 					value: "agent",
-					label: "Agent",
+					label: common("recordSheet.agentTab"),
 					content: <AgentPanel record={{ kind: "deal", id: deal.id }} />,
 					keepMounted: true,
 				},
@@ -170,7 +171,7 @@ export function DealSheet({ dealId }: { dealId: string }) {
 		<RecordSheetFrame
 			loading={query.isPending}
 			error={query.error?.message ?? null}
-			title={deal?.name ?? "Deal"}
+			title={deal?.name ?? t("recordFallbackTitle")}
 			description={
 				deal ? (
 					<button
@@ -204,7 +205,10 @@ export function DealSheet({ dealId }: { dealId: string }) {
 						<RecordActions
 							record={{ kind: "deal", id: deal.id }}
 							name={deal.name}
-							consequence={`Its stage history, notes and agent conversations go too. ${deal.company.name} and the ${deal.contacts.length === 1 ? "person" : "people"} on it stay in the CRM.`}
+							consequence={t("deleteConsequence", {
+								company: deal.company.name,
+								count: deal.contacts.length,
+							})}
 						/>
 					</>
 				) : null
@@ -212,7 +216,7 @@ export function DealSheet({ dealId }: { dealId: string }) {
 			stats={
 				deal ? (
 					<DetailSheetStats>
-						<DetailSheetStat label="Amount">
+						<DetailSheetStat label={t("amountLabel")}>
 							{deal.amountCents === null ? (
 								<EmptyCellValue />
 							) : (
@@ -221,17 +225,17 @@ export function DealSheet({ dealId }: { dealId: string }) {
 								</span>
 							)}
 						</DetailSheetStat>
-						<DetailSheetStat label="Expected close">
+						<DetailSheetStat label={t("expectedCloseLabel")}>
 							{deal.expectedCloseDate ? (
 								<LocalDay date={deal.expectedCloseDate} />
 							) : (
 								<EmptyCellValue />
 							)}
 						</DetailSheetStat>
-						<DetailSheetStat label="In stage">
+						<DetailSheetStat label={t("inStageLabel")}>
 							<LocalRelativeTime date={deal.stageChangedAt} />
 						</DetailSheetStat>
-						<DetailSheetStat label="Owner">
+						<DetailSheetStat label={common("ownerLabel")}>
 							<OwnerCell owner={deal.owner} />
 						</DetailSheetStat>
 					</DetailSheetStats>
@@ -245,6 +249,8 @@ export function DealSheet({ dealId }: { dealId: string }) {
 }
 
 function DealOverview({ deal }: { deal: Deal }) {
+	const t = useTranslations("deals");
+	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 
@@ -272,45 +278,48 @@ function DealOverview({ deal }: { deal: Deal }) {
 
 	return (
 		<DetailSheetBody>
-			<DetailSheetSection title="Stage">
+			<DetailSheetSection title={t("stageSection")}>
 				<StageStepper dealId={deal.id} stage={deal.stage} />
 
 				{deal.closedReason ? (
 					<DetailSheetProperties>
-						<DetailSheetProperty label="Closed">
+						<DetailSheetProperty label={t("closedLabel")}>
 							{deal.closedAt ? (
 								<LocalDateTime date={deal.closedAt} options={DATE_OPTIONS} />
 							) : (
 								<EmptyCellValue />
 							)}
 						</DetailSheetProperty>
-						<DetailSheetProperty label="Reason" wide>
+						<DetailSheetProperty label={t("reasonLabel")} wide>
 							{deal.closedReason}
 						</DetailSheetProperty>
 					</DetailSheetProperties>
 				) : null}
 			</DetailSheetSection>
 
-			<DetailSheetSection title="Details" action={<FieldsCog kind="deal" />}>
+			<DetailSheetSection
+				title={common("recordSheet.detailsSection")}
+				action={<FieldsCog kind="deal" />}
+			>
 				<DetailSheetProperties>
 					<InlineField
-						label="Name"
+						label={t("nameLabel")}
 						value={deal.name}
 						saving={isSaving("name")}
 						onSave={(name) => name && save({ name })}
 					/>
 					<InlineField
-						label="Amount"
+						label={t("amountLabel")}
 						value={
 							deal.amountCents === null ? null : String(deal.amountCents / 100)
 						}
-						placeholder="24000"
+						placeholder={t("amountPlaceholder")}
 						saving={isSaving("amountCents")}
 						onSave={(next) => {
 							if (next === "") return save({ amountCents: null });
 							const parsed = Number.parseFloat(next);
 							if (!Number.isFinite(parsed) || parsed < 0) {
-								toast.error("Amount has to be a number.");
+								toast.error(t("amountInvalidToast"));
 								return;
 							}
 							save({ amountCents: Math.round(parsed * 100) });
@@ -320,20 +329,20 @@ function DealOverview({ deal }: { deal: Deal }) {
 						}
 					/>
 					<InlineSelectField
-						label="Currency"
+						label={t("currencyLabel")}
 						value={currency}
-						options={currencyOptions(currency)}
+						options={currencyOptions(currency, t)}
 						onSave={(currency) => save({ currency })}
 					/>
 					<ReportedValue deal={deal} />
 					<InlineDateField
-						label="Close date"
+						label={t("closeDateLabel")}
 						value={deal.expectedCloseDate}
 						saving={isSaving("expectedCloseDate")}
 						onSave={(next) => save({ expectedCloseDate: next || null })}
 					/>
 					<InlineSelectField
-						label="Company"
+						label={t("companyLabel")}
 						value={deal.company.id}
 						options={(companies.data ?? []).map((company) => ({
 							value: company.id,
@@ -342,7 +351,7 @@ function DealOverview({ deal }: { deal: Deal }) {
 						onSave={(companyId) => save({ companyId })}
 					/>
 					<InlineSelectField
-						label="Owner"
+						label={common("ownerLabel")}
 						value={deal.owner.id}
 						options={(users.data ?? []).map((user) => ({
 							value: user.id,
@@ -358,11 +367,13 @@ function DealOverview({ deal }: { deal: Deal }) {
 				</DetailSheetProperties>
 			</DetailSheetSection>
 
-			<DetailSheetSection title="Description">
+			<DetailSheetSection title={t("descriptionSection")}>
 				<InlineTextArea
-					label="Description"
+					label={t("descriptionSection")}
 					value={deal.description}
-					placeholder={`What ${deal.company.name} is buying, why now, and what stands in the way.`}
+					placeholder={t("descriptionPlaceholder", {
+						company: deal.company.name,
+					})}
 					saving={isSaving("description")}
 					onSave={(description) => save({ description })}
 				/>
@@ -374,35 +385,36 @@ function DealOverview({ deal }: { deal: Deal }) {
 }
 
 function WhereItStands({ deal }: { deal: Deal }) {
+	const t = useTranslations("deals");
 	const openRecord = useOpenRecord();
 
 	return (
-		<DetailSheetSection title="Where it stands">
+		<DetailSheetSection title={t("whereItStandsSection")}>
 			<DetailSheetProperties>
-				<DetailSheetProperty label="Opened">
+				<DetailSheetProperty label={t("openedLabel")}>
 					<LocalDateTime date={deal.createdAt} options={DATE_OPTIONS} />
 				</DetailSheetProperty>
 
-				<DetailSheetProperty label="In stage since">
+				<DetailSheetProperty label={t("inStageSinceLabel")}>
 					<LocalDateTime date={deal.stageChangedAt} options={DATE_OPTIONS} />
 				</DetailSheetProperty>
 
 				{deal.closedAt ? (
-					<DetailSheetProperty label="Closed">
+					<DetailSheetProperty label={t("closedLabel")}>
 						<LocalDateTime date={deal.closedAt} options={DATE_OPTIONS} />
 					</DetailSheetProperty>
 				) : null}
 
 				{deal.closedReason ? (
-					<DetailSheetProperty label="Reason" wide>
+					<DetailSheetProperty label={t("reasonLabel")} wide>
 						{deal.closedReason}
 					</DetailSheetProperty>
 				) : null}
 
-				<DetailSheetProperty label="On it" wide>
+				<DetailSheetProperty label={t("onItLabel")} wide>
 					{deal.contacts.length === 0 ? (
 						<span className="text-muted-foreground">
-							Nobody from {deal.company.name} is attached yet.
+							{t("nobodyAttachedYet", { company: deal.company.name })}
 						</span>
 					) : (
 						<span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
@@ -443,9 +455,24 @@ function DealContacts({
 	onAdd: () => void;
 	onDone: () => void;
 }) {
+	const t = useTranslations("deals");
+	const contacts = useTranslations("contacts");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 	const openRecord = useOpenRecord();
+
+	const CONTACT_COLUMNS = [
+		{
+			id: "name",
+			header: contacts("nameColumnLabel"),
+			width: "w-[28%]",
+			className: "pl-5",
+		},
+		{ id: "role", header: t("roleLabel"), width: "w-[20%]" },
+		{ id: "title", header: contacts("titleColumnLabel"), width: "w-[22%]" },
+		{ id: "email", header: contacts("emailLabel"), width: "w-[22%]" },
+		{ id: "remove", srLabel: t("removeColumnSrLabel"), width: "w-10" },
+	];
 
 	const detach = useMutation(
 		trpc.deals.detachContact.mutationOptions({
@@ -476,12 +503,14 @@ function DealContacts({
 				{adding ? null : (
 					<DetailSheetEmpty
 						icon={UserMultiple}
-						title="No contacts on this deal"
-						description={`Nobody from ${deal.company.name} is attached yet. Bring the people you are selling to onto the deal and it says who to chase.`}
+						title={t("noContactsTitle")}
+						description={t("noContactsDescription", {
+							company: deal.company.name,
+						})}
 						action={
 							<Button variant="outline" size="sm" onClick={onAdd}>
 								<Icon icon={Add} data-icon="inline-start" />
-								Add contact
+								{contacts("addContactAction")}
 							</Button>
 						}
 					/>
@@ -513,9 +542,9 @@ function DealContacts({
 						</TableCell>
 						<TableCell className="truncate px-1 py-2.5">
 							<InlineTextCell
-								label={`Role on this deal for ${contactName(contact)}`}
+								label={t("roleAriaLabel", { name: contactName(contact) })}
 								value={contact.role}
-								placeholder="Champion"
+								placeholder={t("rolePlaceholder")}
 								saving={
 									setRole.isPending &&
 									setRole.variables?.contactId === contact.id
@@ -552,18 +581,18 @@ function DealContacts({
 									>
 										<Icon icon={Close} />
 										<span className="sr-only">
-											Take {contactName(contact)} off this deal
+											{t("takeOffDealSrLabel", { name: contactName(contact) })}
 										</span>
 									</Button>
 								</TooltipTrigger>
-								<TooltipContent>Take off this deal</TooltipContent>
+								<TooltipContent>{t("takeOffDealTooltip")}</TooltipContent>
 							</Tooltip>
 						</TableCell>
 					</SimpleTableRow>
 				))}
 
 				<AddRow
-					label="Add contact"
+					label={contacts("addContactAction")}
 					columns={CONTACT_COLUMNS.length}
 					onClick={onAdd}
 				/>

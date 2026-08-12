@@ -16,6 +16,7 @@ import {
 import { Icon } from "@crm/ui/components/icon";
 import { PersonAvatar } from "@crm/ui/components/person-avatar";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { ListSearch } from "@/components/data-table/list-search";
 import { useTableQuery } from "@/components/data-table/use-table-query";
@@ -25,17 +26,22 @@ import { useTRPC } from "@/lib/trpc/client";
 import type { RouterOutputs } from "@/lib/trpc/types";
 import { membersSearchParams } from "./members-search-params";
 
-const ROLE_LABEL = {
-	owner: "Owner",
-	admin: "Admin",
-	member: "Member",
-} as const;
+function roleLabel(t: ReturnType<typeof useTranslations>) {
+	return {
+		owner: t("members.roleOwner"),
+		admin: t("members.roleAdmin"),
+		member: t("members.roleMember"),
+	} as const;
+}
 
-type Role = keyof typeof ROLE_LABEL;
+type Role = keyof ReturnType<typeof roleLabel>;
 
 type MemberRow = RouterOutputs["workspace"]["members"]["rows"][number];
 
 function columns(
+	t: ReturnType<typeof useTranslations>,
+	common: ReturnType<typeof useTranslations>,
+	roles: Record<Role, string>,
 	canChangeRoles: boolean,
 	onChangeRole: (member: MemberRow, role: Role) => void,
 	pending: boolean,
@@ -43,7 +49,7 @@ function columns(
 	return [
 		{
 			id: "name",
-			header: "Name",
+			header: t("members.nameColumnLabel"),
 			sortable: true,
 			hideable: false,
 			width: "w-[34%]",
@@ -57,14 +63,16 @@ function columns(
 					/>
 					<span className="truncate font-medium">{row.name}</span>
 					{row.isViewer ? (
-						<span className="text-muted-foreground text-xs">You</span>
+						<span className="text-muted-foreground text-xs">
+							{t("members.youBadge")}
+						</span>
 					) : null}
 				</span>
 			),
 		},
 		{
 			id: "email",
-			header: "Email",
+			header: t("members.emailColumnLabel"),
 			sortable: true,
 			width: "w-[32%]",
 			hideBelow: "md",
@@ -74,17 +82,17 @@ function columns(
 		},
 		{
 			id: "role",
-			header: "Role",
+			header: t("members.roleColumnLabel"),
 			sortable: true,
 			width: "w-[14%]",
 			cell: (row) => (
-				<span className="text-muted-foreground">{ROLE_LABEL[row.role]}</span>
+				<span className="text-muted-foreground">{roles[row.role]}</span>
 			),
 		},
 		{
 			id: "joinedAt",
-			header: "Joined",
-			label: "Joined date",
+			header: t("members.joinedColumnLabel"),
+			label: t("members.joinedColumnFullLabel"),
 			sortable: true,
 			align: "right",
 			width: "w-[14%]",
@@ -97,8 +105,8 @@ function columns(
 		},
 		{
 			id: "actions",
-			header: <span className="sr-only">Actions</span>,
-			label: "Actions",
+			header: <span className="sr-only">{common("actions")}</span>,
+			label: common("actions"),
 			hideable: false,
 			align: "right",
 			width: "w-[6%]",
@@ -108,12 +116,14 @@ function columns(
 						<DropdownMenuTrigger asChild>
 							<Button variant="ghost" size="icon" disabled={pending}>
 								<Icon icon={OverflowMenuHorizontal} />
-								<span className="sr-only">Change {row.name}'s role</span>
+								<span className="sr-only">
+									{t("members.changeRolePrompt", { name: row.name })}
+								</span>
 							</Button>
 						</DropdownMenuTrigger>
 
 						<DropdownMenuContent align="end">
-							{(Object.keys(ROLE_LABEL) as Role[]).map((role) => (
+							{(Object.keys(roles) as Role[]).map((role) => (
 								<DropdownMenuItem
 									key={role}
 									data-checked={row.role === role}
@@ -122,7 +132,7 @@ function columns(
 										onChangeRole(row, role);
 									}}
 								>
-									{ROLE_LABEL[role]}
+									{roles[role]}
 								</DropdownMenuItem>
 							))}
 						</DropdownMenuContent>
@@ -133,9 +143,13 @@ function columns(
 }
 
 export function MembersTable() {
+	const t = useTranslations("settings");
+	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 	const { query, input } = useTableQuery(membersSearchParams);
+
+	const roles = roleLabel(t);
 
 	const workspace = useQuery(trpc.workspace.get.queryOptions());
 	const members = useQuery({
@@ -147,7 +161,7 @@ export function MembersTable() {
 		trpc.workspace.setMemberRole.mutationOptions({
 			onSuccess: async () => {
 				await cache.workspace();
-				toast.success("Role changed.");
+				toast.success(t("members.roleChanged"));
 			},
 			onError: (error) => toast.error(error.message),
 		}),
@@ -158,10 +172,10 @@ export function MembersTable() {
 	const facets: DataTableFacet[] = [
 		{
 			id: "role",
-			label: "Role",
-			options: (Object.keys(ROLE_LABEL) as Role[]).flatMap((role) =>
+			label: t("members.roleColumnLabel"),
+			options: (Object.keys(roles) as Role[]).flatMap((role) =>
 				(facetCounts?.role?.[role] ?? 0) > 0
-					? [{ value: role, label: ROLE_LABEL[role] }]
+					? [{ value: role, label: roles[role] }]
 					: [],
 			),
 		},
@@ -170,8 +184,11 @@ export function MembersTable() {
 	return (
 		<DataTable
 			query={query}
-			search={<ListSearch placeholder="Search by name or email…" />}
+			search={<ListSearch placeholder={t("members.searchPlaceholder")} />}
 			columns={columns(
+				t,
+				common,
+				roles,
 				workspace.data?.canChangeRoles ?? false,
 				(member, role) => setRole.mutate({ memberId: member.id, role }),
 				setRole.isPending,
@@ -182,7 +199,7 @@ export function MembersTable() {
 			facets={facets}
 			getRowId={(row) => row.id}
 			loading={members.isFetching}
-			empty="Nobody matches this view."
+			empty={t("members.empty")}
 		/>
 	);
 }

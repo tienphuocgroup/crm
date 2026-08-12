@@ -25,6 +25,8 @@ import { CSS } from "@dnd-kit/utilities";
 import type { ReactNode } from "react";
 import { Button } from "@crm/ui/components/button";
 import { Icon } from "@crm/ui/components/icon";
+import { useUiStrings } from "@crm/ui/components/ui-strings-provider";
+import { fillUiString } from "@crm/ui/lib/ui-strings";
 import { cn } from "@crm/ui/lib/utils";
 
 export function SortableList({
@@ -79,6 +81,7 @@ export function SortableItem({
 	className?: string;
 	children: ReactNode;
 }) {
+	const strings = useUiStrings();
 	const {
 		attributes,
 		listeners,
@@ -109,7 +112,9 @@ export function SortableItem({
 				{...listeners}
 			>
 				<Icon icon={Draggable} />
-				<span className="sr-only">Reorder {label}</span>
+				<span className="sr-only">
+					{fillUiString(strings.sortableListReorder, { label })}
+				</span>
 			</Button>
 			{children}
 		</div>
