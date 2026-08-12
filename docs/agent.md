@@ -281,6 +281,16 @@ delegation paths for custom agents.
 - **Creation requires the current `CREATE_AGENT` turn.** Every builder tool checks the
   purpose and command type in session auth. A normal builder chat cannot create a
   draft by prompt alone.
+- **The builder's output budget covers writing every file twice.** It emits the three
+  files, then repeats the instructions and manifest inside `save_agent_draft`, and a
+  reasoning model bills its reasoning as output. One step that writes the three files
+  costs about 18k output tokens, so `maxOutputTokensPerSession` is 50k, the same as the
+  root. At 10k the session died between the last `write_agent_file` result and the next
+  model call: the three files were on disk, no version existed, and **the child never
+  returned `final_output`, so the parent's `agent_builder` call never got a result**.
+  The parent turn then stayed open, `continuationToken` stayed null, and the chat read
+  *Building the agent* forever. A subagent that runs out of budget wedges its caller —
+  budget it for the work it is told to do.
 - **Builder clarification is durable HITL.** The specialist calls eve's built-in
   `ask_question` directly; descendant input requests are proxied to the root channel,
   and the same child turn resumes when the user answers. The authored
