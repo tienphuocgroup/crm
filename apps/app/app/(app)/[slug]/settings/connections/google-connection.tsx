@@ -131,7 +131,18 @@ function GoogleUnavailable() {
 	);
 }
 
-function ConnectGoogle({ connectError }: { connectError?: string }) {
+const CONNECT_ERRORS: Record<string, string> = {
+	"email_doesn't_match":
+		"That Google account has a different email address to the one you sign in with, so it cannot be attached to your account. Connect the Google account that matches your sign-in address.",
+};
+
+function ConnectGoogle({
+	slug,
+	connectError,
+}: {
+	slug: string;
+	connectError?: string;
+}) {
 	const t = useTranslations("settings");
 	const [pending, setPending] = useState(false);
 
@@ -152,8 +163,8 @@ function ConnectGoogle({ connectError }: { connectError?: string }) {
 		const { error } = await authClient.linkSocial({
 			provider: "google",
 			scopes: [...SYNC_SCOPES],
-			callbackURL: `${origin}/settings/connections`,
-			errorCallbackURL: `${origin}/settings/connections?provider=google`,
+			callbackURL: `${origin}/${slug}/settings/connections/google`,
+			errorCallbackURL: `${origin}/${slug}/settings/connections/google?provider=google`,
 		});
 
 		if (error) fail(error.message);
@@ -211,7 +222,13 @@ function ConnectGoogle({ connectError }: { connectError?: string }) {
 	);
 }
 
-export function GoogleConnection({ connectError }: { connectError?: string }) {
+export function GoogleConnection({
+	slug,
+	connectError,
+}: {
+	slug: string;
+	connectError?: string;
+}) {
 	const t = useTranslations("settings");
 	const common = useTranslations("common");
 	const trpc = useTRPC();
@@ -244,7 +261,7 @@ export function GoogleConnection({ connectError }: { connectError?: string }) {
 		trpc.google.revokeAccess.mutationOptions({
 			onSuccess: () =>
 				window.location.assign(
-					status.data?.required ? "/" : "/settings/connections",
+					status.data?.required ? "/" : `/${slug}/settings/connections`,
 				),
 			onError: (error) => toast.error(error.message),
 		}),
@@ -287,7 +304,7 @@ export function GoogleConnection({ connectError }: { connectError?: string }) {
 	} = status.data;
 
 	if (!configured) return <GoogleUnavailable />;
-	if (!linked) return <ConnectGoogle connectError={connectError} />;
+	if (!linked) return <ConnectGoogle slug={slug} connectError={connectError} />;
 
 	const failing = syncSources.filter(
 		(source) => source.status === "NEEDS_RECONNECT" || source.lastError,

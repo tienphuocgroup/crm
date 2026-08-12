@@ -34,6 +34,7 @@ import { StatusIndicator } from "@crm/ui/components/status-indicator";
 import { Switch } from "@crm/ui/components/switch";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
@@ -44,6 +45,7 @@ export function TrackingScript() {
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 	const tracking = useQuery(trpc.tracking.settings.queryOptions());
+	const [section, setSection] = useState("html");
 
 	const setFlag = useMutation(
 		trpc.tracking.setFlag.mutationOptions({
@@ -71,21 +73,28 @@ export function TrackingScript() {
 
 	if (!tracking.data) return null;
 
-	const { siteId, snippet, scriptUrl, receivingSince, paused, canManage } =
-		tracking.data;
+	const {
+		siteId,
+		snippet,
+		tagManagerSnippet,
+		scriptUrl,
+		receivingSince,
+		paused,
+		canManage,
+	} = tracking.data;
 
-	const copy = () => {
+	const copy = (value: string | null) => {
 		const clipboard = navigator.clipboard;
 
-		if (!snippet || !clipboard) {
-			toast.error(t("tracking.scriptCopyUnavailable"));
+		if (!value || !clipboard) {
+			toast.error("Could not copy the script. Select it instead.");
 			return;
 		}
 
 		clipboard
-			.writeText(snippet)
-			.then(() => toast.success(t("tracking.scriptCopied")))
-			.catch(() => toast.error(t("tracking.scriptCopyFailed")));
+			.writeText(value)
+			.then(() => toast.success("Script copied."))
+			.catch(() => toast.error("Could not copy the script."));
 	};
 
 	return (
@@ -110,7 +119,13 @@ export function TrackingScript() {
 				<CardDescription>{t("tracking.scriptCardDescription")}</CardDescription>
 
 				<CardAction>
-					<Button size="sm" onClick={copy} type="button">
+					<Button
+						size="sm"
+						onClick={() =>
+							copy(section === "gtm" ? tagManagerSnippet : snippet)
+						}
+						type="button"
+					>
 						<Icon icon={Copy} data-icon="inline-start" />
 						{t("tracking.copy")}
 					</Button>
@@ -118,10 +133,15 @@ export function TrackingScript() {
 			</CardHeader>
 
 			<CardContent>
-				<Accordion type="single" collapsible defaultValue="html">
+				<Accordion
+					type="single"
+					collapsible
+					value={section}
+					onValueChange={setSection}
+				>
 					<AccordionItem value="html">
-						<AccordionTrigger>{t("tracking.pasteIntoHtml")}</AccordionTrigger>
-						<AccordionContent>
+						<AccordionTrigger>Paste it into your HTML</AccordionTrigger>
+						<AccordionContent className="flex flex-col gap-4">
 							<pre className="overflow-x-auto rounded-md border bg-muted p-4 font-mono text-code-foreground text-xs/5">
 								<span className="text-code-accent">{"<script"}</span>
 								{"\n  src="}
@@ -140,17 +160,34 @@ export function TrackingScript() {
 					</AccordionItem>
 
 					<AccordionItem value="gtm">
-						<AccordionTrigger>{t("tracking.addViaGtm")}</AccordionTrigger>
-						<AccordionContent>
+						<AccordionTrigger>
+							Add it through Google Tag Manager
+						</AccordionTrigger>
+						<AccordionContent className="flex flex-col gap-4">
+							<pre className="overflow-x-auto rounded-md border bg-muted p-4 font-mono text-code-foreground text-xs/5">
+								<span className="text-code-accent">{"<script"}</span>
+								{"\n  src="}
+								<span className="text-code-string">{`"${scriptUrl}?site=${siteId}"`}</span>
+								{"\n  async\n  defer\n"}
+								<span className="text-code-accent">{"></script>"}</span>
+							</pre>
 							<ol className="flex list-decimal flex-col gap-1 pl-4 text-muted-foreground text-xs/relaxed">
-								<li>{t("tracking.gtmStep1")}</li>
-								<li>{t("tracking.gtmStep2")}</li>
+								<li>In Tag Manager, add a new Custom HTML tag.</li>
+								<li>
+									Paste this snippet — not the one above — as the tag's HTML.
+								</li>
 								<li>
 									{t("tracking.gtmStep3Prefix")}{" "}
 									<span className="font-mono text-foreground">{scriptUrl}</span>{" "}
 									{t("tracking.gtmStep3Suffix")}
 								</li>
 							</ol>
+							<p className="text-muted-foreground text-xs/relaxed">
+								Tag Manager drops a{" "}
+								<span className="font-mono text-foreground">data-site</span>{" "}
+								attribute when it injects a script, so this form carries the
+								site ID in the URL instead.
+							</p>
 						</AccordionContent>
 					</AccordionItem>
 				</Accordion>

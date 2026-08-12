@@ -70,8 +70,12 @@ export function AgentClarificationComposer({
 					: { requestId: question.requestId, text: value }
 			) satisfies ClarificationResponse;
 			await onSubmit(response);
-		} catch {
-			setTransportError(t("clarificationSubmitFailed"));
+		} catch (error) {
+			setTransportError(
+				error instanceof Error && error.message.trim()
+					? error.message
+					: t("clarificationSubmitFailed"),
+			);
 		}
 	};
 

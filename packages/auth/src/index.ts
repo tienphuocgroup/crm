@@ -1,8 +1,14 @@
 export { type Auth, auth, type Session, type SessionUser } from "./auth";
 export { AUTH_COOKIE_PREFIX } from "./cookies";
-export { appUrl, isGoogleConfigured, isMicrosoftConfigured } from "./env";
+export {
+	appUrl,
+	isGoogleConfigured,
+	isMicrosoftConfigured,
+	isSlackConfigured,
+} from "./env";
 export {
 	canChangeRole,
+	canManageConnections,
 	canManageCurrency,
 	canManageTracking,
 	canRenameWorkspace,
@@ -10,9 +16,11 @@ export {
 	ensureWorkspaceMembership,
 	isWorkspaceAdmin,
 	isWorkspaceRole,
+	toWorkspaceRole,
 	WORKSPACE_ID,
 	WORKSPACE_ROLES,
 	type WorkspaceRole,
+	workspaceRoleOf,
 } from "./organization";
 export {
 	CALENDAR_SCOPE,
@@ -38,6 +46,19 @@ export {
 	signsInWithMicrosoft,
 } from "./scopes";
 export { onSignedIn, type SignedInHandler } from "./signed-in";
+export {
+	describeSlackScopes,
+	SLACK_REQUESTED_SCOPES,
+	SLACK_SCOPE_GROUPS,
+	SLACK_SCOPES,
+	SLACK_USER_GRANT,
+	SLACK_USER_SCOPES,
+	type SlackScope,
+	type SlackScopeGroup,
+	type SlackScopeSummary,
+	slackScopeDrift,
+	summariseSlackScopes,
+} from "./slack-scopes";
 export {
 	canConfigureSso,
 	ssoCallbackBase,

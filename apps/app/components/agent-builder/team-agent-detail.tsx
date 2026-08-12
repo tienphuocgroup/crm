@@ -1,8 +1,5 @@
 "use client";
 
-import ChevronDown from "@carbon/icons-react/es/ChevronDown";
-import ChevronUp from "@carbon/icons-react/es/ChevronUp";
-import Download from "@carbon/icons-react/es/Download";
 import OverflowMenuVertical from "@carbon/icons-react/es/OverflowMenuVertical";
 import Pause from "@carbon/icons-react/es/Pause";
 import Play from "@carbon/icons-react/es/Play";
@@ -28,12 +25,12 @@ import {
 	DropdownMenuTrigger,
 } from "@crm/ui/components/dropdown-menu";
 import { Icon } from "@crm/ui/components/icon";
-import { useUiLocale } from "@crm/ui/components/ui-strings-provider";
-import { dateTimeFormat } from "@crm/ui/lib/format";
-import { cn } from "@crm/ui/lib/utils";
+import { SaveBarViewport } from "@crm/ui/components/save-bar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useUiLocale } from "@crm/ui/components/ui-strings-provider";
+import { dateTimeFormat } from "@crm/ui/lib/format";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
@@ -49,25 +46,14 @@ import {
 import { useTRPC } from "@/lib/trpc/client";
 import type { RouterOutputs } from "@/lib/trpc/types";
 import { useWorkspaceUrl } from "@/lib/use-workspace-url";
-import { AgentScopeBadges } from "./agent-scope-badges";
+import { AgentCapabilities, type Capabilities } from "./agent-capabilities";
+import { AgentCode } from "./agent-code";
+import { AgentRunsDrawer } from "./agent-runs-drawer";
 
-type AgentTab = "overview" | "runs" | "activity";
 type AgentDetail = RouterOutputs["agents"]["byId"];
 type ReviewVersion = AgentDetail["reviewVersion"];
 type Runs = RouterOutputs["agents"]["history"];
 type Activity = RouterOutputs["agents"]["activity"];
-type RunRow = Omit<Runs[number], "events"> & {
-	events: Array<{
-		id: string;
-		type: string;
-		data: unknown;
-		emittedAt: string;
-	}>;
-};
-type ActivityRow = Omit<Activity[number], "before" | "after"> & {
-	before: unknown;
-	after: unknown;
-};
 const DATE_OPTIONS = {
 	month: "short",
 	day: "numeric",
@@ -76,13 +62,6 @@ const DATE_OPTIONS = {
 	second: "2-digit",
 	timeZone: "UTC",
 	timeZoneName: "short",
-} as const;
-const TIME_OPTIONS = {
-	hour: "2-digit",
-	minute: "2-digit",
-	second: "2-digit",
-	hour12: false,
-	timeZone: "UTC",
 } as const;
 
 export function TeamAgentDetail({
@@ -101,9 +80,8 @@ export function TeamAgentDetail({
 	const locale = useUiLocale();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const [tab, setTab] = useState<AgentTab>(() =>
-		initialAgent.status === "DRAFT" ? "overview" : "runs",
-	);
+	const workspaceUrl = useWorkspaceUrl();
+	const [runsOpen, setRunsOpen] = useState(false);
 	const agent = useQuery({
 		...trpc.agents.byId.queryOptions({ id: agentId }),
 		initialData: initialAgent,
@@ -129,18 +107,16 @@ export function TeamAgentDetail({
 			queryClient.invalidateQueries({
 				queryKey: trpc.agents.activity.pathKey(),
 			}),
+			queryClient.invalidateQueries({
+				queryKey: trpc.agents.history.pathKey(),
+			}),
 		]);
 	const runNow = useMutation(
 		trpc.agents.runNow.mutationOptions({
 			onSuccess: async () => {
-				await Promise.all([
-					invalidate(),
-					queryClient.invalidateQueries({
-						queryKey: trpc.agents.history.pathKey(),
-					}),
-				]);
-				setTab("runs");
-				toast.success(t("agentRunQueuedToast"));
+				await invalidate();
+				setRunsOpen(true);
+				toast.success("Agent run queued.");
 			},
 			onError: (error) => toast.error(error.message),
 		}),
@@ -154,6 +130,26 @@ export function TeamAgentDetail({
 	const resume = useMutation(
 		trpc.agents.resume.mutationOptions({
 			onSuccess: invalidate,
+			onError: (error) => toast.error(error.message),
+		}),
+	);
+	const retryRun = useMutation(
+		trpc.agents.retryRun.mutationOptions({
+			onSuccess: async () => {
+				await invalidate();
+				toast.success("Run queued again.");
+			},
+			onError: (error) => toast.error(error.message),
+		}),
+	);
+	const cancelRun = useMutation(
+		trpc.agents.cancelRun.mutationOptions({
+			onSuccess: async (result) => {
+				await invalidate();
+				toast.success(
+					result.cancelled ? "Run stopped." : "That run had already finished.",
+				);
+			},
 			onError: (error) => toast.error(error.message),
 		}),
 	);
@@ -204,10 +200,17 @@ export function TeamAgentDetail({
 		: (data.description ?? t("agentDescriptionFallback"));
 	const displayedVersionNumber =
 		data.currentVersion?.number ?? data.reviewVersion?.number;
-	const nextRun = data.triggers.find((trigger) => trigger.enabled)?.nextRunAt;
+	const enabledTriggers = data.triggers.filter((trigger) => trigger.enabled);
+	const canRunManually =
+		enabledTriggers.length === 0 ||
+		enabledTriggers.some((trigger) => trigger.type !== "EVENT");
+	const nextRun =
+		enabledTriggers.length === 1 ? enabledTriggers[0]?.nextRunAt : null;
+	const triggerSummary =
+		enabledTriggers.map((trigger) => trigger.name).join(" · ") || "Manual only";
 
 	return (
-		<PageShell className="min-h-0">
+		<PageShell className="min-h-0" contained>
 			<PageShellHeader className="[&>div]:grid-cols-1 sm:[&>div]:grid-cols-[minmax(0,1fr)_auto]">
 				<PageShellHeading>
 					<PageShellTitle className="wrap-break-word">
@@ -229,23 +232,32 @@ export function TeamAgentDetail({
 				<PageShellActions className="col-start-1 row-start-3 justify-self-start sm:col-start-2 sm:row-start-1 sm:justify-self-end">
 					<div className="flex min-w-0 flex-col items-start gap-2 sm:items-end">
 						<span className="text-muted-foreground text-xs">
-							{isDraft ? t("agentVisibilityLabel") : t("agentNextRunLabel")}
+							{isDraft ? "Visibility" : "Trigger"}
 						</span>
 						<span className="font-mono text-sm">
 							{isDraft
 								? t("agentKindPrivateDraft")
 								: nextRun
 									? formatDate(nextRun, locale)
-									: t("manualOnlyLabel")}
+									: triggerSummary}
 						</span>
 						<div className="mt-1 flex flex-wrap gap-2">
+							<Button onClick={() => setRunsOpen(true)} variant="outline">
+								Runs
+								<span className="font-mono text-muted-foreground">
+									{data.runCount}
+								</span>
+							</Button>
+							<Button asChild variant="outline">
+								<Link href={workspaceUrl("/chat")}>Open in chat</Link>
+							</Button>
 							{isDraft && data.canManage ? (
 								<DraftAgentActions
 									agentId={data.id}
 									name={displayedName}
 									version={data.reviewVersion}
 								/>
-							) : (
+							) : canRunManually ? (
 								<Button
 									variant="outline"
 									disabled={data.status !== "LIVE" || runAction.pending}
@@ -262,7 +274,7 @@ export function TeamAgentDetail({
 										{t("runNowButton")}
 									</AsyncButtonContent>
 								</Button>
-							)}
+							) : null}
 							{!isDraft && data.canManage && data.status === "LIVE" ? (
 								<Button
 									variant="outline"
@@ -308,68 +320,30 @@ export function TeamAgentDetail({
 			</PageShellHeader>
 
 			<PageShellContent className="min-h-0">
-				<div
-					role="tablist"
-					aria-label={t("agentDetailsTablistAriaLabel")}
-					className="flex h-9 min-w-0 items-end gap-5 overflow-x-auto border-b sm:gap-6"
-				>
-					<TabButton
-						tab="overview"
-						active={tab === "overview"}
-						onClick={() => setTab("overview")}
-					>
-						{t("overviewTabLabel")}
-					</TabButton>
-					<TabButton
-						tab="runs"
-						active={tab === "runs"}
-						onClick={() => setTab("runs")}
-					>
-						{t("runsTabLabel")}{" "}
-						<span className="font-mono text-muted-foreground">
-							{data.runCount}
-						</span>
-					</TabButton>
-					<TabButton
-						tab="activity"
-						active={tab === "activity"}
-						onClick={() => setTab("activity")}
-					>
-						{t("activityTabLabel")}{" "}
-						<span className="font-mono text-muted-foreground">
-							{activity.data?.length ?? 0}
-						</span>
-					</TabButton>
+				<div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 pb-1">
+					<AgentOverview agent={data} />
 				</div>
-
-				{tab === "overview" ? (
-					<div
-						role="tabpanel"
-						id="agent-overview-panel"
-						aria-labelledby="agent-overview-tab"
-					>
-						<AgentOverview agent={data} />
-					</div>
-				) : null}
-				{tab === "runs" ? (
-					<div
-						role="tabpanel"
-						id="agent-runs-panel"
-						aria-labelledby="agent-runs-tab"
-					>
-						<AgentRuns runs={runs.data ?? []} />
-					</div>
-				) : null}
-				{tab === "activity" ? (
-					<div
-						role="tabpanel"
-						id="agent-activity-panel"
-						aria-labelledby="agent-activity-tab"
-					>
-						<AgentActivity activity={activity.data ?? []} />
-					</div>
-				) : null}
 			</PageShellContent>
+
+			<AgentRunsDrawer
+				activity={activity.data ?? []}
+				agentId={agentId}
+				cancelling={cancelRun.isPending}
+				onCancel={(runId) => cancelRun.mutate({ id: agentId, runId })}
+				onOpenChange={setRunsOpen}
+				onRetry={(runId) =>
+					retryRun.mutate({
+						id: agentId,
+						runId,
+						clientRequestId: crypto.randomUUID(),
+					})
+				}
+				open={runsOpen}
+				retryingRunId={
+					retryRun.isPending ? retryRun.variables?.runId : undefined
+				}
+				runs={runs.data ?? []}
+			/>
 		</PageShell>
 	);
 }
@@ -402,6 +376,9 @@ function DraftAgentActions({
 					}),
 					queryClient.invalidateQueries({
 						queryKey: trpc.agents.activity.pathKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.agents.files.pathKey(),
 					}),
 					queryClient.invalidateQueries({
 						queryKey: trpc.conversations.builderById.pathKey(),
@@ -560,105 +537,41 @@ function DeleteAgentAction({
 	);
 }
 
-function TabButton({
-	tab,
-	active,
-	onClick,
-	children,
-}: {
-	tab: AgentTab;
-	active: boolean;
-	onClick: () => void;
-	children: React.ReactNode;
-}) {
-	return (
-		<button
-			id={`agent-${tab}-tab`}
-			type="button"
-			role="tab"
-			aria-selected={active}
-			aria-controls={`agent-${tab}-panel`}
-			onClick={onClick}
-			className={cn(
-				"flex h-8 items-center gap-2 border-b-2 border-transparent text-muted-foreground text-sm outline-none hover:text-foreground focus-visible:text-foreground",
-				active && "border-ring font-medium text-foreground",
-			)}
-		>
-			{children}
-		</button>
-	);
-}
-
 function AgentOverview({ agent }: { agent: AgentDetail }) {
-	const t = useTranslations("agent-panel");
-	const agentVersions = agent as unknown as {
-		currentVersion: unknown;
-		reviewVersion: unknown;
-	};
-	const version = recordOf(
-		agentVersions.currentVersion ?? agentVersions.reviewVersion,
-	);
-	const manifest = recordOf(version.manifest);
-	const sandbox = recordOf(version.sandboxPolicy);
-	const trigger = recordOf(manifest.trigger);
-	const actions = Array.isArray(manifest.actions)
-		? manifest.actions.map(recordOf)
-		: [];
-	const actionSummaries = actions
-		.map((action) =>
-			textOf(
-				action.summary,
-				textOf(action.type, t("configuredActionFallback")),
-			),
-		)
-		.filter(Boolean);
-	const access = Array.isArray(manifest.access)
-		? manifest.access.filter(
-				(item): item is string =>
-					typeof item === "string" && Boolean(item.trim()),
-			)
-		: [];
+	const detail = agent as unknown as { capabilities?: Capabilities };
+	const capabilities = detail.capabilities;
+	const deployed = agent.currentVersion !== null;
+	const canEdit = agent.canManage && deployed;
+
+	if (!capabilities) {
+		return (
+			<p className="text-muted-foreground text-sm">
+				This agent has no deployed version yet.
+			</p>
+		);
+	}
 
 	return (
-		<div className="overflow-hidden rounded-lg border bg-card">
-			<DetailRow label={t("detailRowStatus")} value={agent.status} />
-			<DetailRow
-				label={t("detailRowModel")}
-				value={textOf(version.modelId, "—")}
-			/>
-			<DetailRow
-				label={t("detailRowExecution")}
-				value={textOf(sandbox.summary, t("executionFallback"))}
-			/>
-			<DetailRow
-				label={t("detailRowScope")}
-				value={textOf(recordOf(manifest.dataScope).summary, t("scopeFallback"))}
-			/>
-			<DetailRow
-				label={t("detailRowTriggers")}
-				value={
-					agent.triggers.map((trigger) => trigger.name).join(" · ") ||
-					textOf(trigger.summary, t("manualOnlyLabel"))
-				}
-			/>
-			<DetailRow
-				label={t("detailRowActions")}
-				value={actionSummaries.join(" · ") || t("noExternalActions")}
-			/>
-			<DetailRow
-				label={t("detailRowAccess")}
-				value={
-					<AgentScopeBadges
-						scopes={access}
-						fallback={t("agentScopeFallback")}
-					/>
-				}
-			/>
-		</div>
+		<SaveBarViewport>
+			<div className="flex flex-col gap-9">
+				{deployed ? null : (
+					<p className="text-muted-foreground text-sm">
+						This is a draft. Deploy it to the team before you change what it can
+						do.
+					</p>
+				)}
+				<AgentCapabilities
+					agentId={agent.id}
+					canManage={canEdit}
+					capabilities={capabilities}
+				/>
+				<AgentCode agentId={agent.id} canManage={canEdit} />
+			</div>
+		</SaveBarViewport>
 	);
 }
 
-function DetailRow({ label, value }: { label: string; value: ReactNode }) {
+function _DetailRow({ label, value }: { label: string; value: ReactNode }) {
 	return (
 		<div className="flex min-h-11 flex-col items-start gap-1 border-t px-4 py-3 first:border-t-0 sm:flex-row sm:items-center sm:gap-5 sm:px-5 sm:py-2">
 			<span className="text-muted-foreground text-xs sm:w-36 sm:shrink-0">
@@ -666,282 +579,6 @@ function DetailRow({ label, value }: { label: string; value: ReactNode }) {
 			</span>
 			<div className="min-w-0 max-w-full flex-1 wrap-break-word text-sm">
 				{value}
-			</div>
-		</div>
-	);
-}
-
-function AgentRuns({ runs }: { runs: Runs }) {
-	const t = useTranslations("agent-panel");
-	const locale = useUiLocale();
-	const [outcome, setOutcome] = useState("ALL");
-	const [expanded, setExpanded] = useState<string | null>(null);
-	const visible = runs.filter(
-		(run) => outcome === "ALL" || run.status === outcome,
-	);
-	const runNumbers = new Map(
-		runs.map((run, index) => [run.id, runs.length - index]),
-	);
-
-	return (
-		<div className="flex min-w-0 flex-col gap-4 sm:gap-6">
-			<div className="flex min-h-7 items-center justify-start sm:justify-end">
-				<select
-					value={outcome}
-					onChange={(event) => setOutcome(event.target.value)}
-					aria-label={t("filterRunOutcomesAriaLabel")}
-					className="h-7 rounded-md border bg-muted px-2.5 font-medium text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-				>
-					<option value="ALL">{t("runOutcomeAll")}</option>
-					<option value="SUCCEEDED">{t("runOutcomeSucceeded")}</option>
-					<option value="FAILED">{t("runOutcomeFailed")}</option>
-					<option value="RUNNING">{t("runOutcomeRunning")}</option>
-					<option value="QUEUED">{t("runOutcomeQueued")}</option>
-					<option value="WAITING_FOR_APPROVAL">
-						{t("runOutcomeWaitingForApproval")}
-					</option>
-					<option value="CANCELLED">{t("runOutcomeCancelled")}</option>
-				</select>
-			</div>
-
-			{visible.map((run) => (
-				<div
-					key={run.id}
-					className="min-w-0 overflow-hidden rounded-lg border bg-card"
-				>
-					<button
-						type="button"
-						onClick={() =>
-							setExpanded((current) => (current === run.id ? null : run.id))
-						}
-						className="flex min-h-14 w-full min-w-0 flex-col items-stretch gap-3 px-4 py-3 text-left outline-none hover:bg-muted/40 focus-visible:bg-muted/40 sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:px-5 sm:py-2"
-					>
-						<span className="min-w-0 flex-1">
-							<span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-								<span className="font-semibold text-sm">
-									{t("runNumberLabel", {
-										number: String(runNumbers.get(run.id)).padStart(3, "0"),
-									})}
-								</span>
-								<span
-									className={cn(
-										"text-muted-foreground text-xs",
-										run.status === "FAILED" && "text-destructive",
-									)}
-								>
-									{humanStatus(run.status)}
-								</span>
-							</span>
-							<span className="mt-1 block wrap-break-word font-mono text-muted-foreground text-xs leading-5 sm:mt-0">
-								{humanStatus(run.triggerType)} ·{" "}
-								{formatDate(run.createdAt, locale)} {t("versionSeparator")}{" "}
-								{run.version.number}
-							</span>
-						</span>
-						<span className="flex min-w-0 items-center justify-between gap-3 font-mono text-muted-foreground text-xs sm:shrink-0 sm:justify-start sm:gap-4">
-							<span>{duration(run.startedAt, run.finishedAt)}</span>
-							<span>
-								{t("externalActionsCount", { count: run.actions.length })}
-							</span>
-							<Icon
-								icon={expanded === run.id ? ChevronUp : ChevronDown}
-								className="size-3.5"
-							/>
-						</span>
-					</button>
-
-					{expanded === run.id ? (
-						<ExpandedRun run={run as unknown as RunRow} />
-					) : null}
-				</div>
-			))}
-
-			{visible.length === 0 ? (
-				<p className="py-12 text-center text-muted-foreground text-sm">
-					{t("noRunsMatchOutcome")}
-				</p>
-			) : null}
-		</div>
-	);
-}
-
-function ExpandedRun({ run }: { run: RunRow }) {
-	const t = useTranslations("agent-panel");
-	const locale = useUiLocale();
-	const events = run.events.filter(
-		(event) => event.type !== "message.appended",
-	);
-	const condensedEvents = run.events.length - events.length;
-
-	return (
-		<div className="min-w-0 border-t">
-			<div className="grid grid-cols-2 gap-x-4 gap-y-3 border-b bg-background px-4 py-3 sm:min-h-[58px] sm:grid-cols-4 sm:items-center sm:gap-0 sm:px-5 sm:py-2">
-				<RunMeta
-					label={t("runMetaTrigger")}
-					value={humanStatus(run.triggerType)}
-				/>
-				<RunMeta
-					label={t("runMetaInitiatedBy")}
-					value={run.initiatedBy?.name ?? t("eveSchedulerLabel")}
-				/>
-				<RunMeta
-					label={t("detailRowModel")}
-					value={run.modelId ?? t("gatewayDefaultLabel")}
-				/>
-				<RunMeta
-					label={t("runMetaVersion")}
-					value={String(run.version.number)}
-					last
-				/>
-			</div>
-
-			<div>
-				{events.map((event) => (
-					<div
-						key={event.id}
-						className="grid min-h-8 min-w-0 grid-cols-[68px_minmax(0,1fr)] items-start gap-x-3 border-t px-4 py-2 first:border-t-0 sm:flex sm:items-center sm:gap-5 sm:px-5 sm:py-1.5"
-					>
-						<span className="shrink-0 font-mono text-muted-foreground text-xs sm:w-[78px]">
-							{formatTime(event.emittedAt, locale)}
-						</span>
-						<span className="min-w-0 flex-1 wrap-break-word text-sm">
-							{eventLabel(event.type, event.data)}
-						</span>
-						<span className="hidden shrink-0 font-mono text-muted-foreground text-xs sm:inline">
-							{t("auditEventLabel")}
-						</span>
-					</div>
-				))}
-				{run.actions.map((action) => (
-					<div
-						key={action.id}
-						className="grid min-h-12 min-w-0 grid-cols-[68px_minmax(0,1fr)] items-start gap-x-3 gap-y-1 border-t px-4 py-3 sm:flex sm:gap-5 sm:px-5"
-					>
-						<span className="shrink-0 font-mono text-muted-foreground text-xs sm:w-[78px]">
-							{formatTime(
-								action.completedAt ?? action.startedAt ?? action.plannedAt,
-								locale,
-							)}
-						</span>
-						<span className="min-w-0 flex-1">
-							<span className="block wrap-break-word text-sm">
-								{action.summary}
-							</span>
-							<span className="block wrap-break-word text-muted-foreground text-xs">
-								{action.provider} · {humanStatus(action.status)}
-								{action.targetLabel ? ` · ${action.targetLabel}` : ""}
-							</span>
-						</span>
-						<span className="col-start-2 min-w-0 wrap-break-word font-mono text-muted-foreground text-xs sm:col-auto sm:shrink-0">
-							{action.externalId ?? action.id.slice(0, 12)}
-						</span>
-					</div>
-				))}
-				{condensedEvents > 0 ? (
-					<div className="flex min-h-9 items-center border-t px-4 py-2 text-muted-foreground text-xs sm:px-5">
-						{t("condensedEventsCount", { count: condensedEvents })}
-					</div>
-				) : null}
-			</div>
-		</div>
-	);
-}
-
-function RunMeta({
-	label,
-	value,
-	last = false,
-}: {
-	label: string;
-	value: string;
-	last?: boolean;
-}) {
-	return (
-		<span
-			className={cn(
-				"flex min-w-0 flex-col gap-0.5 sm:flex-1",
-				last && "sm:max-w-44",
-			)}
-		>
-			<span className="text-muted-foreground text-xs">{label}</span>
-			<span className="wrap-break-word text-sm sm:truncate">{value}</span>
-		</span>
-	);
-}
-
-function AgentActivity({ activity }: { activity: Activity }) {
-	const t = useTranslations("agent-panel");
-	const locale = useUiLocale();
-	const [kind, setKind] = useState("ALL");
-	const rows = activity as unknown as ActivityRow[];
-	const visible = rows.filter(
-		(event) => kind === "ALL" || event.type.startsWith(kind),
-	);
-
-	return (
-		<div className="flex min-w-0 flex-col gap-4 sm:gap-6">
-			<div className="flex min-h-7 flex-wrap items-center justify-start gap-2 sm:justify-end sm:gap-3">
-				<select
-					value={kind}
-					onChange={(event) => setKind(event.target.value)}
-					aria-label={t("filterActivityAriaLabel")}
-					className="h-7 rounded-md border bg-muted px-2.5 font-medium text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-				>
-					<option value="ALL">{t("activityFilterAll")}</option>
-					<option value="agent.">{t("activityFilterAgentChanges")}</option>
-					<option value="run.">{t("activityFilterRunRequests")}</option>
-				</select>
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => exportJson("agent-activity.json", visible)}
-				>
-					<Icon icon={Download} data-icon="inline-start" />
-					{t("exportButton")}
-				</Button>
-			</div>
-
-			<div className="min-w-0 overflow-hidden rounded-lg border bg-card">
-				<div className="hidden h-9 items-center border-b bg-background px-5 text-muted-foreground text-xs sm:flex">
-					<span className="w-[166px] shrink-0">{t("activityColumnTime")}</span>
-					<span className="min-w-0 flex-1">{t("activityColumnChange")}</span>
-					<span className="w-[140px] shrink-0">{t("activityColumnActor")}</span>
-					<span className="w-[118px] shrink-0 text-right">
-						{t("activityColumnRequest")}
-					</span>
-				</div>
-				{visible.map((event) => (
-					<div
-						key={event.id}
-						className="flex min-h-11 min-w-0 flex-col items-start gap-2 border-t px-4 py-3 first:border-t-0 sm:flex-row sm:items-center sm:gap-0 sm:px-5"
-					>
-						<span className="shrink-0 font-mono text-muted-foreground text-xs sm:w-[166px]">
-							{formatDate(event.emittedAt, locale)}
-						</span>
-						<span className="min-w-0 flex-1">
-							<span className="block wrap-break-word text-sm">
-								{event.summary}
-							</span>
-							{changeDetail(event.before, event.after) ? (
-								<span className="block max-w-full whitespace-pre-wrap wrap-break-word font-mono text-muted-foreground text-xs">
-									{changeDetail(event.before, event.after)}
-								</span>
-							) : null}
-						</span>
-						<span className="min-w-0 wrap-break-word text-xs sm:w-[140px] sm:shrink-0 sm:text-sm">
-							<span className="text-muted-foreground sm:hidden">
-								{t("activityActorPrefix")}
-							</span>
-							{event.actorUser?.name ?? event.actorId ?? event.actorType}
-						</span>
-						<span className="min-w-0 wrap-break-word font-mono text-muted-foreground text-xs sm:w-[118px] sm:shrink-0 sm:text-right">
-							<span className="font-sans sm:hidden">
-								{t("activityRequestPrefix")}
-							</span>
-							{event.requestId?.slice(0, 12) ?? "—"}
-						</span>
-					</div>
-				))}
 			</div>
 		</div>
 	);
@@ -957,49 +594,6 @@ function textOf(value: unknown, fallback: string): string {
 	return typeof value === "string" && value.trim() ? value : fallback;
 }
 
-function humanStatus(value: string): string {
-	return value
-		.toLowerCase()
-		.replace(/_/g, " ")
-		.replace(/^./, (character) => character.toUpperCase());
-}
-
 function formatDate(value: string, locale: string): string {
 	return dateTimeFormat(locale, DATE_OPTIONS).format(new Date(value));
-}
-
-function formatTime(value: string, locale: string): string {
-	return dateTimeFormat(locale, TIME_OPTIONS).format(new Date(value));
-}
-
-function duration(startedAt: string | null, finishedAt: string | null): string {
-	if (!startedAt) return "—";
-	if (!finishedAt) return "In progress";
-
-	const milliseconds =
-		new Date(finishedAt).getTime() - new Date(startedAt).getTime();
-	return `${Math.max(0, milliseconds / 1000).toFixed(1)}s`;
-}
-
-function eventLabel(type: string, data: unknown): string {
-	const payload = recordOf(data);
-	return textOf(payload.summary, humanStatus(type.replace(/\./g, " ")));
-}
-
-function changeDetail(before: unknown, after: unknown): string | null {
-	if (!before && !after) return null;
-	const previous = JSON.stringify(before);
-	const next = JSON.stringify(after);
-	return previous && next ? `${previous} → ${next}` : next || previous;
-}
-
-function exportJson(name: string, value: unknown) {
-	const url = URL.createObjectURL(
-		new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }),
-	);
-	const anchor = document.createElement("a");
-	anchor.href = url;
-	anchor.download = name;
-	anchor.click();
-	URL.revokeObjectURL(url);
 }

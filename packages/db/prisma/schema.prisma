@@ -41,6 +41,7 @@ model User {
   conversationShares      AgentConversationShare[]      @relation("ConversationShareCreator")
   conversationSubmissions AgentConversationSubmission[] @relation("ConversationSubmissionAuthor")
   conversationFeedback    AgentConversationFeedback[]   @relation("ConversationFeedbackAuthor")
+  slackMemberMatch        SlackMemberMatch?
 
   members     Member[]
   invitations Invitation[]
@@ -49,6 +50,60 @@ model User {
 
   @@unique([email])
   @@map("user")
+}
+
+model SlackMemberMatch {
+  id                  String   @id @default(cuid())
+  crmUserId           String   @unique
+  crmUser             User     @relation(fields: [crmUserId], references: [id], onDelete: Cascade)
+  slackUserId         String?
+  slackHandle         String?
+  slackEmail          String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([slackUserId])
+  @@map("slackMemberMatch")
+}
+
+model SlackChannel {
+  id                String    @id
+  name              String
+  memberCount       Int?
+  available         Boolean   @default(true)
+  isPrivate         Boolean   @default(false)
+  isMember          Boolean   @default(false)
+  inviteRequestedAt DateTime?
+  classifiedAt      DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([available, name])
+  @@index([updatedAt])
+  @@map("slackChannel")
+}
+
+model SlackInstallation {
+  installerId String   @id
+  teamId      String
+  teamName    String?
+  userToken   String?
+  userScopes  String
+  createdAt   DateTime @default(now())
+
+  @@map("slackInstallation")
+}
+
+model SlackWorkspaceGrant {
+  id         String   @id @default(cuid())
+  teamId     String   @unique
+  teamName   String?
+  userToken  String
+  userScopes String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("slackWorkspaceGrant")
 }
 
 model Session {
@@ -402,9 +457,11 @@ model AgentTask {
   id        String  @id @default(cuid())
   contactId String?
   companyId String?
+  dealId    String?
 
-  kind   String
-  reason String
+  kind    String
+  reason  String
+  payload Json?
 
   priority Int @default(0)
   budget   Int @default(4)
@@ -418,24 +475,31 @@ model AgentTask {
   finishedAt DateTime?
   outcome    String?
 
+  subject String?
+
   createdAt DateTime @default(now())
 
   @@index([dueAt, leasedUntil])
   @@index([contactId])
+  @@index([dealId])
+  @@index([kind, subject], where: { finishedAt: null })
   @@map("agentTask")
 }
 
 model AgentEvent {
-  id        String  @id
-  sessionId String
-  contactId String?
-  type      String
-  data      Json
+  id             String             @id
+  sessionId      String
+  contactId      String?
+  conversationId String?
+  conversation   AgentConversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  type           String
+  data           Json
 
   emittedAt DateTime
 
   @@index([sessionId, emittedAt])
   @@index([contactId, emittedAt])
+  @@index([conversationId, emittedAt])
   @@map("agentEvent")
 }
 
@@ -457,9 +521,10 @@ model AgentConversation {
   agentId String?
   agent   AgentDefinition? @relation(fields: [agentId], references: [id], onDelete: SetNull)
 
-  sessionId         String? @unique
-  continuationToken String?
-  streamIndex       Int     @default(0)
+  sessionId           String? @unique
+  continuationToken   String?
+  streamIndex         Int     @default(0)
+  pendingInputRequest Json?
 
   title        String?
   messageCount Int     @default(0)
@@ -473,6 +538,7 @@ model AgentConversation {
   shares           AgentConversationShare[]
   submissions      AgentConversationSubmission[]
   feedback         AgentConversationFeedback[]
+  events           AgentEvent[]
   createdVersions  AgentVersion[]                @relation("AgentVersionSourceConversation")
   builderArtifacts AgentBuilderArtifact[]
 
@@ -739,6 +805,9 @@ model AgentRun {
   createdAt  DateTime  @default(now())
   startedAt  DateTime?
   finishedAt DateTime?
+
+  cancelRequestedAt DateTime?
+  cancelDeliveredAt DateTime?
 
   events  AgentRunEvent[]
   actions AgentAction[]

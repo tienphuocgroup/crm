@@ -15,14 +15,14 @@ export default defineSchedule({
 			Promise.all([
 				sweepBlankFacts(),
 
-				drainAll((task) =>
-					receive(crm, {
-						message: brief(task),
-						target: { taskId: task.id },
-						auth: taskAuth(task, appAuth),
-					}),
-				),
 				(async () => {
+					await drainAll((task) =>
+						receive(crm, {
+							message: brief(task),
+							target: { taskId: task.id },
+							auth: taskAuth(task, appAuth),
+						}),
+					);
 					await queueDueAgentRuns();
 					const [builderIds, runIds] = await Promise.all([
 						pendingBuilderSubmissionIds(),

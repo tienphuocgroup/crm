@@ -9,6 +9,7 @@ import {
 	type IncomingMessage,
 	ThreadWriterService,
 } from "../src/mailbox/thread-writer.service";
+import { withDiscardedCrmEvents } from "./agent-trigger.stub";
 
 const suffix = process.env.TEST_RUN_ID ?? "thread-writer-spec";
 const domain = `threads-${suffix}.test`;
@@ -21,11 +22,12 @@ const movedRoot = `outlook-conversation:${suffix}`;
 const agent = {
 	contactCreated: async () => undefined,
 	companyCreated: async () => undefined,
+	withCrmEvents: withDiscardedCrmEvents,
 	companyRequested: async () => undefined,
 } as unknown as AgentTriggerService;
 
 const stamp = new ActivityStampService(db);
-const directory = new CompanyDirectoryService(db, agent);
+const directory = new CompanyDirectoryService(agent);
 const log = new EnrichmentLogService(db, stamp);
 const match = new MailboxMatchService(db, directory, agent, log);
 const threads = new ThreadWriterService(db, match, stamp);

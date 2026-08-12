@@ -17,6 +17,7 @@ import { CompanyDirectoryService } from "../src/companies/company-directory.serv
 import { ActivityStampService } from "../src/crm/activity-stamp.service";
 import { TrackingCounterService } from "../src/tracking/tracking-counter.service";
 import { TrackingFilingService } from "../src/tracking/tracking-filing.service";
+import { withDiscardedCrmEvents } from "./agent-trigger.stub";
 
 const suffix = process.env.TEST_RUN_ID ?? "filing-spec";
 const domain = `visitors-${suffix}.test`;
@@ -30,11 +31,12 @@ const agent = {
 	},
 	companyCreated: async () => undefined,
 	companyRequested: async () => undefined,
+	withCrmEvents: withDiscardedCrmEvents,
 } as unknown as AgentTriggerService;
 
 const stamp = new ActivityStampService(db);
 const counters = new TrackingCounterService(db);
-const directory = new CompanyDirectoryService(db, agent);
+const directory = new CompanyDirectoryService(agent);
 const filing = new TrackingFilingService(db, counters, directory, agent, stamp);
 
 let userId: string;
