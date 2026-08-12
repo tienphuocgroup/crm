@@ -63,7 +63,7 @@ const ACCENTS: Record<string, string> = {
 
 type Catalog = { [key: string]: string | number | boolean | null | Catalog };
 
-function matchingBrace(message: string, open: number): number {
+export function matchingBrace(message: string, open: number): number {
 	let depth = 0;
 	for (let index = open; index < message.length; index += 1) {
 		const char = message[index];

@@ -1,4 +1,4 @@
-export const SUPPORTED_LOCALES = ["en"] as const;
+export const SUPPORTED_LOCALES = ["en", "vi"] as const;
 
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
@@ -10,6 +10,7 @@ export type ActiveLocale = SupportedLocale | typeof PSEUDO_LOCALE;
 
 const INTL_LOCALES: Record<SupportedLocale, string> = {
 	en: "en-US",
+	vi: "vi-VN",
 };
 
 export const DEFAULT_INTL_LOCALE = INTL_LOCALES[DEFAULT_LOCALE];

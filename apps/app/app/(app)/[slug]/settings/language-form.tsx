@@ -28,6 +28,7 @@ import { useTRPC } from "@/lib/trpc/client";
 
 const LOCALE_LABEL_KEY: Record<SupportedLocale, string> = {
 	en: "general.languageEnglish",
+	vi: "general.languageVietnamese",
 };
 
 export function LanguageForm() {

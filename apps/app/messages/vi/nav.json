@@ -1,0 +1,22 @@
+{
+	"chat": "Trò chuyện",
+	"closeNavigation": "Đóng điều hướng",
+	"companies": "Công ty",
+	"contacts": "Liên hệ",
+	"deals": "Thương vụ",
+	"mobileNavTitle": "Điều hướng",
+	"mobileNavTitleWithChats": "Điều hướng và trò chuyện agent",
+	"openNavigation": "Mở điều hướng",
+	"overview": "Tổng quan",
+	"primaryNavLabel": "Chính",
+	"settings": {
+		"ariaLabel": "Cài đặt không gian làm việc",
+		"connections": "Tích hợp",
+		"currencies": "Tiền tệ",
+		"general": "Chung",
+		"members": "Thành viên",
+		"sso": "SSO",
+		"tracking": "Theo dõi & Phân tích"
+	},
+	"settingsLabel": "Cài đặt"
+}
