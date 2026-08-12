@@ -166,7 +166,7 @@ Taken from the report's success metrics, made observable.
 - [ ] Pseudo-locale renders every screen fully accented — an unaccented glyph is a
       missed string. *(Generator verified end-to-end on `/sign-in`; the full-route walkthrough is the remaining local step.)*
 - [x] `bun run check-types && bun run lint && bun run build && bun run test` green from a clean `--frozen-lockfile` install. *(`build` scoped to `apps/app` + packages; `apps/agent`'s eve build needs Node ≥ 24 and this environment runs 22 — pre-existing limitation.)*
-- [x] `i18n:check` runs in `.github/workflows/ci.yml` and fails a regression — proven locally by reverting a string (exit 1, correct location); observing it on the fork awaits Actions enablement + push access.
+- [x] `i18n:check` runs in `.github/workflows/ci.yml` and fails a regression — proven locally by reverting a string (exit 1, correct location), and observed passing on the fork in PR #1's `check-types, lint, test` run.
 - [x] Money semantics untouched: `amount`/`baseAmount` handling per `docs/currency.md`
       is not edited, only display locale; `fractionDigits` still `en-US`, before/after money output byte-identical.
 

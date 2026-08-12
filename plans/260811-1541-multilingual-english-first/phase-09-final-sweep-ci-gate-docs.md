@@ -200,8 +200,8 @@ stays `["en"]`; `docs/i18n.md` explains what adding `vi` involves.
 - [x] `AGENTS.md` index row added; `README.md` lists both new commands.
 - [x] No `messages/vi/` directory; `SUPPORTED_LOCALES` is still `["en"]`.
 - [ ] Language switcher persists across sign-out and sign-in on a fresh browser profile.
-- [ ] PR opened inside the fork against `release`, described commit by commit.
-- [ ] A workflow run actually executed on the PR — Actions enabled on the fork.
+- [x] PR opened inside the fork against `release`, described commit by commit — https://github.com/tienphuocgroup/crm/pull/1.
+- [x] A workflow run actually executed on the PR — Actions enabled on the fork; `check-types, lint, test` (including the `i18n:check` step) passed on the PR head. Upstream's `main`-targeting automation jobs fail on this fork (no `main` branch, Actions barred from creating PRs) — pre-existing fork-layout noise, out of this round's workflow-edit scope.
 
 ## Risk Assessment
 
