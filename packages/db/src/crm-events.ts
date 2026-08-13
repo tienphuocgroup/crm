@@ -8,33 +8,33 @@ type CrmEventDefinition = {
 
 export const CRM_EVENT_CATALOG = {
 	"company.created": {
-		label: "Company created",
-		description: "A company is added to the CRM",
+		label: "Organization created",
+		description: "An organization is added to the CRM",
 		recordKind: "company",
 	},
 	"contact.created": {
-		label: "Contact created",
-		description: "A contact is added to the CRM",
+		label: "Client created",
+		description: "A client is added to the CRM",
 		recordKind: "contact",
 	},
 	"deal.created": {
-		label: "Deal created",
-		description: "A deal is added to the CRM",
+		label: "Journey created",
+		description: "A journey is added to the CRM",
 		recordKind: "deal",
 	},
 	"deal.stage.changed": {
-		label: "Deal stage changed",
-		description: "A deal moves from one pipeline stage to another",
+		label: "Journey stage changed",
+		description: "A journey moves from one pipeline stage to another",
 		recordKind: "deal",
 	},
 	"deal.opened": {
-		label: "Deal opened",
-		description: "A closed deal returns to the open pipeline",
+		label: "Journey opened",
+		description: "A closed journey returns to the open pipeline",
 		recordKind: "deal",
 	},
 	"deal.closed": {
-		label: "Deal closed",
-		description: "An open deal moves to a closed stage",
+		label: "Journey closed",
+		description: "An open journey moves to a closed stage",
 		recordKind: "deal",
 	},
 } as const satisfies Record<string, CrmEventDefinition>;
