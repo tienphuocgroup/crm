@@ -247,12 +247,23 @@ export class DealsService {
 			currency,
 		);
 
+		if (input.contactId) {
+			const company = input.companyId
+				? await this.db.company.findUnique({
+						where: { id: input.companyId },
+						select: { id: true, name: true },
+					})
+				: null;
+
+			await this.assertContactWorksAt(company, input.contactId);
+		}
+
 		try {
 			const deal = await this.agent.withCrmEvents(async (tx, emit) => {
 				const created = await tx.deal.create({
 					data: {
 						name: input.name.trim(),
-						companyId: input.companyId,
+						companyId: input.companyId ?? null,
 						ownerId: input.ownerId,
 						stage,
 						stageChangedAt: now,
@@ -264,6 +275,18 @@ export class DealsService {
 					},
 					select: { id: true, name: true, companyId: true },
 				});
+				if (input.contactId) {
+					await tx.dealContact.upsert({
+						where: {
+							dealId_contactId: {
+								dealId: created.id,
+								contactId: input.contactId,
+							},
+						},
+						create: { dealId: created.id, contactId: input.contactId },
+						update: {},
+					});
+				}
 				await emit({
 					type: "deal.created",
 					record: { kind: "deal", id: created.id },
@@ -298,7 +321,10 @@ export class DealsService {
 				input.description === null ? null : blankToNull(input.description);
 		}
 		if (input.companyId !== undefined) {
-			data.company = { connect: { id: input.companyId } };
+			data.company =
+				input.companyId === null
+					? { disconnect: true }
+					: { connect: { id: input.companyId } };
 		}
 		if (input.ownerId !== undefined) {
 			data.owner = { connect: { id: input.ownerId } };
@@ -387,7 +413,7 @@ export class DealsService {
 		const closed = isClosedStage(input.stage);
 		const transition = await this.agent.withCrmEvents(async (tx, emit) => {
 			const [deal] = await tx.$queryRaw<
-				Array<{ id: string; stage: DealStage; companyId: string }>
+				Array<{ id: string; stage: DealStage; companyId: string | null }>
 			>`
 				SELECT id, stage, "companyId"
 				FROM deal
@@ -500,7 +526,7 @@ export class DealsService {
 
 		return this.db.contact.findMany({
 			where: {
-				companyId: deal.companyId,
+				...(deal.companyId === null ? {} : { companyId: deal.companyId }),
 				id: { notIn: deal.contacts.map((row) => row.contactId) },
 			},
 			select: CONTACT_SELECT,
@@ -511,20 +537,8 @@ export class DealsService {
 
 	async attachContact(input: DealAttachContactInput) {
 		const company = await this.companyOf(input.dealId);
-		const contact = await this.db.contact.findUnique({
-			where: { id: input.contactId },
-			select: { companyId: true },
-		});
 
-		if (!contact) {
-			throw new NotFoundException(`No contact with id ${input.contactId}.`);
-		}
-
-		if (contact.companyId !== company.id) {
-			throw new BadRequestException(
-				`That contact does not work at ${company.name}.`,
-			);
-		}
+		await this.assertContactWorksAt(company, input.contactId);
 
 		const role = roleOrNull(input.role ?? null);
 
@@ -636,6 +650,26 @@ export class DealsService {
 		}
 
 		return deal.company;
+	}
+
+	private async assertContactWorksAt(
+		company: { id: string; name: string } | null,
+		contactId: string,
+	): Promise<void> {
+		const contact = await this.db.contact.findUnique({
+			where: { id: contactId },
+			select: { companyId: true },
+		});
+
+		if (!contact) {
+			throw new NotFoundException(`No contact with id ${contactId}.`);
+		}
+
+		if (company !== null && contact.companyId !== company.id) {
+			throw new BadRequestException(
+				`That contact does not work at ${company.name}.`,
+			);
+		}
 	}
 
 	private searchFilter(q: string): Prisma.DealWhereInput {

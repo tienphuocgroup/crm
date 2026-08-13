@@ -41,6 +41,7 @@ import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 
 const UNSET = "";
+const NO_COMPANY = "none";
 
 function AddButton(props: ComponentProps<typeof Button>) {
 	const t = useTranslations("deals");
@@ -73,7 +74,7 @@ function CreateDealForm({ companyId }: { companyId?: string }) {
 		parseAsBoolean.withDefault(false),
 	);
 	const [name, setName] = useState("");
-	const [company, setCompany] = useState(companyId ?? UNSET);
+	const [company, setCompany] = useState(companyId ?? NO_COMPANY);
 	const [ownerId, setOwnerId] = useState(UNSET);
 	const [stage, setStage] = useState<string>("INQUIRY");
 	const [amount, setAmount] = useState("");
@@ -109,8 +110,7 @@ function CreateDealForm({ companyId }: { companyId?: string }) {
 		}),
 	);
 
-	const ready =
-		name.trim() !== "" && company !== UNSET && resolvedOwner !== UNSET;
+	const ready = name.trim() !== "" && resolvedOwner !== UNSET;
 
 	return (
 		<Sheet open={open} onOpenChange={(next) => setOpen(next || null)}>
@@ -131,7 +131,7 @@ function CreateDealForm({ companyId }: { companyId?: string }) {
 						const parsed = Number.parseFloat(amount);
 						create.mutate({
 							name,
-							companyId: company,
+							companyId: company === NO_COMPANY ? undefined : company,
 							ownerId: resolvedOwner,
 							stage: stage as never,
 							amountCents: Number.isFinite(parsed)
@@ -164,6 +164,9 @@ function CreateDealForm({ companyId }: { companyId?: string }) {
 									<SelectValue placeholder={t("chooseCompanyPlaceholder")} />
 								</SelectTrigger>
 								<SelectContent>
+									<SelectItem value={NO_COMPANY}>
+										{t("noCompanyOption")}
+									</SelectItem>
 									{(companies.data ?? []).map((option) => (
 										<SelectItem key={option.id} value={option.id}>
 											{option.name}

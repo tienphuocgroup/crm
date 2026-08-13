@@ -59,7 +59,14 @@ async function clean() {
 	});
 	const companyIds = owned.map((row) => row.id);
 
-	await db.deal.deleteMany({ where: { companyId: { in: companyIds } } });
+	await db.deal.deleteMany({
+		where: {
+			OR: [
+				{ companyId: { in: companyIds } },
+				{ ownerId: { in: [ownerId, secondOwnerId] } },
+			],
+		},
+	});
 	await db.activity.deleteMany({ where: { companyId: { in: companyIds } } });
 	await db.agentTask.deleteMany({ where: { companyId: { in: companyIds } } });
 	await db.contact.deleteMany({ where: ours });
@@ -194,7 +201,7 @@ describe("deleting a selection", () => {
 		).toBeNull();
 	});
 
-	it("takes a company's deals with it", async () => {
+	it("leaves a company's deals behind without a company", async () => {
 		const doomed = await companies.create({
 			name: `Doomed Co ${suffix}`,
 			domain: `doomed-${domain}`,
@@ -212,7 +219,12 @@ describe("deleting a selection", () => {
 			message: null,
 		});
 
-		expect(await db.deal.findUnique({ where: { id: deal.id } })).toBeNull();
+		expect(
+			await db.deal.findUnique({
+				where: { id: deal.id },
+				select: { companyId: true },
+			}),
+		).toEqual({ companyId: null });
 	});
 });
 

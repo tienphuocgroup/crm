@@ -105,6 +105,7 @@ async function clean() {
 		},
 	});
 	await db.agentEvent.deleteMany({ where: { contactId: { in: contactIds } } });
+	await db.deal.deleteMany({ where: { ownerId: userId } });
 	await db.contact.deleteMany({ where: ours });
 	await db.company.deleteMany({ where: { domain: { in: domains } } });
 	await db.suppressedContact.deleteMany({ where: ours });
@@ -246,7 +247,7 @@ describe("deleting a contact", () => {
 });
 
 describe("deleting a company", () => {
-	it("takes its deals and leaves its people without a company", async () => {
+	it("leaves its deals and its people without a company", async () => {
 		const company = await companies.create({
 			name: "Doomed",
 			domain: doomedDomain,
@@ -269,7 +270,12 @@ describe("deleting a company", () => {
 			name: "Doomed",
 		});
 
-		expect(await db.deal.findUnique({ where: { id: deal.id } })).toBeNull();
+		expect(
+			await db.deal.findUnique({
+				where: { id: deal.id },
+				select: { companyId: true },
+			}),
+		).toEqual({ companyId: null });
 		expect(await db.agentTask.count({ where: { companyId: company.id } })).toBe(
 			0,
 		);
@@ -280,6 +286,7 @@ describe("deleting a company", () => {
 		});
 		expect(survivor?.companyId).toBeNull();
 
+		await db.deal.delete({ where: { id: deal.id } });
 		await db.contact.delete({ where: { id: contact.id } });
 	});
 });
@@ -333,7 +340,7 @@ describe("the activity stamps a delete leaves behind", () => {
 		).toEqual({ lastActivityAt: null });
 	});
 
-	it("follow a deleted company through the deals it takes with it", async () => {
+	it("follow a deleted company through the deals it leaves behind", async () => {
 		const company = await companies.create({
 			name: "Orphaner",
 			domain: orphanDomain,
@@ -368,8 +375,15 @@ describe("the activity stamps a delete leaves behind", () => {
 				where: { id: contact.id },
 				select: { companyId: true, lastActivityAt: true },
 			}),
-		).toEqual({ companyId: null, lastActivityAt: null });
+		).toEqual({ companyId: null, lastActivityAt: at });
+		expect(
+			await db.deal.findUnique({
+				where: { id: deal.id },
+				select: { companyId: true, lastActivityAt: true },
+			}),
+		).toEqual({ companyId: null, lastActivityAt: at });
 
+		await db.deal.delete({ where: { id: deal.id } });
 		await db.contact.delete({ where: { id: contact.id } });
 	});
 });

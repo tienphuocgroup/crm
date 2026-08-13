@@ -444,7 +444,7 @@ export type DealListItem = {
 		iconDarkUrl: string | null;
 		iconTone: string | null;
 		logoUrl: string | null;
-	};
+	} | null;
 	owner: {
 		id: string;
 		name: string;
@@ -605,16 +605,36 @@ export function splitMarkdownTable(markdown: string): {
 	return { before: "", after: normaliseMarkdown(markdown), found: false };
 }
 
+function dealListCompanyOf(
+	value: unknown,
+): DealListItem["company"] | undefined {
+	if (value === null || value === undefined) return null;
+
+	const company = recordOf(value);
+	const id = stringOf(company.id);
+	const name = stringOf(company.name);
+
+	if (!id || !name) return undefined;
+
+	return {
+		id,
+		name,
+		domain: nullableStringOf(company.domain) ?? null,
+		iconUrl: nullableStringOf(company.iconUrl) ?? null,
+		iconDarkUrl: nullableStringOf(company.iconDarkUrl) ?? null,
+		iconTone: nullableStringOf(company.iconTone) ?? null,
+		logoUrl: nullableStringOf(company.logoUrl) ?? null,
+	};
+}
+
 function dealListItemOf(value: unknown): DealListItem | null {
 	const deal = recordOf(value);
-	const company = recordOf(deal.company);
 	const owner = deal.owner === null ? null : recordOf(deal.owner);
 	const id = stringOf(deal.id);
 	const name = stringOf(deal.name);
 	const stage = stringOf(deal.stage);
 	const currency = stringOf(deal.currency);
-	const companyId = stringOf(company.id);
-	const companyName = stringOf(company.name);
+	const company = dealListCompanyOf(deal.company);
 	const daysSinceLastActivity = numberOf(deal.daysSinceLastActivity);
 	const amount = nullableNumberOf(deal.amount);
 	const expectedCloseDate = nullableStringOf(deal.expectedCloseDate);
@@ -624,8 +644,7 @@ function dealListItemOf(value: unknown): DealListItem | null {
 		!name ||
 		!stage ||
 		!currency ||
-		!companyId ||
-		!companyName ||
+		company === undefined ||
 		daysSinceLastActivity === null ||
 		amount === undefined ||
 		expectedCloseDate === undefined
@@ -654,15 +673,7 @@ function dealListItemOf(value: unknown): DealListItem | null {
 		stage,
 		amount,
 		currency,
-		company: {
-			id: companyId,
-			name: companyName,
-			domain: nullableStringOf(company.domain) ?? null,
-			iconUrl: nullableStringOf(company.iconUrl) ?? null,
-			iconDarkUrl: nullableStringOf(company.iconDarkUrl) ?? null,
-			iconTone: nullableStringOf(company.iconTone) ?? null,
-			logoUrl: nullableStringOf(company.logoUrl) ?? null,
-		},
+		company,
 		owner: parsedOwner as DealListItem["owner"],
 		daysSinceLastActivity,
 		neverActive: deal.neverActive === true,

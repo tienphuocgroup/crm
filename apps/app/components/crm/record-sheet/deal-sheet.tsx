@@ -65,6 +65,8 @@ import { useOpenRecord, useRecordSheetView } from "./record-stack";
 
 type Deal = RouterOutputs["deals"]["byId"];
 
+const NO_COMPANY = "none";
+
 const CURRENCY_OPTIONS = CURRENCIES.map((entry) => ({
 	value: entry.code,
 	label: `${entry.code} · ${entry.name}`,
@@ -132,6 +134,7 @@ export function DealSheet({ dealId }: { dealId: string }) {
 
 	const query = useQuery(trpc.deals.byId.queryOptions({ id: dealId }));
 	const deal = query.data;
+	const company = deal?.company ?? null;
 
 	const tabs: DetailSheetTab[] = deal
 		? [
@@ -174,22 +177,26 @@ export function DealSheet({ dealId }: { dealId: string }) {
 			title={deal?.name ?? t("recordFallbackTitle")}
 			description={
 				deal ? (
-					<button
-						type="button"
-						onClick={() => openRecord({ kind: "company", id: deal.company.id })}
-						className="text-foreground underline-offset-2 hover:underline"
-					>
-						{deal.company.name}
-					</button>
+					company ? (
+						<button
+							type="button"
+							onClick={() => openRecord({ kind: "company", id: company.id })}
+							className="text-foreground underline-offset-2 hover:underline"
+						>
+							{company.name}
+						</button>
+					) : (
+						<span className="text-muted-foreground">{t("noCompanyLabel")}</span>
+					)
 				) : undefined
 			}
 			media={
 				deal ? (
 					<EntityLogo
-						src={deal.company.iconUrl}
-						darkSrc={deal.company.iconDarkUrl}
-						tone={deal.company.iconTone as EntityLogoTone | null | undefined}
-						name={deal.company.name}
+						src={company?.iconUrl}
+						darkSrc={company?.iconDarkUrl}
+						tone={company?.iconTone as EntityLogoTone | null | undefined}
+						name={company?.name ?? deal.name}
 						size="lg"
 					/>
 				) : null
@@ -205,10 +212,16 @@ export function DealSheet({ dealId }: { dealId: string }) {
 						<RecordActions
 							record={{ kind: "deal", id: deal.id }}
 							name={deal.name}
-							consequence={t("deleteConsequence", {
-								company: deal.company.name,
-								count: deal.contacts.length,
-							})}
+							consequence={
+								company
+									? t("deleteConsequence", {
+											company: company.name,
+											count: deal.contacts.length,
+										})
+									: t("deleteConsequenceNoCompany", {
+											count: deal.contacts.length,
+										})
+							}
 						/>
 					</>
 				) : null
@@ -343,12 +356,17 @@ function DealOverview({ deal }: { deal: Deal }) {
 					/>
 					<InlineSelectField
 						label={t("companyLabel")}
-						value={deal.company.id}
-						options={(companies.data ?? []).map((company) => ({
-							value: company.id,
-							label: company.name,
-						}))}
-						onSave={(companyId) => save({ companyId })}
+						value={deal.company?.id ?? NO_COMPANY}
+						options={[
+							{ value: NO_COMPANY, label: t("noCompanyOption") },
+							...(companies.data ?? []).map((company) => ({
+								value: company.id,
+								label: company.name,
+							})),
+						]}
+						onSave={(companyId) =>
+							save({ companyId: companyId === NO_COMPANY ? null : companyId })
+						}
 					/>
 					<InlineSelectField
 						label={common("ownerLabel")}
@@ -371,9 +389,7 @@ function DealOverview({ deal }: { deal: Deal }) {
 				<InlineTextArea
 					label={t("descriptionSection")}
 					value={deal.description}
-					placeholder={t("descriptionPlaceholder", {
-						company: deal.company.name,
-					})}
+					placeholder={t("descriptionPlaceholder")}
 					saving={isSaving("description")}
 					onSave={(description) => save({ description })}
 				/>
@@ -414,7 +430,9 @@ function WhereItStands({ deal }: { deal: Deal }) {
 				<DetailSheetProperty label={t("onItLabel")} wide>
 					{deal.contacts.length === 0 ? (
 						<span className="text-muted-foreground">
-							{t("nobodyAttachedYet", { company: deal.company.name })}
+							{deal.company
+								? t("nobodyAttachedYet", { company: deal.company.name })
+								: t("nobodyAttachedYetNoCompany")}
 						</span>
 					) : (
 						<span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
@@ -491,7 +509,7 @@ function DealContacts({
 	const form = adding ? (
 		<AttachDealContact
 			dealId={deal.id}
-			companyName={deal.company.name}
+			companyName={deal.company?.name ?? null}
 			onDone={onDone}
 		/>
 	) : null;
@@ -504,9 +522,11 @@ function DealContacts({
 					<DetailSheetEmpty
 						icon={UserMultiple}
 						title={t("noContactsTitle")}
-						description={t("noContactsDescription", {
-							company: deal.company.name,
-						})}
+						description={
+							deal.company
+								? t("noContactsDescription", { company: deal.company.name })
+								: t("noContactsDescriptionNoCompany")
+						}
 						action={
 							<Button variant="outline" size="sm" onClick={onAdd}>
 								<Icon icon={Add} data-icon="inline-start" />

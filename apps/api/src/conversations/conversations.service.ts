@@ -253,8 +253,8 @@ export class ConversationsService {
 				kind: "deal" as const,
 				id: deal.id,
 				label: deal.name,
-				detail: deal.company.name,
-				imageUrl: deal.company.logoUrl,
+				detail: deal.company?.name ?? null,
+				imageUrl: deal.company?.logoUrl ?? null,
 			})),
 		];
 	}

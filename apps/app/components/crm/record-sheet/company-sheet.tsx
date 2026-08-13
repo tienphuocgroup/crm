@@ -92,15 +92,13 @@ function companyConsequence(
 	const deals = company.deals.length;
 	const contacts = company.contacts.length;
 
-	const gone =
-		deals > 0
-			? t("deleteConsequenceGoneWithDeals", { count: deals })
-			: t("deleteConsequenceGoneNoDeals");
+	const keptDeals =
+		deals > 0 ? t("deleteConsequenceKeptDeals", { count: deals }) : "";
 
-	const kept =
+	const keptContacts =
 		contacts > 0 ? t("deleteConsequenceKept", { count: contacts }) : "";
 
-	return gone + kept;
+	return t("deleteConsequenceGone") + keptDeals + keptContacts;
 }
 
 function nextClose(deals: CompanyDeal[]): string | null {
@@ -595,7 +593,7 @@ function CompanyDeals({
 	const form = adding ? (
 		<QuickAddDeal
 			companyId={company.id}
-			companyName={company.name}
+			anchorName={company.name}
 			ownerId={company.owner?.id ?? null}
 			onDone={onDone}
 		/>
