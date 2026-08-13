@@ -10,6 +10,11 @@ let dealId: string;
 let paulaId: string;
 let placeholderId: string;
 let userId: string;
+let walkInId: string;
+let walkInDealId: string;
+
+const repEmail = `rep.${suffix}@example.test`;
+const walkInEmail = `wanda.walkin.${suffix}@example.test`;
 
 const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000);
 const daysAhead = (days: number) => new Date(Date.now() + days * 86_400_000);
@@ -176,6 +181,59 @@ beforeAll(async () => {
 			},
 		},
 	});
+
+	const walkIn = await db.contact.create({
+		data: {
+			firstName: "Wanda",
+			lastName: "Walkin",
+			title: "Patient",
+			email: walkInEmail,
+			lastActivityAt: daysAgo(2),
+		},
+		select: { id: true },
+	});
+	walkInId = walkIn.id;
+
+	const walkInDeal = await db.deal.create({
+		data: {
+			name: `Walk-in consult ${suffix}`,
+			ownerId: userId,
+			stage: DealStage.INQUIRY,
+			stageChangedAt: daysAgo(6),
+			amount: 1_200,
+			currency: "USD",
+			lastActivityAt: daysAgo(2),
+			contacts: { create: [{ contactId: walkIn.id, role: "Patient" }] },
+		},
+		select: { id: true },
+	});
+	walkInDealId = walkInDeal.id;
+
+	const walkInThread = await db.emailThread.create({
+		data: {
+			rootMessageId: `<walkin.${suffix}@example.test>`,
+			subject: "Consult times",
+			contactId: walkIn.id,
+			firstMessageAt: daysAgo(4),
+			lastMessageAt: daysAgo(2),
+			messageCount: 1,
+		},
+		select: { id: true },
+	});
+
+	await db.emailMessage.create({
+		data: {
+			threadId: walkInThread.id,
+			rfcMessageId: `<walkin.reply.${suffix}@example.test>`,
+			direction: EmailDirection.INBOUND,
+			fromEmail: walkInEmail,
+			fromName: "Wanda Walkin",
+			recipients: [],
+			subject: "Consult times",
+			body: "Tuesday morning works for me.",
+			sentAt: daysAgo(2),
+		},
+	});
 });
 
 afterAll(cleanup);
@@ -195,7 +253,12 @@ async function cleanup(): Promise<void> {
 		await db.company.delete({ where: { id: company.id } });
 	}
 
-	await db.user.deleteMany({ where: { email: `rep.${suffix}@example.test` } });
+	await db.emailThread.deleteMany({
+		where: { contact: { email: walkInEmail } },
+	});
+	await db.deal.deleteMany({ where: { owner: { email: repEmail } } });
+	await db.contact.deleteMany({ where: { email: walkInEmail } });
+	await db.user.deleteMany({ where: { email: repEmail } });
 }
 
 describe("readCompanyHistory", () => {
@@ -311,7 +374,7 @@ describe("readDealHistory", () => {
 				role: "Champion",
 			},
 		]);
-		expect(history?.company.id).toBe(companyId);
+		expect(history?.company?.id).toBe(companyId);
 	});
 
 	it("says the correspondence is the account's, not the deal's", async () => {
@@ -337,5 +400,35 @@ describe("readDealHistory", () => {
 
 	it("returns null for a deal that does not exist", async () => {
 		expect(await readDealHistory("nope")).toBeNull();
+	});
+});
+
+describe("readDealHistory without a company", () => {
+	it("anchors on the contact and reports no company", async () => {
+		const history = await readDealHistory(walkInDealId);
+
+		expect(history?.company).toBeNull();
+		expect(history?.deal.stage).toBe("INQUIRY");
+		expect(history?.deal.open).toBe(true);
+		expect(history?.people).toEqual([
+			{
+				id: walkInId,
+				name: "Wanda Walkin",
+				title: "Patient",
+				email: walkInEmail,
+				role: "Patient",
+			},
+		]);
+	});
+
+	it("reads the correspondence of the contact who is on it", async () => {
+		const history = await readDealHistory(walkInDealId);
+
+		expect(history?.threads.map((thread) => thread.subject)).toEqual([
+			"Consult times",
+		]);
+		expect(history?.stats.theyReplied).toBe(true);
+		expect(history?.stats.lastReplyFrom).toBe("Wanda Walkin");
+		expect(history?.meetings).toEqual([]);
 	});
 });

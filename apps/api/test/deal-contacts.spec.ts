@@ -5,15 +5,17 @@ import { ActivityStampService } from "../src/crm/activity-stamp.service";
 import { ConversionService } from "../src/currency/conversion.service";
 import { DealsService } from "../src/deals/deals.service";
 import { FieldsService } from "../src/fields/fields.service";
-import { withDiscardedCrmEvents } from "./agent-trigger.stub";
+import { crmEventRecorder } from "./agent-trigger.stub";
 
 const suffix = process.env.TEST_RUN_ID ?? "deal-contacts-spec";
 const userId = `user-${suffix}`;
 const domain = `dealpeople-${suffix}.test`;
 const otherDomain = `elsewhere-${suffix}.test`;
 
+const crmEvents = crmEventRecorder();
+
 const agent = {
-	withCrmEvents: withDiscardedCrmEvents,
+	withCrmEvents: crmEvents.withCrmEvents,
 } as unknown as AgentTriggerService;
 
 const deals = new DealsService(
@@ -31,7 +33,9 @@ let colleagueId: string;
 let outsiderId: string;
 
 async function clean() {
-	await db.deal.deleteMany({ where: { company: { domain } } });
+	await db.deal.deleteMany({
+		where: { OR: [{ company: { domain } }, { ownerId: userId }] },
+	});
 	await db.contact.deleteMany({
 		where: { company: { domain: { in: [domain, otherDomain] } } },
 	});
@@ -168,5 +172,152 @@ describe("bringing a contact onto a deal", () => {
 		await expect(
 			deals.detachContact({ dealId, contactId: championId }),
 		).rejects.toThrow("That contact is not on this deal.");
+	});
+});
+
+describe("a deal that has no company", () => {
+	it("starts in the first stage with no company on it", async () => {
+		const deal = await deals.create({
+			name: `Walk-in ${suffix}`,
+			ownerId: userId,
+		});
+
+		expect(
+			await db.deal.findUnique({
+				where: { id: deal.id },
+				select: { companyId: true, stage: true },
+			}),
+		).toEqual({ companyId: null, stage: "INQUIRY" });
+
+		const created = crmEvents.emitted.find(
+			(event) => event.type === "deal.created" && event.record.id === deal.id,
+		);
+
+		expect(created?.data).toEqual({ companyId: null, stage: "INQUIRY" });
+	});
+
+	it("attaches the contact it was started from, in the same write", async () => {
+		const deal = await deals.create({
+			name: `Walk-in with a contact ${suffix}`,
+			ownerId: userId,
+			contactId: outsiderId,
+		});
+
+		const read = await deals.byId(deal.id);
+
+		expect(read.company).toBeNull();
+		expect(read.contacts.map((contact) => contact.id)).toEqual([outsiderId]);
+		expect(
+			await db.dealContact.count({
+				where: { dealId: deal.id, contactId: outsiderId },
+			}),
+		).toBe(1);
+	});
+
+	it("writes no deal at all when the contact works somewhere else", async () => {
+		const name = `Mismatched ${suffix}`;
+
+		await expect(
+			deals.create({
+				name,
+				companyId,
+				ownerId: userId,
+				contactId: outsiderId,
+			}),
+		).rejects.toThrow(`That contact does not work at People Co ${suffix}.`);
+
+		expect(await db.deal.count({ where: { name } })).toBe(0);
+	});
+
+	it("keeps the company and the contact when they match", async () => {
+		const deal = await deals.create({
+			name: `Matched ${suffix}`,
+			companyId,
+			ownerId: userId,
+			contactId: colleagueId,
+		});
+
+		const read = await deals.byId(deal.id);
+
+		expect(read.company?.id).toBe(companyId);
+		expect(read.contacts.map((contact) => contact.id)).toEqual([colleagueId]);
+	});
+
+	it("takes a contact from any company onto it", async () => {
+		const deal = await deals.create({
+			name: `Open door ${suffix}`,
+			ownerId: userId,
+		});
+
+		await deals.attachContact({
+			dealId: deal.id,
+			contactId: outsiderId,
+			role: "Patient",
+		});
+
+		const read = await deals.byId(deal.id);
+
+		expect(read.contacts[0]?.id).toBe(outsiderId);
+		expect(read.contacts[0]?.role).toBe("Patient");
+	});
+
+	it("still refuses that contact on a deal that has a company", async () => {
+		const deal = await deals.create({
+			name: `Anchored ${suffix}`,
+			companyId,
+			ownerId: userId,
+		});
+
+		await expect(
+			deals.attachContact({ dealId: deal.id, contactId: outsiderId }),
+		).rejects.toThrow(`That contact does not work at People Co ${suffix}.`);
+	});
+
+	it("offers contacts from every company", async () => {
+		const deal = await deals.create({
+			name: `Choices ${suffix}`,
+			ownerId: userId,
+		});
+
+		const ids = (await deals.contactOptions(deal.id)).map(
+			(option) => option.id,
+		);
+
+		expect(ids).toContain(colleagueId);
+		expect(ids).toContain(outsiderId);
+	});
+
+	it("drops the company when a rep clears it", async () => {
+		const deal = await deals.create({
+			name: `Leaving ${suffix}`,
+			companyId,
+			ownerId: userId,
+		});
+
+		await deals.update(deal.id, { companyId: null });
+
+		expect(
+			await db.deal.findUnique({
+				where: { id: deal.id },
+				select: { companyId: true },
+			}),
+		).toEqual({ companyId: null });
+	});
+
+	it("keeps the company when the update does not mention it", async () => {
+		const deal = await deals.create({
+			name: `Staying ${suffix}`,
+			companyId,
+			ownerId: userId,
+		});
+
+		await deals.update(deal.id, { name: `Staying put ${suffix}` });
+
+		expect(
+			await db.deal.findUnique({
+				where: { id: deal.id },
+				select: { companyId: true },
+			}),
+		).toEqual({ companyId });
 	});
 });
