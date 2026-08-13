@@ -452,7 +452,7 @@ describe("the dashboard only values what it can convert", () => {
 	});
 
 	async function stale(name: string, stage: DealStage) {
-		const closed = stage === DealStage.CLOSED_WON;
+		const closed = stage === DealStage.ENROLLED;
 
 		return db.deal.create({
 			data: {
@@ -479,10 +479,10 @@ describe("the dashboard only values what it can convert", () => {
 			ownerId: analystId,
 			amountCents: 10_000,
 			currency: "USD",
-			stage: DealStage.CLOSED_WON,
+			stage: DealStage.ENROLLED,
 		});
 
-		const unvalued = await stale("Stale win", DealStage.CLOSED_WON);
+		const unvalued = await stale("Stale win", DealStage.ENROLLED);
 
 		const summary = await dashboard.summary(analystId, { scope: "me" });
 
@@ -502,7 +502,7 @@ describe("the dashboard only values what it can convert", () => {
 			currency: "USD",
 		});
 
-		const unvalued = await stale("Stale open", DealStage.DEMO_BOOKED);
+		const unvalued = await stale("Stale open", DealStage.INQUIRY);
 
 		const summary = await dashboard.summary(analystId, { scope: "me" });
 

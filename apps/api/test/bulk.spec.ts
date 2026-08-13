@@ -225,7 +225,7 @@ describe("moving a selection of deals to a stage", () => {
 		});
 
 		await expect(
-			deals.bulkSetStage({ ids: [deal.id], stage: "CLOSED_LOST" }, ownerId),
+			deals.bulkSetStage({ ids: [deal.id], stage: "LOST" }, ownerId),
 		).rejects.toThrow(/teaches nobody anything/);
 
 		expect(
@@ -233,7 +233,7 @@ describe("moving a selection of deals to a stage", () => {
 				where: { id: deal.id },
 				select: { stage: true },
 			}),
-		).toEqual({ stage: "DEMO_BOOKED" });
+		).toEqual({ stage: "INQUIRY" });
 	});
 
 	it("writes the one reason onto every deal's timeline", async () => {
@@ -252,7 +252,7 @@ describe("moving a selection of deals to a stage", () => {
 			await deals.bulkSetStage(
 				{
 					ids: [first.id, second.id],
-					stage: "CLOSED_LOST",
+					stage: "LOST",
 					closedReason: "Budget pulled",
 				},
 				ownerId,
@@ -264,7 +264,7 @@ describe("moving a selection of deals to a stage", () => {
 			select: { stage: true, closedReason: true, closedAt: true },
 		});
 
-		expect(closed.every((deal) => deal.stage === "CLOSED_LOST")).toBe(true);
+		expect(closed.every((deal) => deal.stage === "LOST")).toBe(true);
 		expect(closed.every((deal) => deal.closedReason === "Budget pulled")).toBe(
 			true,
 		);

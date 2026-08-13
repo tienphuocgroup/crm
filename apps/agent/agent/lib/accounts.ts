@@ -1,4 +1,5 @@
 import { ActivityType, db, EmailDirection } from "@crm/db";
+import { CLOSED_DEAL_STAGES } from "@crm/db/deal-stage";
 import { isDerivedName } from "./names";
 
 const BODY_LIMIT = 4000;
@@ -521,12 +522,10 @@ export async function readDealHistory(
 	};
 }
 
+const CLOSED_STAGE_NAMES = new Set<string>(CLOSED_DEAL_STAGES);
+
 function isOpen(stage: string): boolean {
-	return (
-		stage !== "CLOSED_WON" &&
-		stage !== "CLOSED_LOST" &&
-		stage !== "UNQUALIFIED_TO_BUY"
-	);
+	return !CLOSED_STAGE_NAMES.has(stage);
 }
 
 async function recentNotes(

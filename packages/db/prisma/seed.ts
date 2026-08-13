@@ -1,6 +1,7 @@
 import { mirror } from "../src/blob";
 import { db } from "../src/client";
 import { DEFAULT_REPORTING_CURRENCY } from "../src/currency";
+import { CLOSED_DEAL_STAGES, OPEN_DEAL_STAGES } from "../src/deal-stage";
 import { resolveFavicon } from "../src/favicon";
 import {
 	ActivityType,
@@ -244,19 +245,6 @@ const TITLES = [
 	"IT Director",
 	"Head of Platform",
 	"Chief of Staff",
-] as const;
-
-const OPEN_STAGES = [
-	DealStage.DEMO_BOOKED,
-	DealStage.QUALIFIED_TO_BUY,
-	DealStage.DECISION_MAKER_BOUGHT_IN,
-	DealStage.CONTRACT_SENT,
-] as const;
-
-const CLOSED_STAGES = [
-	DealStage.CLOSED_WON,
-	DealStage.CLOSED_LOST,
-	DealStage.UNQUALIFIED_TO_BUY,
 ] as const;
 
 const DEAL_DESCRIPTIONS = [
@@ -568,7 +556,7 @@ async function seedDeals(
 		for (let n = 0; n < count; n++) {
 			const id = `seed-deal-${slug(company.name)}-${n}`;
 			const closed = chance(0.35);
-			const stage = closed ? pick(CLOSED_STAGES) : pick(OPEN_STAGES);
+			const stage = closed ? pick(CLOSED_DEAL_STAGES) : pick(OPEN_DEAL_STAGES);
 			const ownerId = pick(ownerIds);
 			const createdDaysAgo = integer(20, 210);
 			const createdAt = daysFromNow(-createdDaysAgo, 12);
@@ -611,11 +599,7 @@ async function seedDeals(
 							: -closedDaysAgo + integer(-4, 9),
 					),
 					closedAt: closed ? stageChangedAt : null,
-					closedReason:
-						stage === DealStage.CLOSED_LOST ||
-						stage === DealStage.UNQUALIFIED_TO_BUY
-							? pick(LOST_REASONS)
-							: null,
+					closedReason: stage === DealStage.LOST ? pick(LOST_REASONS) : null,
 					createdAt,
 				},
 				update: {},
@@ -721,8 +705,8 @@ async function seedActivities(
 			dealId: deal.id,
 			subject: "Stage changed",
 			meta: {
-				from: DealStage.DEMO_BOOKED,
-				to: deal.closed ? DealStage.CLOSED_WON : DealStage.QUALIFIED_TO_BUY,
+				from: DealStage.INQUIRY,
+				to: deal.closed ? DealStage.ENROLLED : DealStage.CONSULT_DONE,
 			},
 		});
 	}

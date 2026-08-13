@@ -223,15 +223,15 @@ describe("CRM agent events", () => {
 		persistedDealId = deal.id;
 
 		const transitions = await Promise.all([
-			deals.setStage({ id: deal.id, stage: "CLOSED_WON" }, ownerId),
-			deals.setStage({ id: deal.id, stage: "CLOSED_WON" }, ownerId),
+			deals.setStage({ id: deal.id, stage: "ENROLLED" }, ownerId),
+			deals.setStage({ id: deal.id, stage: "ENROLLED" }, ownerId),
 		]);
 
 		expect(transitions.map((transition) => transition.changed).sort()).toEqual([
 			false,
 			true,
 		]);
-		await deals.setStage({ id: deal.id, stage: "QUALIFIED_TO_BUY" }, ownerId);
+		await deals.setStage({ id: deal.id, stage: "CONSULT_DONE" }, ownerId);
 
 		const reasons = (
 			await db.agentTask.findMany({

@@ -8,34 +8,26 @@ export type DealStageLabel =
 	| { known: false; text: string; tone: StatusTone };
 
 const ORDER = [
-	DealStage.DEMO_BOOKED,
-	DealStage.QUALIFIED_TO_BUY,
-	DealStage.DECISION_MAKER_BOUGHT_IN,
-	DealStage.CONTRACT_SENT,
-	DealStage.CLOSED_WON,
-	DealStage.CLOSED_LOST,
-	DealStage.UNQUALIFIED_TO_BUY,
+	DealStage.INQUIRY,
+	DealStage.CONSULT_BOOKED,
+	DealStage.CONSULT_DONE,
+	DealStage.PROPOSAL_SENT,
+	DealStage.ENROLLED,
+	DealStage.LOST,
 ] as const;
 
 const PRESENTATION: Record<DealStage, StagePresentation> = {
-	DEMO_BOOKED: { labelKey: "stageDemoBooked", tone: "neutral" },
-	QUALIFIED_TO_BUY: { labelKey: "stageQualifiedToBuy", tone: "info" },
-	DECISION_MAKER_BOUGHT_IN: {
-		labelKey: "stageDecisionMakerIn",
-		tone: "info",
-	},
-	CONTRACT_SENT: { labelKey: "stageContractSent", tone: "warning" },
-	CLOSED_WON: { labelKey: "stageClosedWon", tone: "success" },
-	CLOSED_LOST: { labelKey: "stageClosedLost", tone: "error" },
-	UNQUALIFIED_TO_BUY: { labelKey: "stageUnqualified", tone: "neutral" },
+	INQUIRY: { labelKey: "stageInquiry", tone: "neutral" },
+	CONSULT_BOOKED: { labelKey: "stageConsultBooked", tone: "info" },
+	CONSULT_DONE: { labelKey: "stageConsultDone", tone: "info" },
+	PROPOSAL_SENT: { labelKey: "stageProposalSent", tone: "warning" },
+	ENROLLED: { labelKey: "stageEnrolled", tone: "success" },
+	LOST: { labelKey: "stageLost", tone: "error" },
 };
 
 export const OPEN_STAGES = ORDER.slice(0, 4) as readonly DealStage[];
 
-export const LOSING_STAGES: readonly DealStage[] = [
-	DealStage.CLOSED_LOST,
-	DealStage.UNQUALIFIED_TO_BUY,
-];
+export const LOSING_STAGES: readonly DealStage[] = [DealStage.LOST];
 
 export const DEAL_STAGE_OPTIONS = ORDER.map((value) => ({
 	value,

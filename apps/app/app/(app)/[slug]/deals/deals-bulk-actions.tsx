@@ -153,9 +153,7 @@ export function DealsBulkActions({
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>
-							{closing === "CLOSED_LOST"
-								? t("bulkCloseLostTitle", { count: ids.length })
-								: t("bulkMarkUnqualifiedTitle", { count: ids.length })}
+							{t("bulkCloseLostTitle", { count: ids.length })}
 						</DialogTitle>
 						<DialogDescription>
 							{t("bulkCloseReasonDescription")}
