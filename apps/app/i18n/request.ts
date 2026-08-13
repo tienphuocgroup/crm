@@ -9,7 +9,21 @@ import landing from "../messages/en/landing.json";
 import nav from "../messages/en/nav.json";
 import settings from "../messages/en/settings.json";
 import ui from "../messages/en/ui.json";
-import { type ActiveLocale, PSEUDO_LOCALE } from "./locale";
+import viAgentPanel from "../messages/vi/agent-panel.json";
+import viCommon from "../messages/vi/common.json";
+import viCompanies from "../messages/vi/companies.json";
+import viContacts from "../messages/vi/contacts.json";
+import viDashboard from "../messages/vi/dashboard.json";
+import viDeals from "../messages/vi/deals.json";
+import viLanding from "../messages/vi/landing.json";
+import viNav from "../messages/vi/nav.json";
+import viSettings from "../messages/vi/settings.json";
+import viUi from "../messages/vi/ui.json";
+import {
+	type ActiveLocale,
+	PSEUDO_LOCALE,
+	type SupportedLocale,
+} from "./locale";
 import { resolveLocale } from "./resolve-locale";
 
 const EN_MESSAGES = {
@@ -25,10 +39,28 @@ const EN_MESSAGES = {
 	ui,
 };
 
+const VI_MESSAGES: typeof EN_MESSAGES = {
+	"agent-panel": viAgentPanel,
+	common: viCommon,
+	companies: viCompanies,
+	contacts: viContacts,
+	dashboard: viDashboard,
+	deals: viDeals,
+	landing: viLanding,
+	nav: viNav,
+	settings: viSettings,
+	ui: viUi,
+};
+
+const CATALOGS: Record<SupportedLocale, typeof EN_MESSAGES> = {
+	en: EN_MESSAGES,
+	vi: VI_MESSAGES,
+};
+
 type Namespace = keyof typeof EN_MESSAGES;
 
 async function loadMessages(locale: ActiveLocale): Promise<typeof EN_MESSAGES> {
-	if (locale !== PSEUDO_LOCALE) return EN_MESSAGES;
+	if (locale !== PSEUDO_LOCALE) return CATALOGS[locale];
 	const namespaces = Object.keys(EN_MESSAGES) as Namespace[];
 	const entries = await Promise.all(
 		namespaces.map(async (namespace) => {

@@ -83,7 +83,10 @@ lint failure (`noUnusedVariables`), not a silent no-op.
    do instead.
 5. Name the keys per `references/key-naming-convention.md`.
 6. Add the keys to `apps/app/messages/en/<namespace>.json`, keeping the file
-   sorted alphabetically by key.
+   sorted alphabetically by key, and the translated values to the same
+   namespace in every other locale under `apps/app/messages/` (today: `vi`).
+   `check-types` fails on a locale missing a key — that gate is
+   `i18n/request.ts`, not optional.
 7. Run the formatter, don't hand-wrap JSX or hand-order imports:
    `bunx biome check --write <the changed files>`. Import order for `next-intl`
    / `next-intl/server` relative to other packages, and whether a translated
