@@ -524,6 +524,7 @@ type SeededDeal = {
 	contactIds: string[];
 	ownerId: string;
 	closed: boolean;
+	stage: DealStage;
 };
 
 const SEED_RATES: Record<string, number> = {
@@ -700,6 +701,7 @@ async function seedJourney(spec: JourneySpec): Promise<SeededDeal> {
 		contactIds: spec.attendees.map((attendee) => attendee.id),
 		ownerId,
 		closed,
+		stage,
 	};
 }
 
@@ -837,7 +839,7 @@ async function seedActivities(
 			subject: "Stage changed",
 			meta: {
 				from: DealStage.INQUIRY,
-				to: deal.closed ? DealStage.ENROLLED : DealStage.CONSULT_DONE,
+				to: deal.closed ? deal.stage : DealStage.CONSULT_DONE,
 			},
 		});
 	}
