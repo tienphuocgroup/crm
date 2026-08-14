@@ -10,7 +10,7 @@ reads once.
 cp .env.example .env        # fill DATABASE_URL, BETTER_AUTH_SECRET, ALLOWED_SIGN_IN
 docker compose up -d        # Postgres, matching .env.example
 bun run db:migrate && bun run db:seed
-bun run dev                 # app :3000, api :3001, agent :2000
+bun run dev                 # app :4000, api :4001, agent :2000
 ```
 
 Prisma from the repo root: `db:generate`, `db:migrate`, `db:push`, `db:reset`,

@@ -10,9 +10,9 @@ is a Google account.
 
 ## Topology
 
-The **NestJS API** (`apps/api`, port 3001) mounts `/api/auth/*` via
+The **NestJS API** (`apps/api`, port 4001) mounts `/api/auth/*` via
 `@thallesp/nestjs-better-auth` and is the only process that writes session
-cookies. The **Next.js app** (`apps/app`, port 3000) imports this package on the
+cookies. The **Next.js app** (`apps/app`, port 4000) imports this package on the
 server to *read* sessions straight from Postgres, and points its browser client
 at the API for sign-in and sign-out.
 
@@ -71,7 +71,7 @@ CLI loads `auth.ts` directly. See
 [`docs/environment.md`](../../docs/environment.md).
 
 Create an OAuth client in the Google Cloud console and add
-`<API_URL>/api/auth/callback/google` — `http://localhost:3001/api/auth/callback/google`
+`<API_URL>/api/auth/callback/google` — `http://localhost:4001/api/auth/callback/google`
 in development — as an authorised redirect URI.
 
 `ALLOWED_SIGN_IN` decides who may sign in, and an empty value admits nobody. It

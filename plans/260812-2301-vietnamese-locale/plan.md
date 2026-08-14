@@ -4,6 +4,7 @@ description: "Add vi as a selectable locale: translate the 10 en catalogs, regis
 status: awaiting-user-verification
 priority: P2
 branch: "feat/i18n-vietnamese"
+blocks: [260813-1843-healthcare-face-phase-a]
 created: "2026-08-12T23:01:00+07:00"
 ---
 

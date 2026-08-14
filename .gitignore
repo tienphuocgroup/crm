@@ -46,3 +46,6 @@ yarn-error.log*
 
 # Generated pseudo-locale catalogs
 apps/app/messages/pseudo/
+
+# local Claude Code tooling — not project source
+.claude/

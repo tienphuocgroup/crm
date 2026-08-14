@@ -54,7 +54,7 @@ list fails closed.** Parsed on demand. `packages/auth/src/workspace.ts`.
 
 ## Where things are
 
-- **`API_URL`** (`:3001`) mints session cookies and serves `/api/auth/*`;
+- **`API_URL`** (`:4001`) mints session cookies and serves `/api/auth/*`;
   `next.config.ts` republishes it as `NEXT_PUBLIC_API_URL`, so one variable does both
   sides. `BETTER_AUTH_URL` is a legacy fallback.
 - **Editing a file under `packages/` does not restart the API. Restart it by hand.**
@@ -67,7 +67,7 @@ list fails closed.** Parsed on demand. `packages/auth/src/workspace.ts`.
   Running the API from the repo root fixes the watch and breaks Nest, which
   resolves its tsconfig paths from the current directory and then cannot build
   its dependency graph. There is no fix in the dev script today.
-- **`APP_URL`** (`:3000`) is also the trusted-origin and `callbackURL` allow-list.
+- **`APP_URL`** (`:4000`) is also the trusted-origin and `callbackURL` allow-list.
 - **Every OAuth `redirect_uri` is built from `API_URL`, never `APP_URL`.** Better
   Auth serves `/api/auth/*` at `baseURL`, and `baseURL` is `apiUrl`. A redirect
   built from `APP_URL` points at the web app, where `/api/auth/callback` does not

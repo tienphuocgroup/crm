@@ -165,8 +165,8 @@ reproduces the view.
 | Path | |
 | --- | --- |
 | `apps/agent` | The research agent — tools, skills, schedules, sandbox |
-| `apps/app` | Next.js front end · :3000 |
-| `apps/api` | NestJS API — HTTP, auth, tRPC, mailbox sync · :3001 |
+| `apps/app` | Next.js front end · :4000 |
+| `apps/api` | NestJS API — HTTP, auth, tRPC, mailbox sync · :4001 |
 | `packages/db` | Prisma schema, migrations, shared Postgres client |
 | `packages/auth` | Better Auth config and the sign-in allow-list |
 | `packages/ui` | shadcn/ui components, the Tailwind theme |
@@ -201,8 +201,8 @@ bun run db:seed               # optional: a believable pipeline to look at
 bun run dev
 ```
 
-The app is on [localhost:3000](http://localhost:3000), the API on
-[localhost:3001](http://localhost:3001).
+The app is on [localhost:4000](http://localhost:4000), the API on
+[localhost:4001](http://localhost:4001).
 
 That clone gives you `release`, the default branch and the last tagged release — what you
 want if you are running this. `main` is where unreleased work lands: green, but not cut
@@ -231,7 +231,7 @@ you brought your own.
 <summary><strong>Getting the Google OAuth client</strong></summary>
 
 1. [Google Cloud console](https://console.cloud.google.com/apis/credentials) → **Credentials** → **Create credentials** → **OAuth client ID** → **Web application**.
-2. Under **Authorised redirect URIs**, add `http://localhost:3001/api/auth/callback/google`.
+2. Under **Authorised redirect URIs**, add `http://localhost:4001/api/auth/callback/google`.
 3. Enable the [Gmail API](https://console.cloud.google.com/apis/library/gmail.googleapis.com) and the [Calendar API](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com) for the project.
 4. Copy the client ID and secret into `.env`.
 
@@ -256,7 +256,7 @@ nobody outside your org can even reach the prompt.
    `ALLOWED_SIGN_IN` still decides who gets an account — but the narrow choice turns
    outsiders away at Microsoft rather than at our door.
 3. Set the **Redirect URI** to **Web** and
-   `http://localhost:3001/api/auth/callback/microsoft`. In production this is
+   `http://localhost:4001/api/auth/callback/microsoft`. In production this is
    `https://<your-api-host>/api/auth/callback/microsoft` — the API's origin, not the
    app's, because the API is what serves `/api/auth/*`.
 4. **API permissions** → **Add a permission** → **Microsoft Graph** → **Delegated
