@@ -3,7 +3,7 @@
 import type { DealStage } from "@crm/db/enums";
 import { StatusIndicator } from "@crm/ui/components/status-indicator";
 import { useTranslations } from "next-intl";
-import { dealStagePresentation } from "@/lib/deal-stage";
+import { resolveDealStageLabel } from "@/lib/deal-stage";
 
 export function DealStageIndicator({
 	stage,
@@ -13,8 +13,12 @@ export function DealStageIndicator({
 	className?: string;
 }) {
 	const t = useTranslations("deals");
-	const { labelKey, tone } = dealStagePresentation(stage);
+	const label = resolveDealStageLabel(stage);
 	return (
-		<StatusIndicator tone={tone} label={t(labelKey)} className={className} />
+		<StatusIndicator
+			tone={label.tone}
+			label={label.known ? t(label.labelKey) : label.text}
+			className={className}
+		/>
 	);
 }

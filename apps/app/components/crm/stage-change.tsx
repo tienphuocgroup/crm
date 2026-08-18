@@ -145,16 +145,8 @@ export function CloseReasonDialog() {
 		<Dialog open={open} onOpenChange={(next) => !next && close()}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>
-						{stage === "CLOSED_LOST"
-							? t("closeLostTitle")
-							: t("markUnqualifiedTitle")}
-					</DialogTitle>
-					<DialogDescription>
-						{stage === "CLOSED_LOST"
-							? t("closeLostDescription")
-							: t("markUnqualifiedDescription")}
-					</DialogDescription>
+					<DialogTitle>{t("closeLostTitle")}</DialogTitle>
+					<DialogDescription>{t("closeLostDescription")}</DialogDescription>
 				</DialogHeader>
 
 				<form

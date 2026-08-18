@@ -1,5 +1,6 @@
 "use client";
 
+import Add from "@carbon/icons-react/es/Add";
 import Email from "@carbon/icons-react/es/Email";
 import Partnership from "@carbon/icons-react/es/Partnership";
 import Star from "@carbon/icons-react/es/Star";
@@ -59,8 +60,9 @@ import { hasContactLinks } from "@/lib/social-links";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 import type { RouterOutputs } from "@/lib/trpc/types";
+import { QuickAddDeal } from "./quick-add";
 import { RecordActions } from "./record-actions";
-import { DealAmount, MetaLine, RecordSheetFrame } from "./record-parts";
+import { AddRow, DealAmount, MetaLine, RecordSheetFrame } from "./record-parts";
 import { useOpenRecord, useRecordSheetView } from "./record-stack";
 
 type Contact = RouterOutputs["contacts"]["byId"];
@@ -78,7 +80,12 @@ export function ContactSheet({ contactId }: { contactId: string }) {
 	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
-	const { tab, setTab } = useRecordSheetView("overview");
+	const {
+		tab,
+		setTab,
+		form: adding,
+		setForm: setAdding,
+	} = useRecordSheetView("overview");
 
 	const query = useQuery({
 		...trpc.contacts.byId.queryOptions({ id: contactId }),
@@ -112,7 +119,14 @@ export function ContactSheet({ contactId }: { contactId: string }) {
 					value: "deals",
 					label: common("recordSheet.dealsTab"),
 					count: contact.deals.length,
-					content: <ContactDeals contact={contact} />,
+					content: (
+						<ContactDeals
+							contact={contact}
+							adding={adding === "deal"}
+							onAdd={() => setAdding("deal")}
+							onDone={() => setAdding(null)}
+						/>
+					),
 				},
 				{
 					value: "activity",
@@ -604,7 +618,17 @@ function Colleagues({
 	);
 }
 
-function ContactDeals({ contact }: { contact: Contact }) {
+function ContactDeals({
+	contact,
+	adding,
+	onAdd,
+	onDone,
+}: {
+	contact: Contact;
+	adding: boolean;
+	onAdd: () => void;
+	onDone: () => void;
+}) {
 	const t = useTranslations("contacts");
 	const deals = useTranslations("deals");
 	const common = useTranslations("common");
@@ -628,46 +652,75 @@ function ContactDeals({ contact }: { contact: Contact }) {
 		{ id: "owner", header: common("ownerLabel"), width: "w-[14%]" },
 	];
 
+	const form = adding ? (
+		<QuickAddDeal
+			contactId={contact.id}
+			anchorName={contactName(contact)}
+			ownerId={contact.owner?.id ?? null}
+			onDone={onDone}
+		/>
+	) : null;
+
 	if (contact.deals.length === 0) {
 		return (
-			<DetailSheetEmpty
-				icon={Partnership}
-				title={t("notOnAnyDealsTitle")}
-				description={t("notOnAnyDealsDescription", {
-					name: contactName(contact),
-				})}
-			/>
+			<>
+				{form}
+				{adding ? null : (
+					<DetailSheetEmpty
+						icon={Partnership}
+						title={t("notOnAnyDealsTitle")}
+						description={t("notOnAnyDealsDescription", {
+							name: contactName(contact),
+						})}
+						action={
+							<Button variant="outline" size="sm" onClick={onAdd}>
+								<Icon icon={Add} data-icon="inline-start" />
+								{deals("createTitle")}
+							</Button>
+						}
+					/>
+				)}
+			</>
 		);
 	}
 
 	return (
-		<SimpleTable variant="panel" columns={DEAL_COLUMNS}>
-			{contact.deals.map((deal) => (
-				<SimpleTableRow
-					key={deal.id}
-					clickable
-					onClick={() => openRecord({ kind: "deal", id: deal.id })}
-				>
-					<TableCell className="truncate py-2.5 pr-3 pl-5 font-medium">
-						{deal.name}
-					</TableCell>
-					<TableCell className="truncate px-3 py-2.5 text-muted-foreground">
-						{deal.role ?? <EmptyCellValue />}
-					</TableCell>
-					<TableCell className="px-3 py-2.5">
-						<DealStageMenu dealId={deal.id} stage={deal.stage} />
-					</TableCell>
-					<TableCell className="px-3 py-2.5 text-right">
-						<DealAmount
-							amountCents={deal.amountCents}
-							currency={deal.currency}
-						/>
-					</TableCell>
-					<TableCell className="px-3 py-2.5">
-						<OwnerCell owner={deal.owner} />
-					</TableCell>
-				</SimpleTableRow>
-			))}
-		</SimpleTable>
+		<>
+			{form}
+			<SimpleTable variant="panel" columns={DEAL_COLUMNS}>
+				{contact.deals.map((deal) => (
+					<SimpleTableRow
+						key={deal.id}
+						clickable
+						onClick={() => openRecord({ kind: "deal", id: deal.id })}
+					>
+						<TableCell className="truncate py-2.5 pr-3 pl-5 font-medium">
+							{deal.name}
+						</TableCell>
+						<TableCell className="truncate px-3 py-2.5 text-muted-foreground">
+							{deal.role ?? <EmptyCellValue />}
+						</TableCell>
+						<TableCell className="px-3 py-2.5">
+							<DealStageMenu dealId={deal.id} stage={deal.stage} />
+						</TableCell>
+						<TableCell className="px-3 py-2.5 text-right">
+							<DealAmount
+								amountCents={deal.amountCents}
+								currency={deal.currency}
+							/>
+						</TableCell>
+						<TableCell className="px-3 py-2.5">
+							<OwnerCell owner={deal.owner} />
+						</TableCell>
+					</SimpleTableRow>
+				))}
+
+				<AddRow
+					label={deals("createTitle")}
+					columns={DEAL_COLUMNS.length}
+					onClick={onAdd}
+				/>
+			</SimpleTable>
+		</>
 	);
 }

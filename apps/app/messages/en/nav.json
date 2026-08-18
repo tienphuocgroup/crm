@@ -1,9 +1,9 @@
 {
 	"chat": "Chat",
 	"closeNavigation": "Close navigation",
-	"companies": "Companies",
-	"contacts": "Contacts",
-	"deals": "Deals",
+	"companies": "Organizations",
+	"contacts": "Clients",
+	"deals": "Journeys",
 	"mobileNavTitle": "Navigation",
 	"mobileNavTitleWithChats": "Navigation and agent chats",
 	"openNavigation": "Open navigation",

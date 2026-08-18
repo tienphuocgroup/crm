@@ -1,4 +1,5 @@
 import { ActivityType, db, EmailDirection } from "@crm/db";
+import { CLOSED_DEAL_STAGES } from "@crm/db/deal-stage";
 import { isDerivedName } from "./names";
 
 const BODY_LIMIT = 4000;
@@ -307,7 +308,7 @@ export type DealHistory = {
 		owner: string | null;
 		createdAt: string;
 	};
-	company: { id: string; name: string; domain: string | null };
+	company: { id: string; name: string; domain: string | null } | null;
 	people: {
 		id: string;
 		name: string;
@@ -377,16 +378,14 @@ export async function readDealHistory(
 	const includeCalendar = options.includeCalendar ?? true;
 
 	const contactIds = deal.contacts.map(({ contact }) => contact.id);
+	const companyId = deal.company?.id ?? null;
 
-	const relatedThreads =
-		contactIds.length > 0
-			? {
-					OR: [
-						{ contactId: { in: contactIds } },
-						{ companyId: deal.company.id },
-					],
-				}
-			: { companyId: deal.company.id };
+	const relatedThreads = {
+		OR: [
+			...(contactIds.length > 0 ? [{ contactId: { in: contactIds } }] : []),
+			...(companyId === null ? [] : [{ companyId }]),
+		],
+	};
 
 	const [stageChanges, threads, meetings, notes, lastInbound] =
 		await Promise.all([
@@ -425,18 +424,21 @@ export async function readDealHistory(
 				: Promise.resolve([]),
 			includeCalendar
 				? db.calendarEvent.findMany({
-						where:
-							contactIds.length > 0
-								? {
-										OR: [
+						where: {
+							OR: [
+								...(contactIds.length > 0
+									? [
 											{ contactId: { in: contactIds } },
 											{
-												attendees: { some: { contactId: { in: contactIds } } },
+												attendees: {
+													some: { contactId: { in: contactIds } },
+												},
 											},
-											{ companyId: deal.company.id },
-										],
-									}
-								: { companyId: deal.company.id },
+										]
+									: []),
+								...(companyId === null ? [] : [{ companyId }]),
+							],
+						},
 						orderBy: { startsAt: "desc" },
 						take: 10,
 						select: {
@@ -521,12 +523,10 @@ export async function readDealHistory(
 	};
 }
 
+const CLOSED_STAGE_NAMES = new Set<string>(CLOSED_DEAL_STAGES);
+
 function isOpen(stage: string): boolean {
-	return (
-		stage !== "CLOSED_WON" &&
-		stage !== "CLOSED_LOST" &&
-		stage !== "UNQUALIFIED_TO_BUY"
-	);
+	return !CLOSED_STAGE_NAMES.has(stage);
 }
 
 async function recentNotes(

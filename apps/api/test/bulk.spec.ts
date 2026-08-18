@@ -59,7 +59,14 @@ async function clean() {
 	});
 	const companyIds = owned.map((row) => row.id);
 
-	await db.deal.deleteMany({ where: { companyId: { in: companyIds } } });
+	await db.deal.deleteMany({
+		where: {
+			OR: [
+				{ companyId: { in: companyIds } },
+				{ ownerId: { in: [ownerId, secondOwnerId] } },
+			],
+		},
+	});
 	await db.activity.deleteMany({ where: { companyId: { in: companyIds } } });
 	await db.agentTask.deleteMany({ where: { companyId: { in: companyIds } } });
 	await db.contact.deleteMany({ where: ours });
@@ -194,7 +201,7 @@ describe("deleting a selection", () => {
 		).toBeNull();
 	});
 
-	it("takes a company's deals with it", async () => {
+	it("leaves a company's deals behind without a company", async () => {
 		const doomed = await companies.create({
 			name: `Doomed Co ${suffix}`,
 			domain: `doomed-${domain}`,
@@ -212,7 +219,12 @@ describe("deleting a selection", () => {
 			message: null,
 		});
 
-		expect(await db.deal.findUnique({ where: { id: deal.id } })).toBeNull();
+		expect(
+			await db.deal.findUnique({
+				where: { id: deal.id },
+				select: { companyId: true },
+			}),
+		).toEqual({ companyId: null });
 	});
 });
 
@@ -225,7 +237,7 @@ describe("moving a selection of deals to a stage", () => {
 		});
 
 		await expect(
-			deals.bulkSetStage({ ids: [deal.id], stage: "CLOSED_LOST" }, ownerId),
+			deals.bulkSetStage({ ids: [deal.id], stage: "LOST" }, ownerId),
 		).rejects.toThrow(/teaches nobody anything/);
 
 		expect(
@@ -233,7 +245,7 @@ describe("moving a selection of deals to a stage", () => {
 				where: { id: deal.id },
 				select: { stage: true },
 			}),
-		).toEqual({ stage: "DEMO_BOOKED" });
+		).toEqual({ stage: "INQUIRY" });
 	});
 
 	it("writes the one reason onto every deal's timeline", async () => {
@@ -252,7 +264,7 @@ describe("moving a selection of deals to a stage", () => {
 			await deals.bulkSetStage(
 				{
 					ids: [first.id, second.id],
-					stage: "CLOSED_LOST",
+					stage: "LOST",
 					closedReason: "Budget pulled",
 				},
 				ownerId,
@@ -264,7 +276,7 @@ describe("moving a selection of deals to a stage", () => {
 			select: { stage: true, closedReason: true, closedAt: true },
 		});
 
-		expect(closed.every((deal) => deal.stage === "CLOSED_LOST")).toBe(true);
+		expect(closed.every((deal) => deal.stage === "LOST")).toBe(true);
 		expect(closed.every((deal) => deal.closedReason === "Budget pulled")).toBe(
 			true,
 		);

@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { RecordLink } from "@/components/crm/record-sheet/record-link";
 import { LocalDateTime, LocalRelativeTime } from "@/components/local-date-time";
 import { activityLabelKey } from "@/lib/activity-presentation";
-import { dealStageLabelKey } from "@/lib/deal-stage";
+import { resolveDealStageLabel } from "@/lib/deal-stage";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 import type { RouterOutputs } from "@/lib/trpc/types";
@@ -75,10 +75,15 @@ export function TimelineEntry({
 			: common("timeline.viaCalendar")
 		: entry.createdBy.name;
 
+	const stageLabel = (stage: string) => {
+		const label = resolveDealStageLabel(stage);
+		return label.known ? deals(label.labelKey) : label.text;
+	};
+
 	const headline = change
 		? deals("stageChangeHeadline", {
-				from: deals(dealStageLabelKey(change.from as never)),
-				to: deals(dealStageLabelKey(change.to as never)),
+				from: stageLabel(change.from),
+				to: stageLabel(change.to),
 			})
 		: entry.subject;
 

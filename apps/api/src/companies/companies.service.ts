@@ -412,6 +412,23 @@ export class CompaniesService {
 					tx,
 				);
 
+				const alsoAnchored = {
+					companyId: id,
+					OR: [{ dealId: { not: null } }, { contactId: { not: null } }],
+				};
+
+				await tx.activity.updateMany({
+					where: alsoAnchored,
+					data: { companyId: null },
+				});
+				await tx.agentConversation.updateMany({
+					where: alsoAnchored,
+					data: { companyId: null },
+				});
+				await tx.agentTask.updateMany({
+					where: alsoAnchored,
+					data: { companyId: null },
+				});
 				await tx.agentTask.deleteMany({ where: { companyId: id } });
 
 				const company = await tx.company.delete({

@@ -1,6 +1,7 @@
 import { mirror } from "../src/blob";
 import { db } from "../src/client";
 import { DEFAULT_REPORTING_CURRENCY } from "../src/currency";
+import { OPEN_DEAL_STAGES } from "../src/deal-stage";
 import { resolveFavicon } from "../src/favicon";
 import {
 	ActivityType,
@@ -46,9 +47,9 @@ function daysFromNow(days: number, jitterHours = 0): Date {
 }
 
 const OWNERS = [
-	{ name: "Ada Okafor", email: "ada@trycomp.ai" },
-	{ name: "Marcus Lindqvist", email: "marcus@trycomp.ai" },
-	{ name: "Priya Raman", email: "priya@trycomp.ai" },
+	{ name: "Dr. Khoa Tran", email: "khoa.tran@lotusbayhealth.com" },
+	{ name: "Mai Nguyen", email: "mai.nguyen@lotusbayhealth.com" },
+	{ name: "Elena Marquez", email: "elena.marquez@lotusbayhealth.com" },
 ] as const;
 
 type SeedCompany = {
@@ -58,260 +59,258 @@ type SeedCompany = {
 	city: string;
 	country: string;
 	countryCode: string;
+	clients: number;
+	journeys: number;
 };
 
 const COMPANIES: readonly SeedCompany[] = [
 	{
-		name: "Stripe",
-		domain: "stripe.com",
-		industry: "Financial Services",
-		city: "San Francisco",
-		country: "United States",
-		countryCode: "US",
+		name: "Truong Son Logistics",
+		domain: "truongsonlogistics.com",
+		industry: "Logistics",
+		city: "Ho Chi Minh City",
+		country: "Vietnam",
+		countryCode: "VN",
+		clients: 3,
+		journeys: 2,
 	},
 	{
-		name: "Linear",
-		domain: "linear.app",
-		industry: "Software",
-		city: "San Francisco",
-		country: "United States",
-		countryCode: "US",
-	},
-	{
-		name: "Vercel",
-		domain: "vercel.com",
-		industry: "Software",
-		city: "San Francisco",
-		country: "United States",
-		countryCode: "US",
-	},
-	{
-		name: "Ramp",
-		domain: "ramp.com",
-		industry: "Financial Services",
-		city: "New York",
-		country: "United States",
-		countryCode: "US",
-	},
-	{
-		name: "Notion",
-		domain: "notion.so",
-		industry: "Software",
-		city: "San Francisco",
-		country: "United States",
-		countryCode: "US",
-	},
-	{
-		name: "Monzo",
-		domain: "monzo.com",
-		industry: "Banking",
-		city: "London",
-		country: "United Kingdom",
-		countryCode: "GB",
-	},
-	{
-		name: "Wise",
-		domain: "wise.com",
-		industry: "Financial Services",
-		city: "London",
-		country: "United Kingdom",
-		countryCode: "GB",
-	},
-	{
-		name: "Personio",
-		domain: "personio.com",
-		industry: "Human Resources",
-		city: "Munich",
-		country: "Germany",
-		countryCode: "DE",
-	},
-	{
-		name: "Pennylane",
-		domain: "pennylane.com",
-		industry: "Accounting",
-		city: "Paris",
-		country: "France",
-		countryCode: "FR",
-	},
-	{
-		name: "Cal.com",
-		domain: "cal.com",
-		industry: "Software",
-		city: "San Francisco",
-		country: "United States",
-		countryCode: "US",
-	},
-	{
-		name: "Supabase",
-		domain: "supabase.com",
-		industry: "Software",
+		name: "Helios Semiconductor",
+		domain: "heliossemi.sg",
+		industry: "Semiconductors",
 		city: "Singapore",
 		country: "Singapore",
 		countryCode: "SG",
+		clients: 3,
+		journeys: 2,
 	},
 	{
-		name: "Retool",
-		domain: "retool.com",
-		industry: "Software",
-		city: "San Francisco",
-		country: "United States",
-		countryCode: "US",
-	},
-	{
-		name: "Deel",
-		domain: "deel.com",
-		industry: "Human Resources",
-		city: "New York",
-		country: "United States",
-		countryCode: "US",
-	},
-	{
-		name: "Mercury",
-		domain: "mercury.com",
-		industry: "Banking",
-		city: "San Francisco",
-		country: "United States",
-		countryCode: "US",
-	},
-	{
-		name: "Attio",
-		domain: "attio.com",
-		industry: "Software",
+		name: "Cavendish Grant",
+		domain: "cavendishgrant.co.uk",
+		industry: "Legal Services",
 		city: "London",
 		country: "United Kingdom",
 		countryCode: "GB",
+		clients: 2,
+		journeys: 1,
+	},
+	{
+		name: "Pacifica Health Assurance",
+		domain: "pacificahealth.com",
+		industry: "Insurance",
+		city: "Hong Kong",
+		country: "Hong Kong",
+		countryCode: "HK",
+		clients: 2,
+		journeys: 2,
+	},
+	{
+		name: "An Tam Family Clinic",
+		domain: "antamclinic.vn",
+		industry: "Primary Care",
+		city: "Hanoi",
+		country: "Vietnam",
+		countryCode: "VN",
+		clients: 0,
+		journeys: 0,
+	},
+	{
+		name: "Marina Sports Medicine",
+		domain: "marinasportsmed.com",
+		industry: "Sports Medicine",
+		city: "Singapore",
+		country: "Singapore",
+		countryCode: "SG",
+		clients: 0,
+		journeys: 0,
 	},
 ];
 
-const FIRST_NAMES = [
-	"Amara",
-	"Ben",
-	"Chidi",
-	"Dana",
-	"Elias",
-	"Farah",
-	"Gus",
-	"Hana",
-	"Ines",
-	"Jonas",
-	"Kofi",
-	"Lena",
-	"Mateo",
-	"Nadia",
-	"Omar",
-	"Pia",
-	"Quinn",
-	"Rosa",
-	"Sami",
-	"Tara",
-	"Ugo",
-	"Vera",
-	"Wes",
-	"Yuki",
+const STANDALONE_CLIENTS = 18;
+
+const VI_FIRST_NAMES = [
+	{ name: "Minh Anh", female: true },
+	{ name: "Thu Hà", female: true },
+	{ name: "Quốc Bảo", female: false },
+	{ name: "Ngọc Lan", female: true },
+	{ name: "Hải Đăng", female: false },
+	{ name: "Phương Vy", female: true },
+	{ name: "Tuấn Kiệt", female: false },
+	{ name: "Bảo Châu", female: true },
+	{ name: "Gia Hân", female: true },
+	{ name: "Đức Anh", female: false },
+	{ name: "Khánh Linh", female: true },
+	{ name: "Trọng Nghĩa", female: false },
 ] as const;
 
-const LAST_NAMES = [
+const VI_LAST_NAMES = [
+	"Nguyễn",
+	"Trần",
+	"Lê",
+	"Phạm",
+	"Vũ",
+	"Đặng",
+	"Bùi",
+	"Hoàng",
+	"Ngô",
+	"Đỗ",
+] as const;
+
+const INTL_FIRST_NAMES = [
+	{ name: "Amara", female: true },
+	{ name: "Daniel", female: false },
+	{ name: "Elena", female: true },
+	{ name: "Farah", female: true },
+	{ name: "Hana", female: true },
+	{ name: "Ines", female: true },
+	{ name: "Jonas", female: false },
+	{ name: "Mateo", female: false },
+	{ name: "Nadia", female: true },
+	{ name: "Rosa", female: true },
+	{ name: "Wes", female: false },
+	{ name: "Yuki", female: true },
+] as const;
+
+const INTL_LAST_NAMES = [
 	"Adeyemi",
 	"Bergström",
 	"Chen",
 	"Dubois",
-	"Eriksen",
-	"Fontaine",
 	"Gupta",
 	"Haddad",
-	"Ivanova",
-	"Jensen",
-	"Kowalski",
 	"Lombardi",
-	"Moreau",
 	"Nakamura",
-	"Oyelaran",
-	"Petrov",
-	"Quintana",
 	"Rossi",
 	"Sørensen",
-	"Takahashi",
+	"Tan",
+	"Whitfield",
 ] as const;
 
-const TITLES = [
-	"Head of Security",
-	"CTO",
-	"VP Engineering",
-	"Compliance Manager",
-	"Head of Legal",
-	"Security Engineer",
-	"COO",
-	"IT Director",
-	"Head of Platform",
-	"Chief of Staff",
+const PERSONAL_EMAIL_DOMAINS = [
+	"gmail.com",
+	"gmail.com",
+	"outlook.com",
+	"icloud.com",
+	"yahoo.com",
 ] as const;
 
-const OPEN_STAGES = [
-	DealStage.DEMO_BOOKED,
-	DealStage.QUALIFIED_TO_BUY,
-	DealStage.DECISION_MAKER_BOUGHT_IN,
-	DealStage.CONTRACT_SENT,
+const CLIENT_NOTES = [
+	"Self-referred — website",
+	"Referred by An Tam Family Clinic",
+	"Referred by Marina Sports Medicine",
+	"Referred by a member",
+	"Returning client",
+	"Walk-in — Saturday clinic",
+	"Prefers evening appointments",
+	"Prefers messages, not calls",
+	"Prefers email only",
+	"Insurance claim on every visit",
 ] as const;
 
-const CLOSED_STAGES = [
-	DealStage.CLOSED_WON,
-	DealStage.CLOSED_LOST,
-	DealStage.UNQUALIFIED_TO_BUY,
+const PROGRAMS = [
+	"Longevity program",
+	"Executive health screening",
+	"Physiotherapy package",
+	"IV therapy series",
+	"Annual membership",
+	"Prenatal care plan",
+	"Sleep clinic program",
+	"Weight management program",
+] as const;
+
+const PRENATAL_PROGRAM = "Prenatal care plan";
+
+const PROGRAMS_WITHOUT_PRENATAL = PROGRAMS.filter(
+	(program) => program !== PRENATAL_PROGRAM,
+);
+
+const ORG_PROGRAMS = [
+	"Executive health screening",
+	"Annual membership plan",
+	"Longevity program cohort",
+	"Onsite physiotherapy package",
 ] as const;
 
 const DEAL_DESCRIPTIONS = [
-	"Replacing a spreadsheet-and-Drive evidence process before their first SOC 2 audit. Security owns the decision, finance signs.",
-	"Expansion onto the platform team after the security org went live. Blocked on whether the current contract can be co-termed.",
-	"Inbound from a failed vendor renewal. They want automated evidence collection and one auditor-ready report.",
-	"Their enterprise deals keep stalling on security questionnaires. The buying trigger is the pipeline, not the audit.",
-	"Champion ran the evaluation themselves and wants the agent, not the checklist. Procurement is the long pole.",
+	"Came in for one screening and asked about the full longevity program. Wants the results review before she commits.",
+	"Physiotherapy after a knee injury. Twelve sessions, and she wants them finished before the marathon.",
+	"Executive screening booked by a member who now wants the same plan for his wife.",
+	"Sleep clinic referral from An Tam. Two nights of monitoring, then a care plan.",
+	"Prenatal plan from the second trimester. She asks about the birth partner package at every visit.",
+	"IV therapy series after the first consult. Payment plan is the open question.",
+	"Weight management program with monthly reviews. The insurer covers part of it.",
+	"Annual membership renewal. He wants the same coordinator and the same evening slots.",
+] as const;
+
+const ORG_DEAL_DESCRIPTIONS = [
+	"Corporate wellness renewal for the leadership team. HR wants one invoice per quarter.",
+	"Onsite screening days for two cohorts, then individual results reviews at the clinic.",
+	"Their broker asks for a program the staff can read in one page. Benefits lead decides.",
+	"Member cohort from the insurer. Pre-authorisation runs through their claims team.",
+] as const;
+
+const ORG_CONTACT_ROLES = [
+	"Program sponsor",
+	"Benefits lead",
+	"Enrolled member",
 ] as const;
 
 const LOST_REASONS = [
-	"Went with an incumbent vendor",
-	"No budget this cycle",
-	"Timeline slipped to next year",
-	"Not a fit — no compliance requirement yet",
+	"Chose a clinic closer to home",
+	"Cost — the insurer covers none of the program",
+	"Postponed care until after the relocation",
+	"Stayed with their own physician",
+	"No answer after two consult reminders",
 ] as const;
 
 const NOTE_BODIES = [
-	"Ran through the SOC 2 timeline. They want evidence collection automated before the audit window opens.",
-	"Procurement wants a security questionnaire back before they will look at pricing.",
-	"Champion is keen, but the budget owner has not been in a call yet.",
-	"They are evaluating us against two others. Differentiator is the agent, not the checklist.",
-	"Asked for a reference in the same vertical. Following up with marketing.",
-	"Pushed the decision to after their board meeting.",
+	"Consult ran long. She wants the full screening panel before she decides on the membership.",
+	"Asked whether the insurer covers the imaging. Waiting on Pacifica to confirm.",
+	"Missed the first consult. Rebooked for the evening clinic — nothing before 18:00.",
+	"Her husband joins the next visit. He decides on the family plan.",
+	"Wants the physiotherapy block finished before the marathon in March.",
+	"Referred by An Tam Family Clinic. The records arrive by email this week.",
+	"Pre-op instructions read back to him on the call. He repeats the fasting window correctly.",
+	"Renewal conversation started early. She asks for the same coordinator.",
+] as const;
+
+const ORG_NOTE_BODIES = [
+	"HR wants one invoice per quarter, not one per employee.",
+	"Their broker asks for a screening summary the staff can read.",
+	"Onsite day booked for the first cohort. Rooms are confirmed.",
+	"They send referrals every month. Keep the coordinator on the thread.",
 ] as const;
 
 const CALL_SUBJECTS = [
-	"Discovery call",
-	"Technical deep dive",
-	"Pricing discussion",
-	"Follow-up call",
-	"Security review",
+	"First consult call",
+	"Program follow-up",
+	"Insurance cover question",
+	"Rebooking after a no-show",
+	"Membership renewal call",
 ] as const;
 
 const TASK_SUBJECTS = [
-	"Send the security questionnaire",
-	"Share pricing proposal",
-	"Book the technical deep dive",
-	"Chase procurement",
-	"Send SOC 2 report",
-	"Introduce the implementation team",
+	"Send the pre-consult questionnaire",
+	"Share the program quote",
+	"Book the screening slot",
+	"Chase the insurance pre-authorisation",
+	"Send the pre-op instructions",
+	"Call after the missed appointment",
+	"Introduce the care coordinator",
 ] as const;
 
 const MEETING_SUBJECTS = [
-	"Product demo",
-	"Onboarding walkthrough",
-	"Quarterly check-in",
-	"Stakeholder alignment",
+	"First consult",
+	"Results review",
+	"Care plan walkthrough",
+	"Renewal review",
 ] as const;
 
 const EMAIL_SUBJECTS = [
-	"Re: next steps",
-	"Following up after the demo",
-	"Pricing and terms",
-	"Intro to your implementation lead",
+	"Re: your consult on Thursday",
+	"Your screening results are ready",
+	"Program pricing and payment plan",
+	"Pre-op instructions for next week",
 ] as const;
 
 const TRANSLITERATIONS: Record<string, string> = {
@@ -323,16 +322,33 @@ const TRANSLITERATIONS: Record<string, string> = {
 	đ: "d",
 	ł: "l",
 	þ: "th",
+	ư: "u",
+	ơ: "o",
 };
 
 function slug(value: string): string {
 	return value
 		.toLowerCase()
-		.replace(/[øæœåßđłþ]/g, (char) => TRANSLITERATIONS[char] ?? char)
+		.replace(/[øæœåßđłþươ]/g, (char) => TRANSLITERATIONS[char] ?? char)
 		.normalize("NFD")
 		.replace(/\p{Mn}/gu, "")
 		.replace(/[^a-z0-9]+/g, "-")
 		.replace(/^-|-$/g, "");
+}
+
+function mailbox(value: string): string {
+	return slug(value).replace(/-/g, "");
+}
+
+function clientName(): {
+	firstName: string;
+	lastName: string;
+	female: boolean;
+} {
+	const vietnamese = chance(0.6);
+	const first = vietnamese ? pick(VI_FIRST_NAMES) : pick(INTL_FIRST_NAMES);
+	const lastName = vietnamese ? pick(VI_LAST_NAMES) : pick(INTL_LAST_NAMES);
+	return { firstName: first.name, lastName, female: first.female };
 }
 
 async function seedOwners(): Promise<string[]> {
@@ -343,7 +359,7 @@ async function seedOwners(): Promise<string[]> {
 		return existing.map((user) => user.id);
 	}
 
-	console.log("No users yet — creating placeholder sales reps.");
+	console.log("No users yet — creating placeholder clinic staff.");
 	const created = await Promise.all(
 		OWNERS.map((owner) =>
 			db.user.upsert({
@@ -364,9 +380,14 @@ async function seedOwners(): Promise<string[]> {
 	return created.map((user) => user.id);
 }
 
-async function seedCompanies(
-	ownerIds: string[],
-): Promise<{ id: string; name: string; domain: string }[]> {
+type SeededCompany = {
+	id: string;
+	name: string;
+	clients: number;
+	journeys: number;
+};
+
+async function seedCompanies(ownerIds: string[]): Promise<SeededCompany[]> {
 	const companies = [];
 
 	for (const company of COMPANIES) {
@@ -386,12 +407,19 @@ async function seedCompanies(
 			update: {},
 			select: { id: true, name: true, domain: true, iconUrl: true },
 		});
-		companies.push({ ...row, domain: row.domain ?? company.domain });
+		companies.push({
+			...row,
+			domain: row.domain ?? company.domain,
+			clients: company.clients,
+			journeys: company.journeys,
+		});
 	}
 
 	await seedIcons(companies);
 
-	return companies.map(({ iconUrl: _, ...company }) => company);
+	return companies.map(
+		({ iconUrl: _icon, domain: _domain, ...company }) => company,
+	);
 }
 
 async function seedIcons(
@@ -417,44 +445,65 @@ async function seedIcons(
 		resolved += 1;
 	}
 
-	console.log(`Resolved ${resolved} of ${missing.length} company icons.`);
+	console.log(`Resolved ${resolved} of ${missing.length} organization icons.`);
 }
 
-type SeededContact = { id: string; companyId: string };
+type SeededContact = {
+	id: string;
+	name: string;
+	female: boolean;
+	companyId: string | null;
+};
 
 async function seedContacts(
-	companies: { id: string; domain: string }[],
+	companies: SeededCompany[],
 	ownerIds: string[],
 ): Promise<SeededContact[]> {
 	const contacts: SeededContact[] = [];
 	const used = new Set<string>();
 
+	const addClient = async (companyId: string | null) => {
+		const { firstName, lastName, female } = clientName();
+		const email = `${mailbox(firstName)}.${mailbox(lastName)}@${pick(
+			PERSONAL_EMAIL_DOMAINS,
+		)}`;
+		if (used.has(email)) return;
+		used.add(email);
+
+		const contact = await db.contact.upsert({
+			where: { email },
+			create: {
+				firstName,
+				lastName,
+				email,
+				title: pick(CLIENT_NOTES),
+				phone: chance(0.6)
+					? `+84 9${integer(0, 9)} ${integer(100, 999)} ${integer(1000, 9999)}`
+					: null,
+				companyId,
+				ownerId: pick(ownerIds),
+				createdAt: daysFromNow(-integer(10, 300), 12),
+			},
+			update: {},
+			select: { id: true },
+		});
+
+		contacts.push({
+			id: contact.id,
+			name: `${firstName} ${lastName}`,
+			female,
+			companyId,
+		});
+	};
+
 	for (const company of companies) {
-		for (let index = 0; index < integer(2, 4); index++) {
-			const firstName = pick(FIRST_NAMES);
-			const lastName = pick(LAST_NAMES);
-			const email = `${slug(firstName)}.${slug(lastName)}@${company.domain}`;
-			if (used.has(email)) continue;
-			used.add(email);
-
-			const contact = await db.contact.upsert({
-				where: { email },
-				create: {
-					firstName,
-					lastName,
-					email,
-					title: pick(TITLES),
-					phone: chance(0.4) ? `+1 415 555 ${integer(1000, 9999)}` : null,
-					companyId: company.id,
-					ownerId: pick(ownerIds),
-					createdAt: daysFromNow(-integer(10, 300), 12),
-				},
-				update: {},
-				select: { id: true },
-			});
-
-			contacts.push({ id: contact.id, companyId: company.id });
+		for (let index = 0; index < company.clients; index++) {
+			await addClient(company.id);
 		}
+	}
+
+	for (let index = 0; index < STANDALONE_CLIENTS; index++) {
+		await addClient(null);
 	}
 
 	for (const company of companies) {
@@ -471,9 +520,11 @@ async function seedContacts(
 
 type SeededDeal = {
 	id: string;
-	companyId: string;
+	companyId: string | null;
+	contactIds: string[];
 	ownerId: string;
 	closed: boolean;
+	stage: DealStage;
 };
 
 const SEED_RATES: Record<string, number> = {
@@ -555,88 +606,153 @@ function money(usdAmount: number, currency: string) {
 	};
 }
 
+const CLOSED_SHARE = 0.35;
+
+let journeysSeeded = 0;
+let journeysClosed = 0;
+
+function nextClosed(): boolean {
+	journeysSeeded += 1;
+	if (journeysClosed >= Math.round(journeysSeeded * CLOSED_SHARE)) return false;
+	journeysClosed += 1;
+	return true;
+}
+
+type JourneySpec = {
+	id: string;
+	name: string;
+	description: string;
+	companyId: string | null;
+	usdAmount: number;
+	attendees: SeededContact[];
+	roles: readonly string[];
+	ownerIds: string[];
+};
+
+async function seedJourney(spec: JourneySpec): Promise<SeededDeal> {
+	const closed = nextClosed();
+	const stage = closed
+		? chance(0.6)
+			? DealStage.ENROLLED
+			: DealStage.LOST
+		: pick(OPEN_DEAL_STAGES);
+	const ownerId = pick(spec.ownerIds);
+	const createdDaysAgo = integer(20, 210);
+	const createdAt = daysFromNow(-createdDaysAgo, 12);
+	const closedDaysAgo = closed
+		? integer(0, Math.max(createdDaysAgo - 14, 0))
+		: null;
+	const stageChangedAt = daysFromNow(
+		closedDaysAgo === null ? -integer(1, 20) : -closedDaysAgo,
+		12,
+	);
+
+	await db.deal.upsert({
+		where: { id: spec.id },
+		create: {
+			id: spec.id,
+			name: spec.name,
+			description: spec.description,
+			companyId: spec.companyId,
+			ownerId,
+			stage,
+			stageChangedAt,
+			...(() => {
+				const { amount, currency, baseAmount, baseCurrency, fxRate } = money(
+					spec.usdAmount,
+					pick(DEAL_CURRENCIES),
+				);
+				return {
+					amount,
+					currency,
+					baseAmount,
+					baseCurrency,
+					fxRate,
+					fxRateAt: fxRate === null ? null : daysFromNow(-1),
+				};
+			})(),
+			expectedCloseDate: daysFromNow(
+				closedDaysAgo === null
+					? integer(-10, 75)
+					: -closedDaysAgo + integer(-4, 9),
+			),
+			closedAt: closed ? stageChangedAt : null,
+			closedReason: stage === DealStage.LOST ? pick(LOST_REASONS) : null,
+			createdAt,
+		},
+		update: {},
+	});
+
+	for (const attendee of spec.attendees) {
+		await db.dealContact.upsert({
+			where: { dealId_contactId: { dealId: spec.id, contactId: attendee.id } },
+			create: {
+				dealId: spec.id,
+				contactId: attendee.id,
+				role: pick(spec.roles),
+			},
+			update: {},
+		});
+	}
+
+	return {
+		id: spec.id,
+		companyId: spec.companyId,
+		contactIds: spec.attendees.map((attendee) => attendee.id),
+		ownerId,
+		closed,
+		stage,
+	};
+}
+
 async function seedDeals(
-	companies: { id: string; name: string }[],
+	companies: SeededCompany[],
 	contacts: SeededContact[],
 	ownerIds: string[],
 ): Promise<SeededDeal[]> {
 	const deals: SeededDeal[] = [];
 
-	for (const [index, company] of companies.entries()) {
-		const count = index % 2 === 0 ? 2 : 1;
+	for (const company of companies) {
+		const members = contacts.filter(
+			(contact) => contact.companyId === company.id,
+		);
 
-		for (let n = 0; n < count; n++) {
-			const id = `seed-deal-${slug(company.name)}-${n}`;
-			const closed = chance(0.35);
-			const stage = closed ? pick(CLOSED_STAGES) : pick(OPEN_STAGES);
-			const ownerId = pick(ownerIds);
-			const createdDaysAgo = integer(20, 210);
-			const createdAt = daysFromNow(-createdDaysAgo, 12);
-			const closedDaysAgo = closed
-				? integer(0, Math.max(createdDaysAgo - 14, 0))
-				: null;
-			const stageChangedAt = daysFromNow(
-				closedDaysAgo === null ? -integer(1, 20) : -closedDaysAgo,
-				12,
-			);
-
-			await db.deal.upsert({
-				where: { id },
-				create: {
-					id,
-					name:
-						n === 0
-							? `${company.name} — Comp AI`
-							: `${company.name} — expansion`,
-					description: pick(DEAL_DESCRIPTIONS),
+		for (let n = 0; n < company.journeys; n++) {
+			deals.push(
+				await seedJourney({
+					id: `seed-deal-${slug(company.name)}-${n}`,
+					name: `${company.name} — ${pick(ORG_PROGRAMS)}`,
+					description: pick(ORG_DEAL_DESCRIPTIONS),
 					companyId: company.id,
-					ownerId,
-					stage,
-					stageChangedAt,
-					...(() => {
-						const { amount, currency, baseAmount, baseCurrency, fxRate } =
-							money(integer(6, 90) * 1000, pick(DEAL_CURRENCIES));
-						return {
-							amount,
-							currency,
-							baseAmount,
-							baseCurrency,
-							fxRate,
-							fxRateAt: fxRate === null ? null : daysFromNow(-1),
-						};
-					})(),
-					expectedCloseDate: daysFromNow(
-						closedDaysAgo === null
-							? integer(-10, 75)
-							: -closedDaysAgo + integer(-4, 9),
-					),
-					closedAt: closed ? stageChangedAt : null,
-					closedReason:
-						stage === DealStage.CLOSED_LOST ||
-						stage === DealStage.UNQUALIFIED_TO_BUY
-							? pick(LOST_REASONS)
-							: null,
-					createdAt,
-				},
-				update: {},
-			});
-
-			const companyContacts = contacts.filter(
-				(contact) => contact.companyId === company.id,
+					usdAmount: integer(12, 45) * 1000,
+					attendees: members.slice(0, integer(1, 2)),
+					roles: ORG_CONTACT_ROLES,
+					ownerIds,
+				}),
 			);
-			for (const contact of companyContacts.slice(0, integer(1, 2))) {
-				await db.dealContact.upsert({
-					where: { dealId_contactId: { dealId: id, contactId: contact.id } },
-					create: {
-						dealId: id,
-						contactId: contact.id,
-						role: chance(0.5) ? "Champion" : "Decision maker",
-					},
-					update: {},
-				});
-			}
+		}
+	}
 
-			deals.push({ id, companyId: company.id, ownerId, closed });
+	const clients = contacts.filter((contact) => contact.companyId === null);
+
+	for (const [index, client] of clients.entries()) {
+		const journeys = chance(0.3) ? 2 : 1;
+
+		for (let n = 0; n < journeys; n++) {
+			deals.push(
+				await seedJourney({
+					id: `seed-journey-${index}-${n}`,
+					name: `${client.name} — ${pick(
+						client.female ? PROGRAMS : PROGRAMS_WITHOUT_PRENATAL,
+					)}`,
+					description: pick(DEAL_DESCRIPTIONS),
+					companyId: null,
+					usdAmount: integer(2, 48) * 250,
+					attendees: [client],
+					roles: ["Client"],
+					ownerIds,
+				}),
+			);
 		}
 	}
 
@@ -645,7 +761,6 @@ async function seedDeals(
 
 async function seedActivities(
 	companies: { id: string }[],
-	contacts: SeededContact[],
 	deals: SeededDeal[],
 	ownerIds: string[],
 ): Promise<number> {
@@ -672,7 +787,11 @@ async function seedActivities(
 
 	const rows: ActivityRow[] = [];
 
-	const base = (companyId: string, createdById: string, createdAt: Date) => ({
+	const base = (
+		companyId: string | null,
+		createdById: string,
+		createdAt: Date,
+	) => ({
 		companyId,
 		contactId: null,
 		dealId: null,
@@ -686,8 +805,6 @@ async function seedActivities(
 	});
 
 	for (const deal of deals) {
-		const dealContacts = contacts.filter((c) => c.companyId === deal.companyId);
-
 		for (let n = 0; n < integer(3, 6); n++) {
 			const at = daysFromNow(-integer(2, 120), 18);
 			const type = pick([
@@ -701,7 +818,7 @@ async function seedActivities(
 				...base(deal.companyId, deal.ownerId, at),
 				type,
 				dealId: deal.id,
-				contactId: dealContacts.length > 0 ? pick(dealContacts).id : null,
+				contactId: deal.contactIds.length > 0 ? pick(deal.contactIds) : null,
 				subject:
 					type === ActivityType.CALL
 						? pick(CALL_SUBJECTS)
@@ -721,8 +838,8 @@ async function seedActivities(
 			dealId: deal.id,
 			subject: "Stage changed",
 			meta: {
-				from: DealStage.DEMO_BOOKED,
-				to: deal.closed ? DealStage.CLOSED_WON : DealStage.QUALIFIED_TO_BUY,
+				from: DealStage.INQUIRY,
+				to: deal.closed ? deal.stage : DealStage.CONSULT_DONE,
 			},
 		});
 	}
@@ -754,7 +871,7 @@ async function seedActivities(
 		rows.push({
 			...base(company.id, pick(ownerIds), daysFromNow(-integer(5, 200), 12)),
 			type: ActivityType.NOTE,
-			body: pick(NOTE_BODIES),
+			body: pick(ORG_NOTE_BODIES),
 		});
 	}
 
@@ -768,11 +885,11 @@ async function main() {
 	const companies = await seedCompanies(ownerIds);
 	const contacts = await seedContacts(companies, ownerIds);
 	const deals = await seedDeals(companies, contacts, ownerIds);
-	const activities = await seedActivities(companies, contacts, deals, ownerIds);
+	const activities = await seedActivities(companies, deals, ownerIds);
 
 	console.log(
-		`Seeded ${companies.length} companies, ${contacts.length} contacts, ` +
-			`${deals.length} deals, ${activities} activities, ${rates} exchange rates.`,
+		`Seeded ${companies.length} organizations, ${contacts.length} clients, ` +
+			`${deals.length} journeys, ${activities} activities, ${rates} exchange rates.`,
 	);
 }
 

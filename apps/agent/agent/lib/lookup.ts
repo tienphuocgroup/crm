@@ -31,7 +31,7 @@ export type DealHit = {
 	stage: string;
 	amount: number | null;
 	currency: string;
-	company: { id: string; name: string };
+	company: { id: string; name: string } | null;
 };
 
 export type SearchHit = ContactHit | CompanyHit | DealHit;
@@ -70,7 +70,7 @@ export async function listDeals(options: DealListOptions = {}) {
 		status === "open"
 			? [...OPEN_DEAL_STAGES]
 			: status === "won"
-				? [DealStage.CLOSED_WON]
+				? [DealStage.ENROLLED]
 				: status === "lost"
 					? [...LOSING_DEAL_STAGES]
 					: null;
@@ -319,7 +319,7 @@ async function searchDeals(
 
 	return rows
 		.map((row) => ({
-			score: score(term, [row.name, row.company.name]),
+			score: score(term, [row.name, row.company?.name ?? ""]),
 			hit: {
 				kind: "deal" as const,
 				id: row.id,

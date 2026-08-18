@@ -199,7 +199,11 @@ self-hoster's admin cannot redeploy.
 picker reads.
 
 - **A contact on a deal works at that deal's company**, enforced in the service and
-  not merely by the picker — the same rule as `companies.setPrimaryContact`.
+  not merely by the picker — the same rule as `companies.setPrimaryContact`. The
+  check runs at attach time and at create time (when `deals.create` gets both a
+  `companyId` and a `contactId`). A deal with no company accepts any contact, and
+  `deals.update` setting a company later does not re-check contacts already
+  attached — the invariant is an attach-time gate, not a stored constraint.
 - **Attaching is an upsert and re-attaching keeps the role already there**, so a
   double click cannot blank what somebody typed.
 - **Detaching removes the row, never the contact.** They stay in the CRM, on the
@@ -225,6 +229,12 @@ picker reads.
   transaction**. Never automatic.
 - **Deleting a company does not suppress its domain** — its people survive with no
   company, and domain suppression stays the explicit Settings → Connections control.
+- **Deleting a company leaves its deals, with their history.** `Deal.companyId` is
+  `SetNull` on the company delete, and inside the delete transaction every
+  `activity`, `agentConversation` and `agentTask` row that also carries a `dealId`
+  or `contactId` is re-anchored to `companyId = null` before the cascade — so a
+  surviving deal keeps its timeline, its conversations and a correct
+  `lastActivityAt`. Rows filed against the company alone still cascade.
 - **Clear `AgentTask` and `AgentEvent` yourself** — they carry `contactId`/`companyId`
   with no foreign key, so nothing cascades.
 - **Recompute `lastActivityAt` on exactly the records the delete reached.**

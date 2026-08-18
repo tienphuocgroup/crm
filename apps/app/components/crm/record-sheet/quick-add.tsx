@@ -162,7 +162,7 @@ export function AttachDealContact({
 	onDone,
 }: {
 	dealId: string;
-	companyName: string;
+	companyName: string | null;
 	onDone: () => void;
 }) {
 	const t = useTranslations("deals");
@@ -201,7 +201,9 @@ export function AttachDealContact({
 	const placeholder = options.isPending
 		? t("attachPlaceholderLoading")
 		: nobody
-			? t("attachPlaceholderNobody", { company: companyName })
+			? companyName
+				? t("attachPlaceholderNobody", { company: companyName })
+				: t("attachPlaceholderNobodyNoCompany")
 			: t("attachPlaceholderChoose");
 
 	return (
@@ -246,12 +248,14 @@ export function AttachDealContact({
 
 export function QuickAddDeal({
 	companyId,
-	companyName,
+	contactId,
+	anchorName,
 	ownerId,
 	onDone,
 }: {
-	companyId: string;
-	companyName: string;
+	companyId?: string;
+	contactId?: string;
+	anchorName: string;
 	ownerId: string | null;
 	onDone: () => void;
 }) {
@@ -300,6 +304,7 @@ export function QuickAddDeal({
 		create.mutate({
 			name,
 			companyId,
+			contactId,
 			ownerId: owner,
 			amountCents,
 			expectedCloseDate: closeDate || null,
@@ -321,7 +326,7 @@ export function QuickAddDeal({
 					autoFocus
 					value={name}
 					onChange={(event) => setName(event.target.value)}
-					placeholder={t("namePlaceholder", { company: companyName })}
+					placeholder={t("namePlaceholder", { anchor: anchorName })}
 					autoComplete="off"
 				/>
 			</Field>

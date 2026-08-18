@@ -16,7 +16,7 @@ import { usePrefetchRecord } from "@/components/crm/record-sheet/record-prefetch
 import { useOpenRecord } from "@/components/crm/record-sheet/record-stack";
 import { LocalDay } from "@/components/local-date-time";
 import type { DealListItem, DealListResult } from "@/lib/agent-transcript";
-import { DEAL_STAGE_OPTIONS } from "@/lib/deal-stage";
+import { DEAL_STAGE_OPTIONS, humaniseDealStage } from "@/lib/deal-stage";
 
 const COLUMN_COUNT = 7;
 
@@ -142,7 +142,7 @@ function Stage({ stage }: { stage: string }) {
 	return option ? (
 		<DealStageIndicator stage={option.value} />
 	) : (
-		<span className="text-muted-foreground">{humaniseStage(stage)}</span>
+		<span className="text-muted-foreground">{humaniseDealStage(stage)}</span>
 	);
 }
 
@@ -176,14 +176,6 @@ function tableMeta(
 	].filter((detail): detail is string => Boolean(detail));
 
 	return details.join(" · ");
-}
-
-function humaniseStage(stage: string): string {
-	return stage
-		.toLowerCase()
-		.split("_")
-		.map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
-		.join(" ");
 }
 
 function pipelineTotal(
