@@ -1,5 +1,6 @@
 import {
 	canChangeRole,
+	canImportRecords,
 	canRenameWorkspace,
 	ensureWorkspaceMembership,
 	isWorkspaceRole,
@@ -42,6 +43,7 @@ export interface Workspace {
 	viewerRole: WorkspaceRole | null;
 	canRename: boolean;
 	canChangeRoles: boolean;
+	canImport: boolean;
 }
 
 export interface WorkspaceMember {
@@ -113,6 +115,7 @@ export class WorkspaceService {
 			viewerRole: role,
 			canRename: canRenameWorkspace(role),
 			canChangeRoles: canChangeRole(role),
+			canImport: canImportRecords(role),
 		};
 	}
 

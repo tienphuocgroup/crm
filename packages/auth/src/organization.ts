@@ -29,6 +29,10 @@ export function canManageCurrency(role: WorkspaceRole | null): boolean {
 	return isWorkspaceAdmin(role);
 }
 
+export function canImportRecords(role: WorkspaceRole | null): boolean {
+	return isWorkspaceAdmin(role);
+}
+
 export function canManageConnections(role: WorkspaceRole | null): boolean {
 	return isWorkspaceAdmin(role);
 }

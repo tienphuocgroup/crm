@@ -245,6 +245,31 @@ picker reads.
 - **Recompute after commit, logging rather than throwing** — the row is already gone,
   and a raised error makes the browser skip invalidation and retry into a 404.
 
+## Imports
+
+`imports.commit` (`apps/api/src/imports/`) is the one bulk-import surface: CSV
+rows arrive from the browser in chunks of up to 500, for `kind` company or
+contact, in `dryRun` or `apply` mode.
+
+- **Create-only.** A row whose normalized `domain`/`email` already exists is
+  counted `matchedExisting` and left untouched. Re-running a file is the resume
+  mechanism — `createMany` with `skipDuplicates` plus the DB uniques make a
+  re-run or a racing second admin create zero duplicate rows.
+- **Created rows carry `source: IMPORT` and `enrichmentStatus: SKIPPED`** — no
+  spinner, no automatic research. Enrichment later is the existing `bulkEnrich`.
+- **No per-row CRM events.** An import writes plain rows: no `withCrmEvents`,
+  no `AgentTask`, no `AgentEvent`. Twenty thousand `company.created` events
+  would flood the agent triggers — deliberate divergence from single creates.
+- **Suppressed contacts stay out.** The service checks `SuppressedContact`
+  case-insensitively and counts matches as skipped, same rule as the inbox sync.
+- **Keyless rows** (company without domain, contact without email) are skipped
+  unless the call sets `includeKeyless` — the wizard's explicit toggle, because
+  keyless rows cannot be matched on a re-run.
+- **Gated by `canImportRecords`** (`@crm/auth`, owner + admin), enforced in the
+  service; `workspace.get` returns `canImport` so the UI and the 403 agree.
+- **Logging is counts only** — never row contents; emails and names are
+  personal data.
+
 ## Money
 
 A deal is sold in one currency and reported in another, and **only `baseAmount` may
