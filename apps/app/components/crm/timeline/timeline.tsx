@@ -10,20 +10,17 @@ import { Button } from "@crm/ui/components/button";
 import type { CarbonIcon } from "@crm/ui/components/icon";
 import { Spinner } from "@crm/ui/components/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@crm/ui/components/toggle-group";
-import { useUiLocale } from "@crm/ui/components/ui-strings-provider";
-import { dateTimeFormat } from "@crm/ui/lib/format";
 import { cn } from "@crm/ui/lib/utils";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
 import { useQueryState } from "nuqs";
 import { DetailSheetEmpty, SECTION_TITLE } from "@/components/detail-sheet";
+import { SEARCH_PARAM } from "@/lib/search-param-keys";
 import { useTRPC } from "@/lib/trpc/client";
 import { useHydrated } from "@/lib/use-hydrated";
 import { ActivityComposer } from "./activity-composer";
 import { TimelineEntry, type TimelineEntryData } from "./timeline-entry";
 import {
 	historyFilter,
-	TIMELINE_PARAM,
 	TIMELINE_TABS,
 	type TimelineTab,
 	timelineTabParser,
@@ -34,67 +31,64 @@ export type TimelineAnchor =
 	| { contactId: string }
 	| { dealId: string };
 
-const TAB_LABEL_KEY: Record<TimelineTab, string> = {
-	all: "timeline.tabAll",
-	notes: "timeline.tabNotes",
-	email: "timeline.tabEmail",
-	meetings: "timeline.tabMeetings",
-	upcoming: "timeline.tabUpcoming",
-	done: "timeline.tabDone",
-};
+const TAB_LABELS = {
+	all: "All",
+	notes: "Notes",
+	email: "Email",
+	meetings: "Meetings",
+	upcoming: "Upcoming",
+	done: "Done",
+} satisfies Record<TimelineTab, string>;
 
-const EMPTY_STATE_KEY: Record<
-	TimelineTab,
-	{ title: string; description: string }
-> = {
+const EMPTY_STATES = {
 	all: {
-		title: "timeline.emptyAllTitle",
-		description: "timeline.emptyAllDescription",
+		title: "Nothing has happened yet",
+		description:
+			"Calls, notes, emails and meetings all land here. Log the first one above, or wait for Gmail and Calendar to sync.",
 	},
 	notes: {
-		title: "timeline.emptyNotesTitle",
-		description: "timeline.emptyNotesDescription",
+		title: "No notes",
+		description:
+			"Notes are what you write down for the next person to read — what they care about, who else is involved, what you promised.",
 	},
 	email: {
-		title: "timeline.emptyEmailTitle",
-		description: "timeline.emptyEmailDescription",
+		title: "No email",
+		description:
+			"Threads appear here as they are synced from Gmail. Nothing from before this mailbox was connected is imported.",
 	},
 	meetings: {
-		title: "timeline.emptyMeetingsTitle",
-		description: "timeline.emptyMeetingsDescription",
+		title: "No meetings",
+		description:
+			"Calendar events with someone from this record on them show up here, past and upcoming.",
 	},
 	upcoming: {
-		title: "timeline.emptyUpcomingTitle",
-		description: "timeline.emptyUpcomingDescription",
+		title: "Nothing outstanding",
+		description:
+			"Tasks you have not finished appear here, and at the top of the All tab until they are done.",
 	},
 	done: {
-		title: "timeline.emptyDoneTitle",
-		description: "timeline.emptyDoneDescription",
+		title: "Nothing finished yet",
+		description: "Tasks move here once you tick them off.",
 	},
-};
+} satisfies Record<TimelineTab, { title: string; description: string }>;
 
-const EMPTY_ICONS: Record<TimelineTab, CarbonIcon> = {
+const EMPTY_ICONS = {
 	all: Time,
 	notes: Chat,
 	email: Email,
 	meetings: Events,
 	upcoming: Task,
 	done: Checkmark,
-};
+} satisfies Record<TimelineTab, CarbonIcon>;
 
-const DAY_OPTIONS = {
+const dayFormat = new Intl.DateTimeFormat("en-US", {
 	weekday: "short",
 	month: "short",
 	day: "numeric",
 	year: "numeric",
-} as const;
+});
 
-function dayLabel(
-	day: string,
-	local: boolean,
-	locale: string,
-	common: ReturnType<typeof useTranslations<"common">>,
-): string {
+function dayLabel(day: string, local: boolean): string {
 	const now = new Date();
 	const today = dayKey(now.toISOString(), local);
 	const yesterdayDate = local
@@ -102,19 +96,12 @@ function dayLabel(
 		: new Date(Date.now() - 86_400_000);
 	const yesterday = dayKey(yesterdayDate.toISOString(), local);
 
-	if (day === today) return common("timeline.today");
-	if (day === yesterday) return common("timeline.yesterday");
-	return dateTimeFormat(locale, DAY_OPTIONS).format(
-		new Date(`${day}T00:00:00`),
-	);
+	if (day === today) return "Today";
+	if (day === yesterday) return "Yesterday";
+	return dayFormat.format(new Date(`${day}T00:00:00`));
 }
 
-function byDay(
-	entries: TimelineEntryData[],
-	local: boolean,
-	locale: string,
-	common: ReturnType<typeof useTranslations<"common">>,
-) {
+function byDay(entries: TimelineEntryData[], local: boolean) {
 	const groups = new Map<
 		string,
 		{ day: string; label: string; entries: TimelineEntryData[] }
@@ -127,11 +114,7 @@ function byDay(
 		if (group) {
 			group.entries.push(entry);
 		} else {
-			groups.set(day, {
-				day,
-				label: dayLabel(day, local, locale, common),
-				entries: [entry],
-			});
+			groups.set(day, { day, label: dayLabel(day, local), entries: [entry] });
 		}
 	}
 
@@ -172,12 +155,13 @@ function TimelineDay({
 }
 
 export function Timeline({ anchor }: { anchor: TimelineAnchor }) {
-	const common = useTranslations("common");
-	const locale = useUiLocale();
 	const trpc = useTRPC();
 	const hydrated = useHydrated();
 
-	const [tab, setTab] = useQueryState(TIMELINE_PARAM, timelineTabParser);
+	const [tab, setTab] = useQueryState(
+		SEARCH_PARAM.record.timeline,
+		timelineTabParser,
+	);
 
 	const counts = useQuery(trpc.activities.timelineCounts.queryOptions(anchor));
 
@@ -216,7 +200,7 @@ export function Timeline({ anchor }: { anchor: TimelineAnchor }) {
 				>
 					{TIMELINE_TABS.map((option) => (
 						<ToggleGroupItem key={option} value={option}>
-							{common(TAB_LABEL_KEY[option])}
+							{TAB_LABELS[option]}
 							{counts.data?.[option] ? (
 								<span className="tabular-nums opacity-60">
 									{counts.data[option]}
@@ -234,20 +218,20 @@ export function Timeline({ anchor }: { anchor: TimelineAnchor }) {
 			) : entries.length === 0 && pinnedEntries.length === 0 ? (
 				<DetailSheetEmpty
 					icon={EMPTY_ICONS[tab]}
-					title={common(EMPTY_STATE_KEY[tab].title)}
-					description={common(EMPTY_STATE_KEY[tab].description)}
+					title={EMPTY_STATES[tab].title}
+					description={EMPTY_STATES[tab].description}
 				/>
 			) : (
 				<div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-4">
 					{pinnedEntries.length > 0 ? (
 						<TimelineDay
-							label={common("timeline.outstandingLabel")}
+							label="Outstanding"
 							entries={pinnedEntries}
 							anchor={anchor}
 						/>
 					) : null}
 
-					{byDay(entries, hydrated, locale, common).map((group) => (
+					{byDay(entries, hydrated).map((group) => (
 						<TimelineDay
 							key={group.day}
 							label={group.label}
@@ -265,7 +249,7 @@ export function Timeline({ anchor }: { anchor: TimelineAnchor }) {
 							onClick={() => history.fetchNextPage()}
 						>
 							{history.isFetchingNextPage ? <Spinner /> : null}
-							{common("timeline.showOlder")}
+							Show older
 						</Button>
 					) : null}
 				</div>

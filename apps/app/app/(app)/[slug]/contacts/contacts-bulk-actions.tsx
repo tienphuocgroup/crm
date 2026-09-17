@@ -1,19 +1,19 @@
 "use client";
 
+import Archive from "@carbon/icons-react/es/Archive";
 import Renew from "@carbon/icons-react/es/Renew";
-import TrashCan from "@carbon/icons-react/es/TrashCan";
+import Undo from "@carbon/icons-react/es/Undo";
 import {
 	DropdownMenuGroup,
 	DropdownMenuItem,
-	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuSub,
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
 } from "@crm/ui/components/dropdown-menu";
+import { formatCount } from "@crm/ui/lib/format";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
 	BulkActionsMenu,
@@ -21,23 +21,29 @@ import {
 	BulkOwnerMenu,
 	reportBulk,
 } from "@/components/crm/bulk-actions";
+import { CompanyMenuSearch } from "@/components/crm/company-picker";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
+
+function contacts(count: number): string {
+	return formatCount(count, "contact");
+}
 
 export function ContactsBulkActions({
 	ids,
 	onDone,
+	archived,
 }: {
 	ids: string[];
 	onDone: () => void;
+	archived: boolean;
 }) {
-	const t = useTranslations("contacts");
-	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 	const users = useQuery(trpc.users.list.queryOptions());
-	const companies = useQuery(trpc.companies.options.queryOptions({ q: "" }));
+	const [menuOpen, setMenuOpen] = useState(false);
 	const [confirming, setConfirming] = useState(false);
+	const companySearch = useRef<HTMLInputElement>(null);
 
 	const onError = (error: { message: string }) => toast.error(error.message);
 
@@ -45,9 +51,7 @@ export function ContactsBulkActions({
 		trpc.contacts.bulkAssignOwner.mutationOptions({
 			onSuccess: async (result) => {
 				await cache.contact();
-				reportBulk(common, result, (count) =>
-					t("bulkReassignedToast", { count }),
-				);
+				reportBulk(result, (count) => `${contacts(count)} reassigned.`);
 				onDone();
 			},
 			onError,
@@ -58,7 +62,7 @@ export function ContactsBulkActions({
 		trpc.contacts.bulkSetCompany.mutationOptions({
 			onSuccess: async (result) => {
 				await cache.contact();
-				reportBulk(common, result, (count) => t("bulkMovedToast", { count }));
+				reportBulk(result, (count) => `${contacts(count)} moved.`);
 				onDone();
 			},
 			onError,
@@ -69,18 +73,43 @@ export function ContactsBulkActions({
 		trpc.contacts.bulkEnrich.mutationOptions({
 			onSuccess: async (result) => {
 				await cache.contact();
-				reportBulk(common, result, (count) => t("bulkEnrichToast", { count }));
+				reportBulk(
+					result,
+					(count) => `Looking up ${contacts(count)} — the table will update.`,
+				);
 				onDone();
 			},
 			onError,
 		}),
 	);
 
-	const remove = useMutation(
-		trpc.contacts.bulkDelete.mutationOptions({
+	const archive = useMutation(
+		trpc.contacts.bulkArchive.mutationOptions({
 			onSuccess: async (result, variables) => {
 				await cache.removedMany({ kind: "contact", ids: variables.ids });
-				reportBulk(common, result, (count) => t("bulkDeletedToast", { count }));
+				reportBulk(result, (count) => `${contacts(count)} archived.`);
+				onDone();
+			},
+			onError,
+		}),
+	);
+
+	const restore = useMutation(
+		trpc.contacts.bulkRestore.mutationOptions({
+			onSuccess: async (result) => {
+				await cache.contact();
+				reportBulk(result, (count) => `${contacts(count)} restored.`);
+				onDone();
+			},
+			onError,
+		}),
+	);
+
+	const purge = useMutation(
+		trpc.contacts.bulkPurge.mutationOptions({
+			onSuccess: async (result, variables) => {
+				await cache.removedMany({ kind: "contact", ids: variables.ids });
+				reportBulk(result, (count) => `${contacts(count)} deleted forever.`);
 				setConfirming(false);
 				onDone();
 			},
@@ -88,73 +117,90 @@ export function ContactsBulkActions({
 		}),
 	);
 
+	if (archived) {
+		const pending = restore.isPending || purge.isPending;
+
+		return (
+			<>
+				<BulkActionsMenu pending={pending}>
+					<DropdownMenuGroup>
+						<DropdownMenuItem onSelect={() => restore.mutate({ ids })}>
+							<Undo />
+							Restore
+						</DropdownMenuItem>
+					</DropdownMenuGroup>
+					<DropdownMenuSeparator />
+					<DropdownMenuGroup>
+						<DropdownMenuItem
+							variant="destructive"
+							onSelect={() => setConfirming(true)}
+						>
+							Delete forever
+						</DropdownMenuItem>
+					</DropdownMenuGroup>
+				</BulkActionsMenu>
+
+				<BulkDeleteDialog
+					open={confirming}
+					onOpenChange={setConfirming}
+					title={`Delete ${contacts(ids.length)} forever?`}
+					description="Their email addresses are suppressed, so the inbox sync will not file them again. This cannot be undone."
+					onConfirm={() => purge.mutate({ ids })}
+				/>
+			</>
+		);
+	}
+
 	const pending =
 		assignOwner.isPending ||
 		setCompany.isPending ||
 		enrich.isPending ||
-		remove.isPending;
+		archive.isPending;
 
 	return (
-		<>
-			<BulkActionsMenu pending={pending}>
-				<BulkOwnerMenu
-					users={users.data ?? []}
-					unassignedLabel={common("bulkUnassignedOption")}
-					onSelect={(ownerId) => assignOwner.mutate({ ids, ownerId })}
-				/>
-				<DropdownMenuSub>
-					<DropdownMenuSubTrigger>
-						{t("bulkMoveToCompanyLabel")}
-					</DropdownMenuSubTrigger>
-					<DropdownMenuSubContent className="max-h-72 overflow-y-auto">
-						<DropdownMenuGroup>
-							<DropdownMenuItem
-								onSelect={() => setCompany.mutate({ ids, companyId: null })}
-							>
-								{t("noCompanyOption")}
-							</DropdownMenuItem>
-							{companies.data?.length === 0 ? (
-								<DropdownMenuLabel>{t("bulkNoCompaniesYet")}</DropdownMenuLabel>
-							) : (
-								companies.data?.map((company) => (
-									<DropdownMenuItem
-										key={company.id}
-										onSelect={() =>
-											setCompany.mutate({ ids, companyId: company.id })
-										}
-									>
-										{company.name}
-									</DropdownMenuItem>
-								))
-							)}
-						</DropdownMenuGroup>
-					</DropdownMenuSubContent>
-				</DropdownMenuSub>
-				<DropdownMenuGroup>
-					<DropdownMenuItem onSelect={() => enrich.mutate({ ids })}>
-						<Renew />
-						{common("reenrich")}
-					</DropdownMenuItem>
-				</DropdownMenuGroup>
-				<DropdownMenuSeparator />
-				<DropdownMenuGroup>
-					<DropdownMenuItem
-						variant="destructive"
-						onSelect={() => setConfirming(true)}
-					>
-						<TrashCan />
-						{common("delete")}
-					</DropdownMenuItem>
-				</DropdownMenuGroup>
-			</BulkActionsMenu>
-
-			<BulkDeleteDialog
-				open={confirming}
-				onOpenChange={setConfirming}
-				title={t("bulkDeleteConfirmTitle", { count: ids.length })}
-				description={t("bulkDeleteConfirmDescription")}
-				onConfirm={() => remove.mutate({ ids })}
+		<BulkActionsMenu
+			pending={pending}
+			open={menuOpen}
+			onOpenChange={setMenuOpen}
+		>
+			<BulkOwnerMenu
+				users={users.data ?? []}
+				unassignedLabel="Nobody"
+				onSelect={(ownerId) => assignOwner.mutate({ ids, ownerId })}
 			/>
-		</>
+			<DropdownMenuSub>
+				<DropdownMenuSubTrigger>Move to company</DropdownMenuSubTrigger>
+				<DropdownMenuSubContent
+					className="w-64 p-0"
+					onFocus={(event) => {
+						if (event.target === event.currentTarget) {
+							companySearch.current?.focus();
+						}
+					}}
+				>
+					<CompanyMenuSearch
+						none="No company"
+						inputRef={companySearch}
+						onSelect={(companyId) => {
+							setMenuOpen(false);
+							setCompany.mutate({ ids, companyId });
+						}}
+					/>
+				</DropdownMenuSubContent>
+			</DropdownMenuSub>
+			<DropdownMenuGroup>
+				<DropdownMenuItem onSelect={() => enrich.mutate({ ids })}>
+					<Renew />
+					Re-enrich
+				</DropdownMenuItem>
+			</DropdownMenuGroup>
+			<DropdownMenuSeparator />
+			<DropdownMenuGroup>
+				<DropdownMenuItem onSelect={() => archive.mutate({ ids })}>
+					<Archive />
+					Archive
+				</DropdownMenuItem>
+			</DropdownMenuGroup>
+		</BulkActionsMenu>
 	);
 }

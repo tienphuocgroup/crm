@@ -38,6 +38,7 @@ import { useOpenRecord } from "@/components/crm/record-sheet/record-stack";
 import { LocalRelativeTime } from "@/components/local-date-time";
 import { activityLabelKey } from "@/lib/activity-presentation";
 import { dealStageColor } from "@/lib/deal-stage";
+import { SEARCH_PARAM } from "@/lib/search-param-keys";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 import { useWorkspaceUrl } from "@/lib/use-workspace-url";
@@ -122,7 +123,10 @@ export function DashboardSummary() {
 	const openRecord = useOpenRecord();
 	const workspaceUrl = useWorkspaceUrl();
 
-	const [scope] = useQueryState("scope", overviewParsers.scope);
+	const [scope] = useQueryState(
+		SEARCH_PARAM.overview.scope,
+		overviewParsers[SEARCH_PARAM.overview.scope],
+	);
 
 	const summaryQuery = useQuery({
 		...trpc.dashboard.summary.queryOptions({ scope }),

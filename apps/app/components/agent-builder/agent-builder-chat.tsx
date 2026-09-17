@@ -35,13 +35,14 @@ import { Reasoning } from "@crm/ui/components/reasoning";
 import { ThinkingIndicator } from "@crm/ui/components/thinking-indicator";
 import { useMountEffect } from "@crm/ui/hooks/use-mount-effect";
 import { cn } from "@crm/ui/lib/utils";
+import type { AgentManifestSummary } from "@crm/validation/agent-manifest";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Client, type MessageStreamEvent } from "eve/client";
 import type { EveMessage, EveMessageInputRequest } from "eve/react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
 import { Fragment, type ReactNode, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 import {
 	AgentClarificationComposer,
 	type ClarificationResponse,
@@ -94,40 +95,94 @@ import { ShareChatDialog } from "./share-chat-dialog";
 type Conversation = RouterOutputs["conversations"]["builderById"];
 type SharedConversation = RouterOutputs["conversations"]["shared"];
 
-const BUILDER_STEPS = ["scope", "instructions", "manifest", "review"] as const;
-const BUILDER_STEP_KEYS: Record<(typeof BUILDER_STEPS)[number], string> = {
-	scope: "agentCreationStepScope",
-	instructions: "agentCreationStepInstructions",
-	manifest: "agentCreationStepManifest",
-	review: "agentCreationStepReview",
-};
+const BUILDER_STEPS = ["Scope", "Instructions", "Manifest", "Review"] as const;
 const BUILDER_STEP_ARTIFACTS = [
 	null,
 	"agent/instructions.md",
 	"agent/manifest.json",
 	"agent/README.md",
 ] as const;
-type DraftVersion = {
-	id: string;
-	status: string;
-	manifest: unknown;
-};
+const submissionResource = z.object({
+	kind: z.enum(["integration", "company", "contact", "deal"]),
+	id: z.string().min(1),
+	label: z.string().min(1),
+	detail: z.string().nullable().optional().catch(null),
+	imageUrl: z.string().nullable().optional().catch(null),
+});
 
-type BuilderSubmission = {
-	id: string;
-	createdAt: string;
-	clientRequestId?: string | null;
-	commandType: "CHAT" | "CREATE_AGENT";
-	message: unknown;
-	status: string;
-	errorMessage: string | null;
-};
+const storedAttachment = z.object({
+	id: z.string().min(1),
+	name: z.string().min(1),
+	type: z.string().min(1),
+	size: z.number(),
+	previewUrl: z.string().nullable().optional().catch(null),
+});
+
+const uploadAttachment = z.object({
+	name: z.string().min(1),
+	type: z.string().min(1),
+	size: z.number(),
+	contentBase64: z.string().min(1),
+	previewUrl: z.string().nullable().optional().catch(null),
+});
+
+const builderMessage = z
+	.object({
+		text: z.string().nullable().catch(null),
+		resources: z.array(submissionResource).catch([]),
+		attachments: z
+			.array(z.union([storedAttachment, uploadAttachment]))
+			.catch([]),
+		inputResponse: z
+			.object({ requestId: z.string().min(1) })
+			.nullable()
+			.catch(null),
+	})
+	.catch({
+		text: null,
+		resources: [],
+		attachments: [],
+		inputResponse: null,
+	});
+
+type BuilderMessage = z.infer<typeof builderMessage>;
+
+const builderSubmissions = z.array(
+	z.object({
+		id: z.string(),
+		createdAt: z.string(),
+		clientRequestId: z.string().nullable().catch(null),
+		commandType: z.enum(["CHAT", "CREATE_AGENT"]),
+		message: builderMessage,
+		status: z.string(),
+		errorMessage: z.string().nullable().catch(null),
+	}),
+);
+
+type BuilderSubmission = z.infer<typeof builderSubmissions>[number];
+
+const streamEventShape = z.object({
+	type: z.string().min(1),
+	meta: z.object({ id: z.string().min(1), at: z.string().min(1) }),
+});
+
+const streamEvents = z
+	.array(
+		z
+			.custom<MessageStreamEvent>(
+				(value) => streamEventShape.safeParse(value).success,
+			)
+			.nullable()
+			.catch(null),
+	)
+	.catch([])
+	.transform((events) => events.filter((event) => event !== null));
 
 type PendingSubmission = {
 	clientRequestId: string;
 	createdAt: string;
 	commandType: "CHAT" | "CREATE_AGENT";
-	message: unknown;
+	message: BuilderMessage;
 };
 
 export function AgentBuilderChat({
@@ -137,7 +192,6 @@ export function AgentBuilderChat({
 	conversationId: string;
 	initialData: Conversation | SharedConversation | null;
 }) {
-	const t = useTranslations("agent-panel");
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const sharedChat = isSharedChatToken(conversationId);
@@ -227,9 +281,7 @@ export function AgentBuilderChat({
 					className="flex flex-1 items-center justify-center p-8"
 					aria-busy="true"
 				>
-					<span className="text-muted-foreground text-sm">
-						{t("openingChat")}
-					</span>
+					<span className="text-muted-foreground text-sm">Opening chat…</span>
 				</main>
 			);
 		}
@@ -242,7 +294,7 @@ export function AgentBuilderChat({
 	}
 
 	const data = conversation.data ?? (initialData as Conversation);
-	const submissions = data.submissions as BuilderSubmission[];
+	const submissions = builderSubmissions.parse(data.submissions);
 	const confirmedRequestIds = new Set(
 		submissions
 			.map((submission) => submission.clientRequestId)
@@ -251,8 +303,7 @@ export function AgentBuilderChat({
 	const pendingSubmissions = sending.filter(
 		(item) => !confirmedRequestIds.has(item.clientRequestId),
 	);
-	const persistedEvents = (events.data ??
-		[]) as unknown as MessageStreamEvent[];
+	const persistedEvents = streamEvents.parse(events.data ?? []);
 	const streamKey = builderSessionStreamKey(
 		data.sessionId,
 		submissions.at(-1)?.id ?? null,
@@ -297,6 +348,7 @@ export function AgentBuilderChat({
 					text: prompt.message,
 					resources: prompt.resources,
 					attachments: prompt.attachments,
+					inputResponse: null,
 				},
 			},
 		]);
@@ -397,6 +449,7 @@ export function AgentBuilderChat({
 										submission={{
 											id: item.clientRequestId,
 											createdAt: item.createdAt,
+											clientRequestId: item.clientRequestId,
 											commandType: item.commandType,
 											message: item.message,
 											status: "PENDING",
@@ -549,13 +602,15 @@ function BuilderEventFollower({
 			}
 		};
 
-		void follow()
-			.catch((error: unknown) => {
+		void (async () => {
+			try {
+				await follow();
+			} catch (error) {
 				if (!controller.signal.aborted) console.error(error);
-			})
-			.finally(() => {
+			} finally {
 				if (!controller.signal.aborted) onEnded();
-			});
+			}
+		})();
 
 		return () => controller.abort();
 	});
@@ -573,15 +628,6 @@ function AgentToolStep({
 }: {
 	item: Extract<TranscriptItem, { kind: "did" }>;
 }) {
-	const t = useTranslations("agent-panel");
-	const specific = toolLabel(item);
-	const verb = item.label.key ? t(item.label.key) : item.label.fallback;
-	const text = specific
-		? t(specific.key, specific.values)
-		: item.label.reason
-			? t("stepWithReason", { step: verb, reason: item.label.reason })
-			: verb;
-
 	return (
 		<div className="flex min-w-0 flex-col gap-1">
 			<div className="flex min-w-0 items-start gap-2 text-sm">
@@ -592,7 +638,7 @@ function AgentToolStep({
 				) : (
 					<Icon icon={Checkmark} className="size-3.5 text-ring" />
 				)}
-				<span className="min-w-0 wrap-break-word">{text}</span>
+				<span className="min-w-0 wrap-break-word">{toolLabel(item)}</span>
 			</div>
 			{item.errorText ? (
 				<p className="pl-[22px] wrap-break-word text-destructive text-xs leading-5">
@@ -620,10 +666,8 @@ function SharedAgentChat({
 }: {
 	conversation: SharedConversation;
 }) {
-	const t = useTranslations("agent-panel");
-	const submissions =
-		conversation.submissions as unknown as BuilderSubmission[];
-	const events = conversation.events as unknown as MessageStreamEvent[];
+	const submissions = builderSubmissions.parse(conversation.submissions);
+	const events = streamEvents.parse(conversation.events);
 	const messages = messagesFromEvents(events);
 	const timeline = conversationTimeline(submissions, events, messages);
 	const answeredQuestionIds = questionResponseIds(submissions);
@@ -636,13 +680,9 @@ function SharedAgentChat({
 		<main className="flex min-h-0 flex-1 flex-col">
 			<header className="flex h-12 shrink-0 items-center gap-3 border-b px-5">
 				<h1 className="min-w-0 flex-1 truncate font-medium text-sm">
-					{conversation.agent?.name ??
-						conversation.title ??
-						t("sharedChatTitleFallback")}
+					{conversation.agent?.name ?? conversation.title ?? "Agent builder"}
 				</h1>
-				<span className="text-muted-foreground text-xs">
-					{t("readOnlyLabel")}
-				</span>
+				<span className="text-muted-foreground text-xs">Read-only</span>
 			</header>
 
 			<MessageScrollerProvider autoScroll defaultScrollPosition="last-anchor">
@@ -655,10 +695,11 @@ function SharedAgentChat({
 							<MessageScrollerItem messageId="shared-chat-notice">
 								<div className="rounded-lg border bg-card px-4 py-3 text-sm">
 									<p className="font-medium">
-										{t("sharedChatSharedBy", { name: conversation.ownerName })}
+										Shared by {conversation.ownerName}
 									</p>
 									<p className="mt-1 text-muted-foreground text-xs">
-										{t("sharedChatReadOnlyNotice")}
+										You can read this builder chat, but only its owner can
+										continue or change it.
 									</p>
 								</div>
 							</MessageScrollerItem>
@@ -714,19 +755,18 @@ function ChatHeader({
 	working: boolean;
 	creatingAgent: boolean;
 }) {
-	const t = useTranslations("agent-panel");
 	const workspaceUrl = useWorkspaceUrl();
 	const title =
 		(creatingAgent ? conversation.agent?.name : null) ??
 		conversation.title ??
-		t("chatTitleFallback");
+		"Agent chat";
 
 	return (
 		<header className="flex h-12 shrink-0 items-center gap-2 border-b px-4 sm:gap-2.5 sm:pr-4 sm:pl-5">
 			<div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
 				<h1 className="truncate font-medium text-sm">{title}</h1>
 				<span className="hidden shrink-0 text-muted-foreground text-xs sm:inline">
-					{t("chatVisibilityPrivate")}
+					Private
 				</span>
 				{working ? (
 					<span className="flex shrink-0 items-center gap-2 text-muted-foreground text-xs">
@@ -735,15 +775,15 @@ function ChatHeader({
 							className="size-3.5 animate-spin text-ring"
 							motion="none"
 						/>
-						<span className="sr-only">{t("chatWorkingInBackground")}</span>
+						<span className="sr-only">Working in background</span>
 						<span aria-hidden="true" className="hidden sm:inline">
-							{t("chatWorkingInBackground")}
+							Working in background
 						</span>
 					</span>
 				) : null}
 			</div>
 			<Button asChild variant="ghost" size="icon-sm">
-				<Link href={workspaceUrl("/chat")} aria-label={t("startNewChat")}>
+				<Link href={workspaceUrl("/chat")} aria-label="Start a new chat">
 					<Icon icon={Add} />
 				</Link>
 			</Button>
@@ -769,14 +809,14 @@ function UserSubmission({
 	error: string | null;
 	sending?: boolean;
 }) {
-	const t = useTranslations("agent-panel");
-	const message = builderMessageOf(submission.message, t);
+	const message = submission.message;
+	const messageText = message.text ?? "Message unavailable";
 	const command =
 		submission.commandType === "CREATE_AGENT"
-			? consumeBuilderCommand(message.text)
+			? consumeBuilderCommand(messageText)
 			: null;
-	const text = command?.body ?? message.text;
-	const response = inputResponseOf(submission.message);
+	const text = command?.body ?? messageText;
+	const response = message.inputResponse;
 
 	return (
 		<div
@@ -795,15 +835,12 @@ function UserSubmission({
 				{response ? (
 					<div className="flex items-center gap-1.5 text-muted-foreground text-xs">
 						<Icon icon={Reply} className="size-3.5" />
-						<span>{t("answerToFollowUp")}</span>
+						<span>Answer to follow-up</span>
 					</div>
 				) : null}
 				{submission.commandType === "CREATE_AGENT" ? (
 					<div className="flex flex-wrap gap-1">
-						<ChatCommandChip
-							label={t("createAgentCommandLabel")}
-							icon={Application}
-						/>
+						<ChatCommandChip label="Create agent" icon={Application} />
 					</div>
 				) : null}
 				<p className="wrap-break-word">{text}</p>
@@ -826,7 +863,7 @@ function UserSubmission({
 				) : null}
 				{failed ? (
 					<p className="mt-2 text-destructive text-xs">
-						{error ?? t("messageSendFailed")}
+						{error ?? "This message could not be sent."}
 					</p>
 				) : null}
 			</div>
@@ -843,7 +880,6 @@ function AssistantMessage({
 	message: EveMessage;
 	answeredQuestionIds: ReadonlySet<string>;
 }) {
-	const t = useTranslations("agent-panel");
 	const [transcript] = toTranscript([message]);
 	if (!transcript || transcript.mine) return null;
 
@@ -862,7 +898,7 @@ function AssistantMessage({
 						<Reasoning
 							key={item.id}
 							isStreaming={item.streaming}
-							label={t("reasoningLabel")}
+							label="Reasoning"
 						>
 							<Markdown className="wrap-break-word leading-5">
 								{item.text}
@@ -925,14 +961,12 @@ function FollowUpTranscriptItem({
 	question: EveMessageInputRequest;
 	answered: boolean;
 }) {
-	const t = useTranslations("agent-panel");
-
 	return (
 		<div className="w-full max-w-sm border-ring/50 border-l-2 bg-muted/40 px-3 py-2.5">
 			<div className="flex items-center justify-between gap-3 text-xs">
-				<span className="font-medium">{t("followUpLabel")}</span>
+				<span className="font-medium">Follow-up</span>
 				<span className="text-muted-foreground">
-					{answered ? t("followUpAnswered") : t("followUpWaiting")}
+					{answered ? "Answered" : "Waiting for your answer"}
 				</span>
 			</div>
 			<Markdown className="mt-1.5 wrap-break-word text-sm leading-5">
@@ -943,17 +977,15 @@ function FollowUpTranscriptItem({
 }
 
 function CopyResponseAction({ markdown }: { markdown: string }) {
-	const t = useTranslations("agent-panel");
-
 	return (
 		<div className="flex h-7 items-center">
 			<Button
 				variant="ghost"
 				size="icon-xs"
-				aria-label={t("copyResponseMarkdown")}
+				aria-label="Copy response as Markdown"
 				onClick={() => {
 					void navigator.clipboard.writeText(markdown);
-					toast.success(t("responseCopiedMarkdown"));
+					toast.success("Response copied as Markdown.");
 				}}
 			>
 				<Icon icon={Copy} />
@@ -971,7 +1003,6 @@ function ResponseActions({
 	messageId: string;
 	markdown: string;
 }) {
-	const t = useTranslations("agent-panel");
 	const trpc = useTRPC();
 	const initial = conversation.feedback.find(
 		(item) => item.messageId === messageId,
@@ -994,10 +1025,10 @@ function ResponseActions({
 			<Button
 				variant="ghost"
 				size="icon-xs"
-				aria-label={t("copyResponseMarkdown")}
+				aria-label="Copy response as Markdown"
 				onClick={() => {
 					void navigator.clipboard.writeText(markdown);
-					toast.success(t("responseCopiedMarkdown"));
+					toast.success("Response copied as Markdown.");
 				}}
 			>
 				<Icon icon={Copy} />
@@ -1005,7 +1036,7 @@ function ResponseActions({
 			<Button
 				variant="ghost"
 				size="icon-xs"
-				aria-label={t("rateResponseHelpful")}
+				aria-label="Rate response helpful"
 				aria-pressed={rating === "UP"}
 				className={cn(rating === "UP" && "bg-muted text-foreground")}
 				onClick={() => choose("UP")}
@@ -1015,7 +1046,7 @@ function ResponseActions({
 			<Button
 				variant="ghost"
 				size="icon-xs"
-				aria-label={t("rateResponseNotHelpful")}
+				aria-label="Rate response not helpful"
 				aria-pressed={rating === "DOWN"}
 				className={cn(rating === "DOWN" && "bg-muted text-foreground")}
 				onClick={() => choose("DOWN")}
@@ -1037,8 +1068,6 @@ function BuildingAgentCard({
 	artifacts: Conversation["builderArtifacts"];
 	startedAt: string | null;
 }) {
-	const t = useTranslations("agent-panel");
-	const common = useTranslations("common");
 	const completed = completedBuilderSteps(artifacts, startedAt, sessionId);
 	const stop = useAsyncAction({
 		action: async () => {
@@ -1049,8 +1078,8 @@ function BuildingAgentCard({
 			});
 			if (!response.ok) throw new Error(await response.text());
 		},
-		onSuccess: () => toast.success(t("stopRequestedToast")),
-		onError: () => toast.error(t("stopFailedToast")),
+		onSuccess: () => toast.success("Stop requested."),
+		onError: () => toast.error("The agent could not be stopped. Try again."),
 	});
 
 	const writingPath =
@@ -1061,17 +1090,14 @@ function BuildingAgentCard({
 			<div className="overflow-hidden rounded-lg border bg-card">
 				<div className="flex items-center gap-2 px-4 pt-4">
 					<span className="min-w-0 flex-1 font-medium text-sm">
-						{t("buildingAgent")}
+						Building the agent
 					</span>
 					<span className="shrink-0 font-mono text-muted-foreground text-xs">
-						{t("agentCreationStepProgress", { completed })}
+						{completed} of 4
 					</span>
 				</div>
-				<ol
-					className="flex flex-col gap-1 p-3"
-					aria-label={t("agentCreationLabel")}
-				>
-					{BUILDER_STEPS.map((step, index) => {
+				<ol className="flex flex-col gap-1 p-3" aria-label="Agent creation">
+					{BUILDER_STEPS.map((label, index) => {
 						const done = index < completed;
 						const active =
 							index === completed && completed < BUILDER_STEPS.length;
@@ -1079,7 +1105,7 @@ function BuildingAgentCard({
 
 						return (
 							<li
-								key={step}
+								key={label}
 								className={cn(
 									"flex min-h-8 min-w-0 flex-col justify-center gap-1 rounded-md px-2",
 									active && "bg-muted py-2",
@@ -1108,7 +1134,7 @@ function BuildingAgentCard({
 											!done && !active && "text-muted-foreground",
 										)}
 									>
-										{t(BUILDER_STEP_KEYS[step])}
+										{label}
 									</span>
 									<span
 										className={cn(
@@ -1120,15 +1146,15 @@ function BuildingAgentCard({
 										{done && artifact
 											? artifact.replace("agent/", "")
 											: done
-												? t("agentCreationStepStatusDone")
+												? "Done"
 												: active
-													? t("agentCreationStepStatusWorking")
-													: t("agentCreationStepStatusQueued")}
+													? "Working"
+													: "Queued"}
 									</span>
 								</div>
 								{active && writingPath ? (
 									<p className="pl-7 font-mono text-muted-foreground text-xs">
-										{t("agentCreationWritingPath", { path: writingPath })}
+										Writing {writingPath}
 									</p>
 								) : null}
 							</li>
@@ -1137,7 +1163,7 @@ function BuildingAgentCard({
 				</ol>
 				<footer className="flex items-center gap-2 border-t bg-muted px-4 py-3">
 					<p className="min-w-0 flex-1 text-pretty text-muted-foreground text-xs">
-						{t("agentCreationRunsInBackground")}
+						Runs in the background
 					</p>
 					<Button
 						variant="outline"
@@ -1148,11 +1174,11 @@ function BuildingAgentCard({
 					>
 						<AsyncButtonContent
 							status={stop.status}
-							pendingLabel={t("stoppingLabel")}
-							successLabel={t("stoppingLabel")}
-							errorLabel={common("tryAgain")}
+							pendingLabel="Stopping"
+							successLabel="Stopping"
+							errorLabel="Try again"
 						>
-							{t("stopButton")}
+							Stop
 						</AsyncButtonContent>
 					</Button>
 				</footer>
@@ -1172,16 +1198,14 @@ function BuilderFailureCard({
 	retrying: boolean;
 	onRetry: (() => void) | null;
 }) {
-	const t = useTranslations("agent-panel");
-	const common = useTranslations("common");
 	const message =
 		failure.kind === "rate-limit"
-			? t("builderFailureRateLimit")
+			? "Vercel AI Gateway rate-limited this model before it could start. Try again in a moment or add AI Gateway credits in Vercel."
 			: failure.kind === "restricted"
-				? t("builderFailureRestricted")
+				? "This model requires paid AI Gateway credits. Add credits in Vercel, then try again."
 				: failure.kind === "credits"
-					? t("builderFailureCredits")
-					: t("builderFailureUnknown");
+					? "Vercel AI Gateway has no available credits. Add credits in Vercel, then try again."
+					: "The builder could not finish this request. Try again.";
 
 	return (
 		<div
@@ -1192,9 +1216,7 @@ function BuilderFailureCard({
 				<Icon icon={WarningAlt} className="mt-0.5 size-4 text-destructive" />
 				<div className="min-w-0 flex-1">
 					<p className="font-medium text-sm">
-						{creatingAgent
-							? t("builderFailureTitleCreatingAgent")
-							: t("builderFailureTitleChat")}
+						{creatingAgent ? "Agent creation stopped" : "Response stopped"}
 					</p>
 					<p className="mt-0.5 text-pretty text-muted-foreground text-xs leading-5">
 						{message}
@@ -1211,9 +1233,9 @@ function BuilderFailureCard({
 				>
 					<AsyncButtonContent
 						status={retrying ? "pending" : "idle"}
-						pendingLabel={t("retryingLabel")}
+						pendingLabel="Retrying"
 					>
-						{common("tryAgain")}
+						Try again
 					</AsyncButtonContent>
 				</Button>
 			) : null}
@@ -1228,43 +1250,39 @@ function ReviewAgentCard({
 	conversation: Conversation;
 	versionId: string;
 }) {
-	const t = useTranslations("agent-panel");
 	const workspaceUrl = useWorkspaceUrl();
 	const version = conversation.createdVersions.find(
 		(candidate) => candidate.id === versionId,
-	) as DraftVersion | undefined;
+	);
 	const agent = conversation.agent;
-	const manifest = manifestOf(version?.manifest, t);
 
 	if (!version || !agent) return null;
+	const manifest = manifestOf(version.manifest);
 
 	return (
 		<div className="flex flex-col gap-5">
 			<p className="max-w-[640px] text-pretty text-sm leading-5">
-				{t("reviewDraftReady")}
+				Your private draft is ready to review.
 			</p>
-			<AgentCardShell
-				name={manifest.name ?? agent.name}
-				status={t("agentStatusPrivate")}
-			>
+			<AgentCardShell name={manifest.name ?? agent.name} status="Private">
 				<div className="flex flex-col gap-2 p-4">
-					<ReviewRow label={t("reviewRowWhen")} value={manifest.trigger} />
-					<ReviewRow label={t("reviewRowFind")} value={manifest.looksAt} />
-					<ReviewRow label={t("reviewRowThen")} value={manifest.action} />
-					<ReviewRow label={t("reviewRowScope")}>
+					<ReviewRow label="When" value={manifest.trigger} />
+					<ReviewRow label="Find" value={manifest.looksAt} />
+					<ReviewRow label="Then" value={manifest.action} />
+					<ReviewRow label="Scope">
 						<AgentScopeBadges
 							scopes={manifest.access}
-							fallback={t("agentScopeFallback")}
+							fallback="Bounded CRM read access"
 						/>
 					</ReviewRow>
 				</div>
-				<AgentCardFooter note={t("reviewCardFooterNote")}>
+				<AgentCardFooter note="Sandboxed · credentials never enter the sandbox">
 					<Button asChild size="sm">
 						<Link
 							href={workspaceUrl(`/agents/${agent.id}`)}
 							transitionTypes={["nav-forward"]}
 						>
-							{t("viewDetails")}
+							View details
 							<Icon icon={ArrowRight} data-icon="inline-end" />
 						</Link>
 					</Button>
@@ -1339,8 +1357,6 @@ function DeployedAgentCard({
 	conversation: Conversation;
 	onFollowUp: (message: string) => Promise<void>;
 }) {
-	const t = useTranslations("agent-panel");
-	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const workspaceUrl = useWorkspaceUrl();
 	const queryClient = useQueryClient();
@@ -1351,7 +1367,7 @@ function DeployedAgentCard({
 				await queryClient.invalidateQueries({
 					queryKey: trpc.agents.history.pathKey(),
 				});
-				toast.success(t("agentRunQueuedToast"));
+				toast.success("Agent run queued.");
 			},
 			onError: (error) => toast.error(error.message),
 		}),
@@ -1369,23 +1385,21 @@ function DeployedAgentCard({
 	const nextRun =
 		enabledTriggers.length === 1 ? enabledTriggers[0]?.nextRunAt : null;
 	const triggerSummary =
-		enabledTriggers.map((trigger) => trigger.name).join(" · ") ||
-		t("manualOnlyLabel");
+		enabledTriggers.map((trigger) => trigger.name).join(" · ") || "Manual only";
 
 	return (
 		<div className="flex flex-col gap-[18px]">
 			<div className="flex flex-col gap-1">
-				<p className="text-sm leading-5">
-					{t("deployedAgentLive", { name: agent.name })}
-				</p>
+				<p className="text-sm leading-5">{agent.name} is live.</p>
 				<p className="text-muted-foreground text-sm leading-5">
-					{t("deployedAgentLiveDescription")}
+					I created the Eve agent, applied its bounded CRM and integration
+					access, and made it live for the team.
 				</p>
 			</div>
-			<AgentCardShell name={agent.name} status={t("agentStatusLive")}>
+			<AgentCardShell name={agent.name} status="Live">
 				<div className="flex flex-col gap-2 p-4">
 					<ReviewRow
-						label={t("runMetaTrigger")}
+						label="Trigger"
 						value={
 							nextRun ? (
 								<LocalDateTime
@@ -1402,16 +1416,10 @@ function DeployedAgentCard({
 							)
 						}
 					/>
-					<ReviewRow
-						label={t("reviewRowRunsIn")}
-						value={t("deployedAgentRuntime")}
-					/>
-					<ReviewRow
-						label={common("ownerLabel")}
-						value={t("deployedAgentOwner", { name: agent.createdBy.name })}
-					/>
+					<ReviewRow label="Runs in" value="Eve runtime · isolated sandbox" />
+					<ReviewRow label="Owner" value={`Team · ${agent.createdBy.name}`} />
 				</div>
-				<AgentCardFooter note={t("deployedAgentFooterNote")}>
+				<AgentCardFooter note="The chat stays private. The agent is team-owned.">
 					<div className="flex items-center gap-2">
 						<Button
 							variant="outline"
@@ -1422,17 +1430,17 @@ function DeployedAgentCard({
 						>
 							<AsyncButtonContent
 								status={runAction.status}
-								pendingLabel={t("queueingLabel")}
-								successLabel={t("queuedLabel")}
-								errorLabel={common("tryAgain")}
+								pendingLabel="Queueing"
+								successLabel="Queued"
+								errorLabel="Try again"
 							>
 								<Icon icon={Play} data-icon="inline-start" />
-								{t("runNowButton")}
+								Run now
 							</AsyncButtonContent>
 						</Button>
 						<Button asChild size="sm">
 							<Link href={workspaceUrl(`/agents/${agent.id}`)}>
-								{t("openAgent")}
+								Open agent
 								<Icon icon={ArrowRight} data-icon="inline-end" />
 							</Link>
 						</Button>
@@ -1442,9 +1450,9 @@ function DeployedAgentCard({
 
 			<div>
 				<p className="flex h-7 items-center text-muted-foreground text-sm">
-					{t("suggestedFollowUps")}
+					Suggested follow-ups
 				</p>
-				{[t("followUpSuggestionAddTeammate")].map((suggestion) => (
+				{["Add another teammate to the notification"].map((suggestion) => (
 					<button
 						key={suggestion}
 						type="button"
@@ -1463,18 +1471,17 @@ function DeployedAgentCard({
 }
 
 function ChatUnavailable() {
-	const t = useTranslations("agent-panel");
 	const workspaceUrl = useWorkspaceUrl();
 
 	return (
 		<main className="flex flex-1 items-center justify-center p-8">
 			<div className="max-w-md text-center">
-				<h1 className="font-medium text-lg">{t("chatUnavailableTitle")}</h1>
+				<h1 className="font-medium text-lg">Chat unavailable</h1>
 				<p className="mt-2 text-muted-foreground text-sm">
-					{t("chatUnavailableDescription")}
+					This chat does not exist or you do not have access to it.
 				</p>
 				<Button asChild variant="outline" className="mt-5">
-					<Link href={workspaceUrl("/chat")}>{t("startNewChat")}</Link>
+					<Link href={workspaceUrl("/chat")}>Start a new chat</Link>
 				</Button>
 			</div>
 		</main>
@@ -1488,22 +1495,6 @@ const RESOURCE_ICONS = {
 	deal: Partnership,
 } as const;
 
-function builderMessageOf(
-	message: unknown,
-	t: ReturnType<typeof useTranslations>,
-) {
-	const row = recordOf(message);
-	return {
-		text: typeof row.text === "string" ? row.text : t("messageUnavailable"),
-		resources: Array.isArray(row.resources)
-			? (row.resources as BuilderPrompt["resources"])
-			: [],
-		attachments: Array.isArray(row.attachments)
-			? (row.attachments as BuilderPrompt["attachments"])
-			: [],
-	};
-}
-
 function hasQueuedQuestionResponse(
 	submissions: BuilderSubmission[],
 	requestId: string,
@@ -1513,7 +1504,7 @@ function hasQueuedQuestionResponse(
 			return false;
 		}
 
-		return inputResponseOf(submission.message)?.requestId === requestId;
+		return submission.message.inputResponse?.requestId === requestId;
 	});
 }
 
@@ -1526,36 +1517,25 @@ function questionResponseIds(
 				return [];
 			}
 
-			const response = inputResponseOf(submission.message);
+			const response = submission.message.inputResponse;
 			return response ? [response.requestId] : [];
 		}),
 	);
-}
-
-function inputResponseOf(message: unknown): { requestId: string } | null {
-	const response = recordOf(recordOf(message).inputResponse);
-	return typeof response.requestId === "string" && response.requestId
-		? { requestId: response.requestId }
-		: null;
 }
 
 function retryPromptOf(
 	submission: BuilderSubmission | undefined,
 ): BuilderPrompt | null {
 	if (!submission) return null;
-	const row = recordOf(submission.message);
-	if (Object.keys(recordOf(row.inputResponse)).length > 0) return null;
-	if (typeof row.text !== "string" || !row.text.trim()) return null;
+	const { message } = submission;
+	if (message.inputResponse) return null;
+	if (!message.text?.trim()) return null;
 
 	return {
 		commandType: submission.commandType,
-		message: row.text,
-		resources: Array.isArray(row.resources)
-			? (row.resources as BuilderPrompt["resources"])
-			: [],
-		attachments: Array.isArray(row.attachments)
-			? (row.attachments as BuilderPrompt["attachments"])
-			: [],
+		message: message.text,
+		resources: message.resources,
+		attachments: message.attachments,
 	};
 }
 
@@ -1571,57 +1551,36 @@ function sharedConversationNeedsPolling(
 	return !eventStreamSettled(conversation.events);
 }
 
-function manifestOf(value: unknown, t: ReturnType<typeof useTranslations>) {
-	const manifest = recordOf(value);
-	const triggers = Array.isArray(manifest.triggers)
-		? manifest.triggers.map(recordOf)
-		: [];
-	const dataScope = recordOf(manifest.dataScope);
-	const actions = Array.isArray(manifest.actions)
-		? manifest.actions.map(recordOf)
-		: [];
-	const access = Array.isArray(manifest.access)
-		? manifest.access.filter((item): item is string => typeof item === "string")
-		: [];
-
+function manifestOf(manifest: AgentManifestSummary) {
 	return {
-		name:
-			typeof manifest.name === "string" && manifest.name.trim()
-				? manifest.name.trim()
-				: null,
-		description:
-			typeof manifest.description === "string" && manifest.description.trim()
-				? manifest.description.trim()
-				: null,
+		name: manifest.name?.trim() || null,
 		trigger:
-			triggers
+			manifest.triggers
 				.map((trigger) =>
 					trigger.type === "MANUAL"
-						? t("triggerOnDemand")
+						? "On demand"
 						: compactSummary(
 								trigger.summary,
-								trigger.type === "EVENT"
-									? t("triggerOnEvent")
-									: t("triggerOnSchedule"),
+								trigger.type === "EVENT" ? "On CRM event" : "On schedule",
 							),
 				)
-				.join(" · ") || t("triggerOnDemand"),
-		looksAt: textOf(dataScope.summary, t("scopeApprovedFallback")),
-		action: compactSummary(actions[0]?.summary, t("actionRequestedFallback")),
-		access,
+				.join(" · ") || "On demand",
+		looksAt: textOf(
+			manifest.dataScope.summary,
+			"CRM records in the approved scope",
+		),
+		action: compactSummary(
+			manifest.actions[0]?.summary,
+			"Perform the requested team action",
+		),
+		access: manifest.access,
 	};
 }
 
-function compactSummary(value: unknown, fallback: string): string {
+function compactSummary(value: string | undefined, fallback: string): string {
 	return textOf(value, fallback).replace(/\s+\([^()]+\)\s*\.?$/, "");
 }
 
-function recordOf(value: unknown): Record<string, unknown> {
-	return value && typeof value === "object" && !Array.isArray(value)
-		? (value as Record<string, unknown>)
-		: {};
-}
-
-function textOf(value: unknown, fallback: string): string {
-	return typeof value === "string" && value.trim() ? value : fallback;
+function textOf(value: string | undefined, fallback: string): string {
+	return value?.trim() ? value : fallback;
 }

@@ -18,6 +18,8 @@ const CONTACT_SELECT = {
 	firstName: true,
 	lastName: true,
 	title: true,
+	seniority: true,
+	function: true,
 	linkedinUrl: true,
 	twitterUrl: true,
 	githubUrl: true,
@@ -79,13 +81,12 @@ export async function sweepBlankFacts(
 	for (const group of groupByField(proposals)) {
 		const [best] = group;
 		const field = best.field as FactField;
-		const contact = best.contact as FactSubject;
+		const contact: FactSubject = best.contact;
 		const column = factColumn(field);
 		const current = applied.get(key(best.contactId, field));
 
 		if (!fillsBlank({ field, contact, hasAgentFact: current !== undefined })) {
-			const value =
-				current ?? (column ? (contact[column] as string | null) : null);
+			const value = current ?? (column ? contact[column] : null);
 			const stale = redundant(group, value);
 
 			sweep.waiting += group.length - stale.length;
@@ -138,6 +139,8 @@ type Proposal = {
 		firstName: string;
 		lastName: string | null;
 		title: string | null;
+		seniority: string | null;
+		function: string | null;
 		linkedinUrl: string | null;
 		twitterUrl: string | null;
 		githubUrl: string | null;

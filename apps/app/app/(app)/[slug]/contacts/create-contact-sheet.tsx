@@ -24,23 +24,22 @@ import {
 } from "@crm/ui/components/sheet";
 import { Spinner } from "@crm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import { type ComponentProps, Suspense, useId, useState } from "react";
 import { toast } from "sonner";
+import { CompanyPicker } from "@/components/crm/company-picker";
 import { useOpenRecord } from "@/components/crm/record-sheet/record-stack";
+import { SEARCH_PARAM } from "@/lib/search-param-keys";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 
 const NONE = "none";
 
 function AddButton(props: ComponentProps<typeof Button>) {
-	const t = useTranslations("contacts");
-
 	return (
 		<Button {...props}>
 			<Icon icon={Add} data-icon="inline-start" />
-			{t("createTitle")}
+			New contact
 		</Button>
 	);
 }
@@ -54,14 +53,12 @@ export function CreateContactSheet({ companyId }: { companyId?: string }) {
 }
 
 function CreateContactForm({ companyId }: { companyId?: string }) {
-	const t = useTranslations("contacts");
-	const common = useTranslations("common");
 	const openRecord = useOpenRecord();
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 
 	const [open, setOpen] = useQueryState(
-		"new",
+		SEARCH_PARAM.dialog.create,
 		parseAsBoolean.withDefault(false),
 	);
 	const [firstName, setFirstName] = useState("");
@@ -77,18 +74,13 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 	const titleId = useId();
 
 	const users = useQuery(trpc.users.list.queryOptions());
-	const companies = useQuery(trpc.companies.options.queryOptions({ q: "" }));
 
 	const create = useMutation(
 		trpc.contacts.create.mutationOptions({
 			onSuccess: async (contact) => {
 				await cache.contact(contact.id);
 				toast.success(
-					t("createdToast", {
-						name: [contact.firstName, contact.lastName]
-							.filter(Boolean)
-							.join(" "),
-					}),
+					`${[contact.firstName, contact.lastName].filter(Boolean).join(" ")} added.`,
 				);
 				await setOpen(null);
 				setFirstName("");
@@ -108,8 +100,11 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 			</SheetTrigger>
 			<SheetContent side="right">
 				<SheetHeader>
-					<SheetTitle>{t("createTitle")}</SheetTitle>
-					<SheetDescription>{t("createDescription")}</SheetDescription>
+					<SheetTitle>New contact</SheetTitle>
+					<SheetDescription>
+						Email addresses are unique, so importing the same person twice
+						updates them rather than duplicating them.
+					</SheetDescription>
 				</SheetHeader>
 
 				<form
@@ -129,9 +124,7 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 				>
 					<FieldGroup>
 						<Field>
-							<FieldLabel htmlFor={firstNameId}>
-								{t("firstNameLabel")}
-							</FieldLabel>
+							<FieldLabel htmlFor={firstNameId}>First name</FieldLabel>
 							<Input
 								id={firstNameId}
 								value={firstName}
@@ -142,7 +135,7 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor={lastNameId}>{t("lastNameLabel")}</FieldLabel>
+							<FieldLabel htmlFor={lastNameId}>Last name</FieldLabel>
 							<Input
 								id={lastNameId}
 								value={lastName}
@@ -152,7 +145,7 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor={emailId}>{t("emailLabel")}</FieldLabel>
+							<FieldLabel htmlFor={emailId}>Email</FieldLabel>
 							<Input
 								id={emailId}
 								type="email"
@@ -163,47 +156,34 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor={titleId}>{t("titleLabel")}</FieldLabel>
+							<FieldLabel htmlFor={titleId}>Title</FieldLabel>
 							<Input
 								id={titleId}
 								value={title}
 								onChange={(event) => setTitle(event.target.value)}
-								placeholder={t("titleFieldPlaceholder")}
+								placeholder="Head of Security"
 								autoComplete="off"
 							/>
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor="create-contact-company">
-								{t("companyLabel")}
-							</FieldLabel>
-							<Select value={company} onValueChange={setCompany}>
-								<SelectTrigger id="create-contact-company">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value={NONE}>{t("noCompanyOption")}</SelectItem>
-									{(companies.data ?? []).map((option) => (
-										<SelectItem key={option.id} value={option.id}>
-											{option.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+							<FieldLabel htmlFor="create-contact-company">Company</FieldLabel>
+							<CompanyPicker
+								id="create-contact-company"
+								value={company}
+								onValueChange={setCompany}
+								none={{ value: NONE, label: "No company" }}
+							/>
 						</Field>
 
 						<Field>
-							<FieldLabel htmlFor="create-contact-owner">
-								{common("ownerLabel")}
-							</FieldLabel>
+							<FieldLabel htmlFor="create-contact-owner">Owner</FieldLabel>
 							<Select value={ownerId} onValueChange={setOwnerId}>
 								<SelectTrigger id="create-contact-owner">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value={NONE}>
-										{common("unassignedOption")}
-									</SelectItem>
+									<SelectItem value={NONE}>Unassigned</SelectItem>
 									{(users.data ?? []).map((user) => (
 										<SelectItem key={user.id} value={user.id}>
 											{user.name}
@@ -222,10 +202,10 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 						disabled={create.isPending || firstName.trim() === ""}
 					>
 						{create.isPending ? <Spinner /> : null}
-						{t("addContactAction")}
+						Add contact
 					</Button>
 					<SheetClose asChild>
-						<Button variant="outline">{common("cancel")}</Button>
+						<Button variant="outline">Cancel</Button>
 					</SheetClose>
 				</SheetFooter>
 			</SheetContent>

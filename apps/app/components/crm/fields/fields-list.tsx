@@ -5,6 +5,7 @@ import ChevronRight from "@carbon/icons-react/es/ChevronRight";
 import OverflowMenuVertical from "@carbon/icons-react/es/OverflowMenuVertical";
 import Renew from "@carbon/icons-react/es/Renew";
 import Warning from "@carbon/icons-react/es/Warning";
+import { fieldKeyFromLabel, typeLabel } from "@crm/db/fields-shape";
 import { Badge } from "@crm/ui/components/badge";
 import { Button } from "@crm/ui/components/button";
 import {
@@ -30,12 +31,33 @@ import {
 import { Icon } from "@crm/ui/components/icon";
 import { SortableItem, SortableList } from "@crm/ui/components/sortable-list";
 import { Spinner } from "@crm/ui/components/spinner";
+import { FIELD_TEMPLATES } from "@crm/validation/field-templates";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 import type { RouterOutputs } from "@/lib/trpc/types";
+import {
+	ADD,
+	ARCHIVED_NOTE,
+	ARCHIVED_ROW,
+	CUSTOM_GROUP,
+	DRAG_NOTE,
+	EMPTY_BODY,
+	EMPTY_TITLE,
+	ERROR_BODY,
+	ERROR_TITLE,
+	FILTER_NOTE,
+	MANUAL_ONLY,
+	NEW_FIELD,
+	ORDER_NOTE,
+	RETRY,
+	STANDARD_NOTE,
+	STANDARD_ROW,
+	SUGGESTED_NOTE,
+	SUGGESTED_ROW,
+	TABLE_NOTE,
+} from "./fields-copy";
 import { type FieldEntity, kindOf } from "./fields-entity";
 import { STANDARD_FIELDS } from "./standard-fields";
 
@@ -43,27 +65,23 @@ type Field = RouterOutputs["fields"]["list"][number];
 
 const ROW = "flex items-center gap-2.5 border-b px-5 py-2";
 
-function summaryOf(
-	field: Field,
-	common: ReturnType<typeof useTranslations<"common">>,
-): string {
+function summaryOf(field: Field): string {
 	const parts: string[] = [];
 
 	if (field.agentFilled) {
 		parts.push(
 			field.agentBrief ??
 				(field.options.length > 0
-					? common("fields.optionsCountSummary", {
-							count: field.options.length,
-						})
+					? `${field.options.length} options`
 					: field.label),
 		);
 	} else {
-		parts.push(common("fields.manualOnly"));
-		if (field.required) parts.push(common("fields.requiredNote"));
+		parts.push(MANUAL_ONLY);
+		if (field.required) parts.push("required");
 	}
 
-	if (field.showOnTable) parts.push(common("fields.tableNote"));
+	if (field.showOnTable) parts.push(TABLE_NOTE);
+	if (field.showOnFilter) parts.push(FILTER_NOTE);
 
 	return parts.join(" · ");
 }
@@ -122,7 +140,6 @@ export function FieldsList({
 	onEdit: (key: string) => void;
 	onNew: () => void;
 }) {
-	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 	const queryClient = useQueryClient();
@@ -167,17 +184,29 @@ export function FieldsList({
 		}),
 	);
 
+	const addSuggested = useMutation(
+		trpc.fields.create.mutationOptions({
+			onSuccess: () => cache.fields(kindOf(entity)),
+			onError: (error) => toast.error(error.message),
+		}),
+	);
+
 	const all = query.data ?? [];
 	const live = all.filter((field) => !field.archived);
 	const archived = all.filter((field) => field.archived);
 	const standard = STANDARD_FIELDS[entity];
 
+	const existingKeys = new Set(all.map((field) => field.key));
+	const suggestions = FIELD_TEMPLATES[entity].filter(
+		(template) => !existingKeys.has(fieldKeyFromLabel(template.label)),
+	);
+
 	return (
 		<>
 			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 				<DisclosureRow
-					title={common("fields.standardRow")}
-					note={`${standard.length} · ${common("fields.standardNote")}`}
+					title={STANDARD_ROW}
+					note={`${standard.length} · ${STANDARD_NOTE}`}
 				>
 					<ul className="border-b bg-muted/40 py-1">
 						{standard.map((field) => (
@@ -185,11 +214,59 @@ export function FieldsList({
 								key={field}
 								className="px-5 py-1 text-muted-foreground text-xs"
 							>
-								{common(`fields.${field}`)}
+								{field}
 							</li>
 						))}
 					</ul>
 				</DisclosureRow>
+
+				{suggestions.length > 0 && (
+					<DisclosureRow
+						title={SUGGESTED_ROW}
+						note={`${suggestions.length} · ${SUGGESTED_NOTE}`}
+					>
+						<ul className="border-b bg-muted/40 py-1">
+							{suggestions.map((template) => (
+								<li
+									key={template.label}
+									className="flex items-center gap-2.5 px-5 py-1.5"
+								>
+									<span className="flex-1 truncate text-muted-foreground text-xs">
+										{template.label}
+										{template.options && template.options.length > 0
+											? ` · ${template.options.join(", ")}`
+											: ` · ${typeLabel(template.type)}`}
+									</span>
+									<Button
+										variant="outline"
+										size="xs"
+										disabled={addSuggested.isPending}
+										onClick={() =>
+											addSuggested.mutate({
+												entity,
+												label: template.label,
+												type: template.type,
+												options: (template.options ?? []).map((label) => ({
+													label,
+												})),
+												agentFilled:
+													template.type !== "USER" &&
+													template.type !== "NUMBER",
+												required: false,
+												showOnSheet: true,
+												showOnTable: false,
+												showOnFilter: false,
+											})
+										}
+									>
+										<Icon icon={Add} data-icon="inline-start" />
+										{ADD}
+									</Button>
+								</li>
+							))}
+						</ul>
+					</DisclosureRow>
+				)}
 
 				{query.isPending ? (
 					<div className="flex flex-1 items-center justify-center">
@@ -201,8 +278,8 @@ export function FieldsList({
 							<EmptyMedia variant="icon">
 								<Icon icon={Warning} />
 							</EmptyMedia>
-							<EmptyTitle>{common("fields.errorTitle")}</EmptyTitle>
-							<EmptyDescription>{common("fields.errorBody")}</EmptyDescription>
+							<EmptyTitle>{ERROR_TITLE}</EmptyTitle>
+							<EmptyDescription>{ERROR_BODY}</EmptyDescription>
 						</EmptyHeader>
 						<EmptyContent>
 							<Button
@@ -211,7 +288,7 @@ export function FieldsList({
 								onClick={() => query.refetch()}
 							>
 								<Icon icon={Renew} data-icon="inline-start" />
-								{common("fields.retry")}
+								{RETRY}
 							</Button>
 						</EmptyContent>
 					</Empty>
@@ -223,15 +300,13 @@ export function FieldsList({
 									<EmptyMedia variant="icon">
 										<Icon icon={Add} />
 									</EmptyMedia>
-									<EmptyTitle>{common("fields.emptyTitle")}</EmptyTitle>
-									<EmptyDescription>
-										{common("fields.emptyBody")}
-									</EmptyDescription>
+									<EmptyTitle>{EMPTY_TITLE}</EmptyTitle>
+									<EmptyDescription>{EMPTY_BODY}</EmptyDescription>
 								</EmptyHeader>
 								<EmptyContent>
 									<Button onClick={onNew}>
 										<Icon icon={Add} data-icon="inline-start" />
-										{common("fields.newField")}
+										{NEW_FIELD}
 									</Button>
 								</EmptyContent>
 							</Empty>
@@ -239,10 +314,10 @@ export function FieldsList({
 							<>
 								<div className="flex items-center justify-between gap-3 px-5 pt-3.5 pb-2">
 									<span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
-										{common("fields.customGroup")}
+										{CUSTOM_GROUP}
 									</span>
 									<span className="text-muted-foreground text-xs">
-										{common("fields.dragNote")}
+										{DRAG_NOTE}
 									</span>
 								</div>
 
@@ -266,7 +341,7 @@ export function FieldsList({
 													{field.label}
 												</span>
 												<span className="w-full truncate text-muted-foreground text-xs">
-													{summaryOf(field, common)}
+													{summaryOf(field)}
 												</span>
 											</button>
 
@@ -274,7 +349,7 @@ export function FieldsList({
 												variant="mono"
 												className="w-18 shrink-0 justify-center"
 											>
-												{common(`fieldType.${field.type}`)}
+												{field.typeLabel}
 											</Badge>
 
 											<DropdownMenu>
@@ -282,21 +357,19 @@ export function FieldsList({
 													<Button variant="ghost" size="icon-xs">
 														<Icon icon={OverflowMenuVertical} />
 														<span className="sr-only">
-															{common("fields.moreForField", {
-																label: field.label,
-															})}
+															More for {field.label}
 														</span>
 													</Button>
 												</DropdownMenuTrigger>
 												<DropdownMenuContent align="end">
 													<DropdownMenuItem onSelect={() => onEdit(field.key)}>
-														{common("fields.edit")}
+														Edit
 													</DropdownMenuItem>
 													<DropdownMenuSeparator />
 													<DropdownMenuItem
 														onSelect={() => archive.mutate({ id: field.id })}
 													>
-														{common("fields.archive")}
+														Archive
 													</DropdownMenuItem>
 												</DropdownMenuContent>
 											</DropdownMenu>
@@ -308,8 +381,8 @@ export function FieldsList({
 
 						{archived.length > 0 ? (
 							<DisclosureRow
-								title={common("fields.archivedRow")}
-								note={`${archived.length} · ${common("fields.archivedNote")}`}
+								title={ARCHIVED_ROW}
+								note={`${archived.length} · ${ARCHIVED_NOTE}`}
 							>
 								<ul className="border-b">
 									{archived.map((field) => (
@@ -325,7 +398,7 @@ export function FieldsList({
 												size="xs"
 												onClick={() => restore.mutate({ id: field.id })}
 											>
-												{common("fields.restore")}
+												Restore
 											</Button>
 										</li>
 									))}
@@ -340,10 +413,10 @@ export function FieldsList({
 				<div className="flex shrink-0 items-center justify-between gap-3 border-t px-5 py-3">
 					<Button onClick={onNew}>
 						<Icon icon={Add} data-icon="inline-start" />
-						{common("fields.newField")}
+						{NEW_FIELD}
 					</Button>
 					<span className="text-right text-muted-foreground text-xs">
-						{common("fields.orderNote")}
+						{ORDER_NOTE}
 					</span>
 				</div>
 			) : null}

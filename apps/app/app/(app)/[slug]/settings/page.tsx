@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import {
 	PageShell,
@@ -14,25 +13,22 @@ import { requireSession } from "@/lib/session";
 import { HydrateClient } from "@/lib/trpc/hydrate";
 import { getServerQueryClient, getServerTrpc } from "@/lib/trpc/server";
 import { AgentModel } from "./agent-model";
-import { LanguageForm } from "./language-form";
+import { ArchiveRetention } from "./archive-retention";
 import { ResearchKey } from "./research-key";
 import { WorkspaceForm } from "./workspace-form";
 
-export async function generateMetadata(): Promise<Metadata> {
-	const t = await getTranslations("settings");
-	return { title: t("general.metaTitle") };
-}
+export const metadata: Metadata = {
+	title: "General",
+};
 
-export default async function GeneralSettingsPage() {
-	const t = await getTranslations("settings");
-
+export default function GeneralSettingsPage() {
 	return (
 		<PageShell>
 			<PageShellHeader>
 				<PageShellHeading>
-					<PageShellTitle>{t("general.metaTitle")}</PageShellTitle>
+					<PageShellTitle>General</PageShellTitle>
 					<PageShellDescription>
-						{t("general.pageDescription")}
+						Who you are, and the model the research agent thinks with.
 					</PageShellDescription>
 				</PageShellHeading>
 			</PageShellHeader>
@@ -57,6 +53,7 @@ async function Settings() {
 		queryClient.prefetchQuery(trpc.settings.agentModel.queryOptions()),
 		queryClient.prefetchQuery(trpc.settings.modelCatalog.queryOptions()),
 		queryClient.prefetchQuery(trpc.settings.researchKey.queryOptions()),
+		queryClient.prefetchQuery(trpc.settings.archiveRetention.queryOptions()),
 	]);
 
 	return (
@@ -64,8 +61,8 @@ async function Settings() {
 			<div className="flex max-w-3xl flex-col gap-6">
 				<WorkspaceForm />
 				<ResearchKey />
+				<ArchiveRetention />
 				<AgentModel />
-				<LanguageForm />
 			</div>
 		</HydrateClient>
 	);

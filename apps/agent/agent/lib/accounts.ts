@@ -1,5 +1,6 @@
 import { ActivityType, db, EmailDirection } from "@crm/db";
 import { CLOSED_DEAL_STAGES } from "@crm/db/deal-stage";
+import { z } from "zod";
 import { isDerivedName } from "./names";
 
 const BODY_LIMIT = 4000;

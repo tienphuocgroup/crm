@@ -18,7 +18,6 @@ const domain = `delete-${suffix}.test`;
 const doomedDomain = `doomed-${suffix}.test`;
 const stampDomain = `stamped-${suffix}.test`;
 const orphanDomain = `orphaned-${suffix}.test`;
-const keptDomain = `kept-${suffix}.test`;
 const email = `gone@${domain}`;
 const colleague = `stays@${domain}`;
 const userId = `user-${suffix}`;
@@ -26,10 +25,10 @@ const userId = `user-${suffix}`;
 const stamp = new ActivityStampService(db);
 
 const agent = {
-	contactCreated: async () => undefined,
+	contactCreated: async () => true,
 	companyCreated: async () => undefined,
 	withCrmEvents: withDiscardedCrmEvents,
-	companyRequested: async () => undefined,
+	companyRequested: async () => true,
 } as unknown as AgentTriggerService;
 
 const directory = new CompanyDirectoryService(agent);
@@ -67,16 +66,12 @@ async function matchContext() {
 	};
 }
 
-const domains = [domain, doomedDomain, stampDomain, orphanDomain, keptDomain];
+const domains = [domain, doomedDomain, stampDomain, orphanDomain];
 const ours = {
 	OR: domains.map((host) => ({ email: { endsWith: `@${host}` } })),
 };
 
-async function parked(subject: {
-	contactId?: string;
-	companyId?: string;
-	dealId?: string;
-}) {
+async function parked(subject: { contactId?: string; companyId?: string }) {
 	return db.agentTask.create({
 		data: {
 			...subject,
@@ -110,7 +105,6 @@ async function clean() {
 		},
 	});
 	await db.agentEvent.deleteMany({ where: { contactId: { in: contactIds } } });
-	await db.deal.deleteMany({ where: { ownerId: userId } });
 	await db.contact.deleteMany({ where: ours });
 	await db.company.deleteMany({ where: { domain: { in: domains } } });
 	await db.suppressedContact.deleteMany({ where: ours });
@@ -126,7 +120,7 @@ beforeAll(async () => {
 
 afterAll(clean);
 
-describe("deleting a contact", () => {
+describe("purging a contact", () => {
 	let contactId: string;
 
 	it("takes the record, its queued research and its transcript with it", async () => {
@@ -151,7 +145,7 @@ describe("deleting a contact", () => {
 			},
 		});
 
-		expect(await contacts.delete(contactId)).toEqual({
+		expect(await contacts.purge(contactId)).toEqual({
 			id: contactId,
 			name: "Gone Person",
 		});
@@ -228,7 +222,7 @@ describe("deleting a contact", () => {
 			}),
 		).toEqual({ email: asSynced });
 
-		await contacts.delete(created.id);
+		await contacts.purge(created.id);
 
 		expect(
 			await db.suppressedContact.findUnique({ where: { email: asSynced } }),
@@ -251,8 +245,8 @@ describe("deleting a contact", () => {
 	});
 });
 
-describe("deleting a company", () => {
-	it("leaves its deals and its people without a company", async () => {
+describe("purging a company", () => {
+	it("takes its deals and leaves its people without a company", async () => {
 		const company = await companies.create({
 			name: "Doomed",
 			domain: doomedDomain,
@@ -270,17 +264,12 @@ describe("deleting a company", () => {
 
 		await parked({ companyId: company.id });
 
-		expect(await companies.delete(company.id)).toEqual({
+		expect(await companies.purge(company.id)).toEqual({
 			id: company.id,
 			name: "Doomed",
 		});
 
-		expect(
-			await db.deal.findUnique({
-				where: { id: deal.id },
-				select: { companyId: true },
-			}),
-		).toEqual({ companyId: null });
+		expect(await db.deal.findUnique({ where: { id: deal.id } })).toBeNull();
 		expect(await db.agentTask.count({ where: { companyId: company.id } })).toBe(
 			0,
 		);
@@ -291,12 +280,11 @@ describe("deleting a company", () => {
 		});
 		expect(survivor?.companyId).toBeNull();
 
-		await db.deal.delete({ where: { id: deal.id } });
 		await db.contact.delete({ where: { id: contact.id } });
 	});
 });
 
-describe("the activity stamps a delete leaves behind", () => {
+describe("the activity stamps a purge leaves behind", () => {
 	it("are recomputed on every record the deleted one's activities touched", async () => {
 		const company = await companies.create({
 			name: "Stamped",
@@ -329,7 +317,7 @@ describe("the activity stamps a delete leaves behind", () => {
 			at,
 		);
 
-		await contacts.delete(contact.id);
+		await contacts.purge(contact.id);
 
 		expect(
 			await db.company.findUnique({
@@ -345,7 +333,7 @@ describe("the activity stamps a delete leaves behind", () => {
 		).toEqual({ lastActivityAt: null });
 	});
 
-	it("follow a deleted company through the deals it leaves behind", async () => {
+	it("follow a deleted company through the deals it takes with it", async () => {
 		const company = await companies.create({
 			name: "Orphaner",
 			domain: orphanDomain,
@@ -373,110 +361,15 @@ describe("the activity stamps a delete leaves behind", () => {
 		});
 		await stamp.touch({ contactId: contact.id, dealId: deal.id }, at);
 
-		await companies.delete(company.id);
+		await companies.purge(company.id);
 
 		expect(
 			await db.contact.findUnique({
 				where: { id: contact.id },
 				select: { companyId: true, lastActivityAt: true },
 			}),
-		).toEqual({ companyId: null, lastActivityAt: at });
-		expect(
-			await db.deal.findUnique({
-				where: { id: deal.id },
-				select: { companyId: true, lastActivityAt: true },
-			}),
-		).toEqual({ companyId: null, lastActivityAt: at });
+		).toEqual({ companyId: null, lastActivityAt: null });
 
-		await db.deal.delete({ where: { id: deal.id } });
 		await db.contact.delete({ where: { id: contact.id } });
-	});
-});
-
-describe("deleting a company a deal depends on", () => {
-	it("re-anchors the deal's history and takes only what was the company's", async () => {
-		const at = new Date("2026-06-01T09:00:00.000Z");
-
-		const company = await companies.create({
-			name: "Kept",
-			domain: keptDomain,
-		});
-		const deal = await db.deal.create({
-			data: { name: "Kept deal", companyId: company.id, ownerId: userId },
-			select: { id: true },
-		});
-
-		const dealActivity = await db.activity.create({
-			data: {
-				type: "STAGE_CHANGE",
-				subject: "Stage changed",
-				companyId: company.id,
-				dealId: deal.id,
-				createdById: userId,
-				createdAt: at,
-				meta: { from: "INQUIRY", to: "CONSULT_BOOKED" },
-			},
-			select: { id: true },
-		});
-		const companyActivity = await db.activity.create({
-			data: {
-				type: "NOTE",
-				subject: "About the company and nothing else",
-				companyId: company.id,
-				createdById: userId,
-				createdAt: new Date(at.getTime() + 60_000),
-			},
-			select: { id: true },
-		});
-
-		await stamp.touch({ companyId: company.id, dealId: deal.id }, at);
-
-		const conversation = await db.agentConversation.create({
-			data: { userId, dealId: deal.id, companyId: company.id },
-			select: { id: true },
-		});
-		const dealTask = await parked({ dealId: deal.id, companyId: company.id });
-		const companyTask = await parked({ companyId: company.id });
-
-		expect(await companies.delete(company.id)).toEqual({
-			id: company.id,
-			name: "Kept",
-		});
-
-		expect(
-			await db.activity.findUnique({
-				where: { id: dealActivity.id },
-				select: { companyId: true, dealId: true, createdAt: true },
-			}),
-		).toEqual({ companyId: null, dealId: deal.id, createdAt: at });
-		expect(
-			await db.activity.findUnique({ where: { id: companyActivity.id } }),
-		).toBeNull();
-
-		expect(
-			await db.agentConversation.findUnique({
-				where: { id: conversation.id },
-				select: { companyId: true, dealId: true },
-			}),
-		).toEqual({ companyId: null, dealId: deal.id });
-
-		expect(
-			await db.agentTask.findUnique({
-				where: { id: dealTask.id },
-				select: { companyId: true, dealId: true },
-			}),
-		).toEqual({ companyId: null, dealId: deal.id });
-		expect(
-			await db.agentTask.findUnique({ where: { id: companyTask.id } }),
-		).toBeNull();
-
-		expect(
-			await db.deal.findUnique({
-				where: { id: deal.id },
-				select: { companyId: true, lastActivityAt: true },
-			}),
-		).toEqual({ companyId: null, lastActivityAt: at });
-
-		await db.deal.delete({ where: { id: deal.id } });
 	});
 });

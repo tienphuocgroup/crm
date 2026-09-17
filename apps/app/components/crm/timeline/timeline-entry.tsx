@@ -1,15 +1,16 @@
 "use client";
 
+import { DealStage } from "@crm/db/enums";
 import { Checkbox } from "@crm/ui/components/checkbox";
 import { StatusIndicator } from "@crm/ui/components/status-indicator";
 import { cn } from "@crm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { z } from "zod";
 import { RecordLink } from "@/components/crm/record-sheet/record-link";
 import { LocalDateTime, LocalRelativeTime } from "@/components/local-date-time";
-import { activityLabelKey } from "@/lib/activity-presentation";
-import { resolveDealStageLabel } from "@/lib/deal-stage";
+import { activityLabel } from "@/lib/activity-presentation";
+import { dealStageLabel } from "@/lib/deal-stage";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 import type { RouterOutputs } from "@/lib/trpc/types";
@@ -26,11 +27,10 @@ const TIME_OPTIONS: Intl.DateTimeFormatOptions = {
 	minute: "2-digit",
 };
 
-function stageChange(meta: Record<string, unknown> | null) {
-	const from = typeof meta?.from === "string" ? meta.from : null;
-	const to = typeof meta?.to === "string" ? meta.to : null;
-	return from && to ? { from, to } : null;
-}
+const stageChange = z
+	.object({ from: z.enum(DealStage), to: z.enum(DealStage) })
+	.nullable()
+	.catch(null);
 
 function anchorId(anchor: TimelineAnchor): string {
 	if ("companyId" in anchor) return anchor.companyId;
@@ -45,8 +45,6 @@ export function TimelineEntry({
 	entry: TimelineEntryData;
 	anchor: TimelineAnchor;
 }) {
-	const common = useTranslations("common");
-	const deals = useTranslations("deals");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 
@@ -65,26 +63,19 @@ export function TimelineEntry({
 		entry.dueAt !== null &&
 		new Date(entry.dueAt) < new Date();
 
-	const change = entry.type === "STAGE_CHANGE" ? stageChange(entry.meta) : null;
+	const change =
+		entry.type === "STAGE_CHANGE" ? stageChange.parse(entry.meta) : null;
 	const when = entry.occurredAt ?? entry.createdAt;
 
 	const synced = entry.meta?.synced === true;
 	const author = synced
 		? entry.emailThread
-			? common("timeline.viaGmail")
-			: common("timeline.viaCalendar")
+			? "via Gmail"
+			: "via Calendar"
 		: entry.createdBy.name;
 
-	const stageLabel = (stage: string) => {
-		const label = resolveDealStageLabel(stage);
-		return label.known ? deals(label.labelKey) : label.text;
-	};
-
 	const headline = change
-		? deals("stageChangeHeadline", {
-				from: stageLabel(change.from),
-				to: stageLabel(change.to),
-			})
+		? `${dealStageLabel(change.from)} → ${dealStageLabel(change.to)}`
 		: entry.subject;
 
 	const here = anchorId(anchor);
@@ -103,17 +94,13 @@ export function TimelineEntry({
 					<Checkbox
 						checked={done}
 						disabled={complete.isPending}
-						aria-label={
-							done
-								? common("timeline.markNotDone")
-								: common("timeline.markDone")
-						}
+						aria-label={done ? "Mark as not done" : "Mark as done"}
 						onCheckedChange={(checked) =>
 							complete.mutate({ id: entry.id, completed: checked === true })
 						}
 					/>
 				) : (
-					<span role="img" aria-label={common(activityLabelKey(entry.type))}>
+					<span role="img" aria-label={activityLabel(entry.type)}>
 						<ActivityIcon type={entry.type} />
 					</span>
 				)}
@@ -146,7 +133,7 @@ export function TimelineEntry({
 
 						{!headline && !entry.body ? (
 							<p className="text-muted-foreground">
-								{common(activityLabelKey(entry.type))}
+								{activityLabel(entry.type)}
 							</p>
 						) : null}
 					</div>
@@ -184,9 +171,7 @@ export function TimelineEntry({
 								tone={overdue ? "error" : "info"}
 								label={
 									<>
-										{overdue
-											? common("timeline.overdueLabel")
-											: common("timeline.dueLabel")}{" "}
+										{overdue ? "Overdue" : "Due"}{" "}
 										<LocalRelativeTime date={entry.dueAt} />
 									</>
 								}

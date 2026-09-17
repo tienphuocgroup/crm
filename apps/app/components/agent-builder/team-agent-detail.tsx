@@ -26,12 +26,9 @@ import {
 } from "@crm/ui/components/dropdown-menu";
 import { Icon } from "@crm/ui/components/icon";
 import { SaveBarViewport } from "@crm/ui/components/save-bar";
-import { useUiLocale } from "@crm/ui/components/ui-strings-provider";
-import { dateTimeFormat } from "@crm/ui/lib/format";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -46,7 +43,7 @@ import {
 import { useTRPC } from "@/lib/trpc/client";
 import type { RouterOutputs } from "@/lib/trpc/types";
 import { useWorkspaceUrl } from "@/lib/use-workspace-url";
-import { AgentCapabilities, type Capabilities } from "./agent-capabilities";
+import { AgentCapabilities } from "./agent-capabilities";
 import { AgentCode } from "./agent-code";
 import { AgentRunsDrawer } from "./agent-runs-drawer";
 
@@ -54,7 +51,7 @@ type AgentDetail = RouterOutputs["agents"]["byId"];
 type ReviewVersion = AgentDetail["reviewVersion"];
 type Runs = RouterOutputs["agents"]["history"];
 type Activity = RouterOutputs["agents"]["activity"];
-const DATE_OPTIONS = {
+const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
 	month: "short",
 	day: "numeric",
 	hour: "numeric",
@@ -62,7 +59,14 @@ const DATE_OPTIONS = {
 	second: "2-digit",
 	timeZone: "UTC",
 	timeZoneName: "short",
-} as const;
+});
+const _TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
+	hour: "2-digit",
+	minute: "2-digit",
+	second: "2-digit",
+	hour12: false,
+	timeZone: "UTC",
+});
 
 export function TeamAgentDetail({
 	agentId,
@@ -75,9 +79,6 @@ export function TeamAgentDetail({
 	initialRuns: Runs;
 	initialActivity: Activity;
 }) {
-	const t = useTranslations("agent-panel");
-	const common = useTranslations("common");
-	const locale = useUiLocale();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const workspaceUrl = useWorkspaceUrl();
@@ -116,7 +117,7 @@ export function TeamAgentDetail({
 			onSuccess: async () => {
 				await invalidate();
 				setRunsOpen(true);
-				toast.success(t("agentRunQueuedToast"));
+				toast.success("Agent run queued.");
 			},
 			onError: (error) => toast.error(error.message),
 		}),
@@ -137,7 +138,7 @@ export function TeamAgentDetail({
 		trpc.agents.retryRun.mutationOptions({
 			onSuccess: async () => {
 				await invalidate();
-				toast.success(t("agentRunRequeuedToast"));
+				toast.success("Run queued again.");
 			},
 			onError: (error) => toast.error(error.message),
 		}),
@@ -147,9 +148,7 @@ export function TeamAgentDetail({
 			onSuccess: async (result) => {
 				await invalidate();
 				toast.success(
-					result.cancelled
-						? t("runCancelledToast")
-						: t("runAlreadyFinishedToast"),
+					result.cancelled ? "Run stopped." : "That run had already finished.",
 				);
 			},
 			onError: (error) => toast.error(error.message),
@@ -174,7 +173,7 @@ export function TeamAgentDetail({
 			<PageShell>
 				<PageShellHeader>
 					<PageShellHeading>
-						<PageShellTitle>{t("agentUnavailableTitle")}</PageShellTitle>
+						<PageShellTitle>Agent unavailable</PageShellTitle>
 						<PageShellDescription>{agent.error.message}</PageShellDescription>
 					</PageShellHeading>
 				</PageShellHeader>
@@ -184,22 +183,14 @@ export function TeamAgentDetail({
 
 	const data = agent.data ?? initialAgent;
 	const isDraft = data.status === "DRAFT";
-	const reviewManifest = recordOf(
-		(
-			data.reviewVersion as unknown as {
-				manifest: unknown;
-			} | null
-		)?.manifest,
-	);
+	const reviewManifest = data.reviewVersion?.manifest;
+	const fallbackDescription = data.description ?? "A durable team automation.";
 	const displayedName = isDraft
-		? textOf(reviewManifest.name, data.name)
+		? textOf(reviewManifest?.name, data.name)
 		: data.name;
 	const displayedDescription = isDraft
-		? textOf(
-				reviewManifest.description,
-				data.description ?? t("agentDescriptionFallback"),
-			)
-		: (data.description ?? t("agentDescriptionFallback"));
+		? textOf(reviewManifest?.description, fallbackDescription)
+		: fallbackDescription;
 	const displayedVersionNumber =
 		data.currentVersion?.number ?? data.reviewVersion?.number;
 	const enabledTriggers = data.triggers.filter((trigger) => trigger.enabled);
@@ -209,8 +200,7 @@ export function TeamAgentDetail({
 	const nextRun =
 		enabledTriggers.length === 1 ? enabledTriggers[0]?.nextRunAt : null;
 	const triggerSummary =
-		enabledTriggers.map((trigger) => trigger.name).join(" · ") ||
-		t("manualOnlyLabel");
+		enabledTriggers.map((trigger) => trigger.name).join(" · ") || "Manual only";
 
 	return (
 		<PageShell className="min-h-0" contained>
@@ -222,39 +212,33 @@ export function TeamAgentDetail({
 					<PageShellDescription className="wrap-break-word leading-6">
 						<span className="block">{displayedDescription}</span>
 						<span className="mt-2 block text-xs">
-							{t("agentCreatedByVersion", {
-								name: data.createdBy.name,
-								kind: isDraft
-									? t("agentKindPrivateDraft")
-									: t("agentKindTeamAgent"),
-								version: displayedVersionNumber ?? "—",
-							})}
+							Created by {data.createdBy.name} ·{" "}
+							{isDraft ? "Private draft" : "Team agent"} · Version{" "}
+							{displayedVersionNumber ?? "—"}
 						</span>
 					</PageShellDescription>
 				</PageShellHeading>
 				<PageShellActions className="col-start-1 row-start-3 justify-self-start sm:col-start-2 sm:row-start-1 sm:justify-self-end">
 					<div className="flex min-w-0 flex-col items-start gap-2 sm:items-end">
 						<span className="text-muted-foreground text-xs">
-							{isDraft ? t("agentVisibilityLabel") : t("runMetaTrigger")}
+							{isDraft ? "Visibility" : "Trigger"}
 						</span>
 						<span className="font-mono text-sm">
 							{isDraft
-								? t("agentKindPrivateDraft")
+								? "Private draft"
 								: nextRun
-									? formatDate(nextRun, locale)
+									? formatDate(nextRun)
 									: triggerSummary}
 						</span>
 						<div className="mt-1 flex flex-wrap gap-2">
 							<Button onClick={() => setRunsOpen(true)} variant="outline">
-								{t("runsTabLabel")}
+								Runs
 								<span className="font-mono text-muted-foreground">
 									{data.runCount}
 								</span>
 							</Button>
 							<Button asChild variant="outline">
-								<Link href={workspaceUrl("/chat")}>
-									{t("openInChatButton")}
-								</Link>
+								<Link href={workspaceUrl("/chat")}>Open in chat</Link>
 							</Button>
 							{isDraft && data.canManage ? (
 								<DraftAgentActions
@@ -271,12 +255,12 @@ export function TeamAgentDetail({
 								>
 									<AsyncButtonContent
 										status={runAction.status}
-										pendingLabel={t("queueingLabel")}
-										successLabel={t("queuedLabel")}
-										errorLabel={common("tryAgain")}
+										pendingLabel="Queueing"
+										successLabel="Queued"
+										errorLabel="Try again"
 									>
 										<Icon icon={Play} data-icon="inline-start" />
-										{t("runNowButton")}
+										Run now
 									</AsyncButtonContent>
 								</Button>
 							) : null}
@@ -289,12 +273,12 @@ export function TeamAgentDetail({
 								>
 									<AsyncButtonContent
 										status={pauseAction.status}
-										pendingLabel={t("pausingLabel")}
-										successLabel={t("pausedLabel")}
-										errorLabel={common("tryAgain")}
+										pendingLabel="Pausing"
+										successLabel="Paused"
+										errorLabel="Try again"
 									>
 										<Icon icon={Pause} data-icon="inline-start" />
-										{t("pauseButton")}
+										Pause
 									</AsyncButtonContent>
 								</Button>
 							) : null}
@@ -307,12 +291,12 @@ export function TeamAgentDetail({
 								>
 									<AsyncButtonContent
 										status={resumeAction.status}
-										pendingLabel={t("resumingLabel")}
-										successLabel={t("resumedLabel")}
-										errorLabel={common("tryAgain")}
+										pendingLabel="Resuming"
+										successLabel="Resumed"
+										errorLabel="Try again"
 									>
 										<Icon icon={Play} data-icon="inline-start" />
-										{t("resumeButton")}
+										Resume
 									</AsyncButtonContent>
 								</Button>
 							) : null}
@@ -362,13 +346,10 @@ function DraftAgentActions({
 	name: string;
 	version: ReviewVersion;
 }) {
-	const t = useTranslations("agent-panel");
-	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const workspaceUrl = useWorkspaceUrl();
-	const deployable =
-		version?.status === "READY" || version?.status === "DEPLOYED";
+	const deployable = version?.status === "READY";
 	const deploy = useMutation(
 		trpc.agents.deploy.mutationOptions({
 			onSuccess: async () => {
@@ -392,7 +373,7 @@ function DraftAgentActions({
 						queryKey: trpc.conversations.builderList.pathKey(),
 					}),
 				]);
-				toast.success(t("agentDeployedToast"));
+				toast.success("Agent deployed to the team.");
 			},
 			onError: (error) => toast.error(error.message),
 		}),
@@ -416,7 +397,7 @@ function DraftAgentActions({
 						href={workspaceUrl(`/chat/${version.sourceConversationId}`)}
 						transitionTypes={["nav-back"]}
 					>
-						{t("changeDetailsButton")}
+						Change details
 					</Link>
 				</Button>
 			) : null}
@@ -427,11 +408,11 @@ function DraftAgentActions({
 			>
 				<AsyncButtonContent
 					status={deployAction.status}
-					pendingLabel={t("deployingLabel")}
-					successLabel={t("deployedLabel")}
-					errorLabel={common("tryAgain")}
+					pendingLabel="Deploying"
+					successLabel="Deployed"
+					errorLabel="Try again"
 				>
-					{t("deployAgentButton")}
+					Deploy agent
 				</AsyncButtonContent>
 			</Button>
 			<DeleteAgentAction agentId={agentId} name={name} />
@@ -446,8 +427,6 @@ function DeleteAgentAction({
 	agentId: string;
 	name: string;
 }) {
-	const t = useTranslations("agent-panel");
-	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const router = useRouter();
@@ -466,7 +445,7 @@ function DeleteAgentAction({
 					}),
 				]);
 				setConfirming(false);
-				toast.success(t("agentDeletedToast", { name }));
+				toast.success(`${name} was deleted.`);
 				router.replace(workspaceUrl("/agents"));
 			},
 			onError: (error) => toast.error(error.message),
@@ -486,7 +465,7 @@ function DeleteAgentAction({
 						disabled={removeAction.pending}
 					>
 						<Icon icon={OverflowMenuVertical} />
-						<span className="sr-only">{t("moreAgentActionsLabel")}</span>
+						<span className="sr-only">More agent actions</span>
 					</Button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end">
@@ -495,7 +474,7 @@ function DeleteAgentAction({
 						onSelect={() => setConfirming(true)}
 					>
 						<Icon icon={TrashCan} />
-						{t("deleteAgentMenuLabel")}
+						Delete agent
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
@@ -508,17 +487,17 @@ function DeleteAgentAction({
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>
-							{t("deleteAgentConfirmTitle", { name })}
-						</AlertDialogTitle>
+						<AlertDialogTitle>Delete {name}?</AlertDialogTitle>
 						<AlertDialogDescription>
-							{t("deleteAgentConfirmDescription")}
+							This removes it from the team agent list, disables its triggers,
+							and cancels queued runs. Its run and action history stays in the
+							audit log. A run already in progress may finish.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={removeAction.pending}>
-							{common("cancel")}
+							Cancel
 						</AlertDialogCancel>
 						<Button
 							variant="destructive"
@@ -528,11 +507,11 @@ function DeleteAgentAction({
 						>
 							<AsyncButtonContent
 								status={removeAction.status}
-								pendingLabel={t("deletingLabel")}
-								successLabel={t("deletedLabel")}
-								errorLabel={common("tryAgain")}
+								pendingLabel="Deleting"
+								successLabel="Deleted"
+								errorLabel="Try again"
 							>
-								{t("deleteAgentMenuLabel")}
+								Delete agent
 							</AsyncButtonContent>
 						</Button>
 					</AlertDialogFooter>
@@ -543,17 +522,14 @@ function DeleteAgentAction({
 }
 
 function AgentOverview({ agent }: { agent: AgentDetail }) {
-	const detail = agent as unknown as { capabilities?: Capabilities };
-	const capabilities = detail.capabilities;
+	const { capabilities } = agent;
 	const deployed = agent.currentVersion !== null;
 	const canEdit = agent.canManage && deployed;
-
-	const t = useTranslations("agent-panel");
 
 	if (!capabilities) {
 		return (
 			<p className="text-muted-foreground text-sm">
-				{t("noDeployedVersionYet")}
+				This agent has no deployed version yet.
 			</p>
 		);
 	}
@@ -563,7 +539,8 @@ function AgentOverview({ agent }: { agent: AgentDetail }) {
 			<div className="flex flex-col gap-9">
 				{deployed ? null : (
 					<p className="text-muted-foreground text-sm">
-						{t("draftDeployBeforeEditNotice")}
+						This is a draft. Deploy it to the team before you change what it can
+						do.
 					</p>
 				)}
 				<AgentCapabilities
@@ -590,16 +567,10 @@ function _DetailRow({ label, value }: { label: string; value: ReactNode }) {
 	);
 }
 
-function recordOf(value: unknown): Record<string, unknown> {
-	return value && typeof value === "object" && !Array.isArray(value)
-		? (value as Record<string, unknown>)
-		: {};
+function textOf(value: string | undefined, fallback: string): string {
+	return value?.trim() ? value : fallback;
 }
 
-function textOf(value: unknown, fallback: string): string {
-	return typeof value === "string" && value.trim() ? value : fallback;
-}
-
-function formatDate(value: string, locale: string): string {
-	return dateTimeFormat(locale, DATE_OPTIONS).format(new Date(value));
+function formatDate(value: string): string {
+	return DATE_FORMATTER.format(new Date(value));
 }

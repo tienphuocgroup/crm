@@ -19,8 +19,20 @@ import {
 	ServiceUnavailableException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import {
+	ApiExcludeEndpoint,
+	ApiForbiddenResponse,
+	ApiHeader,
+	ApiNoContentResponse,
+	ApiOkResponse,
+	ApiOperation,
+	ApiParam,
+	ApiServiceUnavailableResponse,
+	ApiTags,
+} from "@nestjs/swagger";
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
 import type { Response } from "express";
+import { z } from "zod";
 import type { EnvironmentVariables } from "../config/env.validation";
 import { InjectDatabase } from "../database/database.constants";
 import { TrackingConfigService } from "./tracking-config.service";
@@ -35,6 +47,19 @@ const SWEEP_BATCH = 10_000;
 
 const MAX_SWEEP_PASSES = 50;
 
+const parsedBody = z
+	.union([
+		z.string().transform((text) => ({ text, json: null })),
+		z
+			.union([z.array(z.json()), z.looseObject({})])
+			.transform((json) => ({ text: null, json })),
+	])
+	.nullable()
+	.catch(null);
+
+const trackingRequest = z.object({ body: parsedBody }).catch({ body: null });
+
+@ApiTags("Tracking")
 @Controller("api/t")
 export class TrackingController {
 	private readonly logger = new Logger(TrackingController.name);
@@ -46,6 +71,13 @@ export class TrackingController {
 
 	@Get("config/:siteId")
 	@AllowAnonymous()
+	@ApiOperation({
+		summary: "Fetch a site's compiled tracking config, for the tracking script",
+	})
+	@ApiParam({ name: "siteId", description: "Public site identifier." })
+	@ApiOkResponse({
+		description: "The compiled config, or null if the site is unknown.",
+	})
 	async publicConfig(@Param("siteId") siteId: string) {
 		if (!isSiteId(siteId)) return { config: null };
 
@@ -59,6 +91,13 @@ export class TrackingController {
 	@Post("e")
 	@AllowAnonymous()
 	@HttpCode(204)
+	@ApiOperation({
+		summary: "Ingest a batch of events from the tracking script",
+	})
+	@ApiNoContentResponse({
+		description:
+			"Always returned, even when the batch was rejected or unreadable.",
+	})
 	async collect(
 		@Req() request: IncomingMessage,
 		@Res({ passthrough: true }) response: Response,
@@ -93,6 +132,14 @@ export class TrackingController {
 	}
 }
 
+@ApiTags("Internal — Cron")
+@ApiHeader({
+	name: "authorization",
+	description: "`Bearer <CRON_SECRET>`",
+	required: true,
+})
+@ApiForbiddenResponse({ description: "CRON_SECRET did not match." })
+@ApiServiceUnavailableResponse({ description: "CRON_SECRET is not set." })
 @Controller("internal/tracking")
 export class TrackingRetentionController {
 	private readonly logger = new Logger(TrackingRetentionController.name);
@@ -109,12 +156,17 @@ export class TrackingRetentionController {
 
 	@Get("retention")
 	@AllowAnonymous()
+	@ApiOperation({
+		summary: "Roll up and sweep tracking data older than the retention window",
+	})
+	@ApiOkResponse({ description: "The sweep ran; removed and rolled counts." })
 	async viaGet(@Headers("authorization") authorization?: string) {
 		return this.run(authorization);
 	}
 
 	@Post("retention")
 	@AllowAnonymous()
+	@ApiExcludeEndpoint()
 	async viaPost(@Headers("authorization") authorization?: string) {
 		return this.run(authorization);
 	}
@@ -203,12 +255,14 @@ async function read(
 	request: IncomingMessage,
 	limit: number,
 ): Promise<string | null> {
-	const existing = (request as { body?: unknown }).body;
-	if (typeof existing === "string") {
-		return existing.length > limit ? null : existing;
-	}
-	if (existing && typeof existing === "object") {
-		return JSON.stringify(existing);
+	const existing = trackingRequest.parse(request).body;
+
+	if (existing !== null) {
+		if (existing.text !== null) {
+			return existing.text.length > limit ? null : existing.text;
+		}
+
+		return JSON.stringify(existing.json);
 	}
 
 	return new Promise((resolve) => {

@@ -1,3 +1,16 @@
+import {
+	type EveStreamEvent,
+	eveTurnFailure,
+	eveTurnReference,
+} from "@crm/validation/eve-stream";
+import {
+	type EveToolInput,
+	type EveToolOutcome,
+	type EveToolOutput,
+	eveToolInput,
+	eveToolOutcome,
+	eveToolOutput,
+} from "@crm/validation/eve-tool";
 import type { MessageStreamEvent } from "eve/client";
 import {
 	defaultMessageReducer,
@@ -5,6 +18,7 @@ import {
 	type EveMessageInputRequest,
 	type EveMessagePart,
 } from "eve/react";
+import { z } from "zod";
 
 export type TranscriptItem =
 	| { kind: "said"; id: string; mine: boolean; text: string }
@@ -17,9 +31,9 @@ export type TranscriptItem =
 	| {
 			kind: "did";
 			id: string;
-			label: StepLabel;
-			input: Record<string, unknown> | null;
-			output: unknown;
+			label: string;
+			input: EveToolInput;
+			output: EveToolOutput;
 			tone: Tone;
 			pending: boolean;
 			sources: Source[];
@@ -28,12 +42,6 @@ export type TranscriptItem =
 	  };
 
 export type Tone = "neutral" | "success" | "warning";
-
-export type StepLabel = {
-	key: string | null;
-	fallback: string;
-	reason: string | null;
-};
 
 export type Source = {
 	url: string;
@@ -46,51 +54,48 @@ export type AgentTurnFailure = {
 	kind: "rate-limit" | "restricted" | "credits" | "unknown";
 };
 
-type AgentStreamEvent = {
-	type: string;
-	data?: unknown;
-};
+type ToolVerbs = Record<string, string>;
 
-const VERB_KEYS: Record<string, string> = {
-	read_crm_history: "toolVerbReadCrmHistory",
-	read_company_history: "toolVerbReadCompanyHistory",
-	read_deal_history: "toolVerbReadDealHistory",
-	search_crm: "toolVerbSearchCrm",
-	resolve_linkedin_profile: "toolVerbResolveLinkedinProfile",
-	get_linkedin_profile: "toolVerbGetLinkedinProfile",
-	get_contact_work_history: "toolVerbGetContactWorkHistory",
-	fetch_contact_photo: "toolVerbFetchContactPhoto",
-	find_contact_socials: "toolVerbFindContactSocials",
-	set_contact_socials: "toolVerbSetContactSocials",
-	identify_contact: "toolVerbIdentifyContact",
-	record_fact: "toolVerbRecordFact",
-	write_brief: "toolVerbWriteBrief",
-	write_workspace_profile: "toolVerbWriteWorkspaceProfile",
-	research_person: "toolVerbResearchPerson",
-	research_company: "toolVerbResearchCompany",
-	enrich_company: "toolVerbEnrichCompany",
-	schedule_recheck: "toolVerbScheduleRecheck",
-	record_job_change: "toolVerbRecordJobChange",
-	list_deals: "toolVerbListDeals",
-	list_outstanding_work: "toolVerbListOutstandingWork",
-	set_chat_title: "toolVerbSetChatTitle",
-	list_fields: "toolVerbListFields",
-	set_field_value: "toolVerbSetFieldValue",
-	manage_fields: "toolVerbManageFields",
-	archive_field: "toolVerbArchiveField",
+const VERBS: ToolVerbs = {
+	read_crm_history: "Read our emails and meetings with them",
+	read_company_history: "Read everything we have on the company",
+	read_deal_history: "Read the deal and where it has been",
+	search_crm: "Looked the record up in the CRM",
+	resolve_linkedin_profile: "Searched for their LinkedIn profile",
+	get_linkedin_profile: "Read a LinkedIn profile",
+	get_contact_work_history: "Read their work history",
+	fetch_contact_photo: "Fetched their profile picture",
+	find_contact_socials: "Searched for their other profiles",
+	set_contact_socials: "Checked a profile against the account itself",
+	identify_contact: "Put a name to the address",
+	record_fact: "Recorded what it found",
+	write_brief: "Wrote the background",
+	write_workspace_profile: "Wrote up who we are",
+	research_person: "Researched them on the web",
+	research_company: "Read the company's site",
+	enrich_company: "Looked up the company",
+	schedule_recheck: "Decided when to look again",
+	record_job_change: "Raised a job change",
+	list_deals: "Reviewed the deal pipeline",
+	list_outstanding_work: "Looked for outstanding work",
+	set_chat_title: "Named this chat",
+	list_fields: "Read what this workspace tracks",
+	set_field_value: "Filled in a custom field",
+	manage_fields: "Changed what the CRM tracks",
+	archive_field: "Asked to retire a field",
 
-	load_skill: "toolVerbLoadSkill",
-	web_search: "toolVerbWebSearch",
-	web_fetch: "toolVerbWebFetch",
-	todo: "toolVerbTodo",
-	ask_question: "toolVerbAskQuestion",
-	agent: "toolVerbAgent",
-	connection_search: "toolVerbConnectionSearch",
-	bash: "toolVerbBash",
-	read_file: "toolVerbReadFile",
-	write_file: "toolVerbWriteFile",
-	glob: "toolVerbGlob",
-	grep: "toolVerbGrep",
+	load_skill: "Read its instructions for this",
+	web_search: "Searched the web",
+	web_fetch: "Read a web page",
+	todo: "Updated its plan",
+	ask_question: "Asked a question",
+	agent: "Handed part of the job to a helper",
+	connection_search: "Looked for a tool it could use",
+	bash: "Ran a command",
+	read_file: "Read a file",
+	write_file: "Wrote a file",
+	glob: "Looked for files",
+	grep: "Searched inside the files",
 };
 
 function humanise(tool: string): string {
@@ -146,8 +151,8 @@ export function conversationTimeline<
 	const turnTimes = new Map<string, number>();
 
 	for (const event of events) {
-		const turnId = stringOf(
-			recordOf("data" in event ? event.data : undefined).turnId,
+		const { turnId } = eveTurnReference.parse(
+			"data" in event ? event.data : undefined,
 		);
 		if (!turnId || turnTimes.has(turnId)) continue;
 		turnTimes.set(turnId, timestampOf(event.meta.at));
@@ -167,7 +172,7 @@ export function conversationTimeline<
 			id: `assistant:${message.id}`,
 			message,
 			at:
-				turnTimes.get(stringOf(recordOf(message.metadata).turnId) ?? "") ??
+				turnTimes.get(message.metadata?.turnId ?? "") ??
 				Number.POSITIVE_INFINITY,
 			index,
 		});
@@ -274,38 +279,30 @@ function partId(
 	part: EveMessagePart,
 	index: number,
 ): string {
-	const callId =
-		"toolCallId" in part && typeof part.toolCallId === "string"
-			? part.toolCallId
-			: null;
+	const callId = "toolCallId" in part ? part.toolCallId : null;
 
 	return callId ? `${messageId}:${callId}` : `${messageId}:${index}`;
 }
 
 export function toolName(part: EveMessagePart): string {
-	if (part.type === "dynamic-tool" && "toolName" in part) {
-		return String(part.toolName);
-	}
+	if (part.type === "dynamic-tool") return part.toolName;
 	return part.type.replace(/^tool-/, "");
 }
 
-export const TOOL_VERB_KEYS = VERB_KEYS;
+export const TOOL_VERBS = VERBS;
 
-export function describe(part: EveMessagePart): StepLabel {
+export function describe(part: EveMessagePart): string {
 	const tool = toolName(part);
-	const reason = output(part)?.reason;
+	const verb = VERBS[tool] ?? humanise(tool);
+	const reason = outcome(part)?.reason ?? null;
 
-	return {
-		key: VERB_KEYS[tool] ?? null,
-		fallback: humanise(tool),
-		reason: typeof reason === "string" ? reason : null,
-	};
+	return reason === null ? verb : `${verb} — ${reason}`;
 }
 
 export function outcomeTone(part: EveMessagePart): Tone {
 	if ("state" in part && part.state === "output-error") return "warning";
 
-	const result = output(part);
+	const result = outcome(part);
 	if (!result) return "neutral";
 
 	if (result.applied === true || result.written === true) return "success";
@@ -315,15 +312,12 @@ export function outcomeTone(part: EveMessagePart): Tone {
 }
 
 export function sourcesOf(part: EveMessagePart): Source[] {
-	const result = output(part);
+	const result = outcome(part);
 	if (!result) return [];
 
 	const urls = new Set<string>();
-	for (const key of ["sourceUrl", "profileUrl", "url"]) {
-		const value = result[key];
-		if (typeof value === "string" && /^https?:\/\//.test(value)) {
-			urls.add(value);
-		}
+	for (const link of [result.sourceUrl, result.profileUrl, result.url]) {
+		if (link !== null) urls.add(link);
 	}
 
 	return [...urls].map((url) => {
@@ -354,7 +348,7 @@ export function pendingQuestion(messages: readonly EveMessage[]) {
 }
 
 export function latestTurnFailure(
-	events: readonly AgentStreamEvent[],
+	events: readonly EveStreamEvent[],
 ): AgentTurnFailure | null {
 	for (let index = events.length - 1; index >= 0; index -= 1) {
 		const event = events[index];
@@ -366,12 +360,11 @@ export function latestTurnFailure(
 			continue;
 		}
 
-		const data = recordOf(event.data);
-		const message = typeof data.message === "string" ? data.message : "";
-		const code = typeof data.code === "string" ? data.code : "AGENT_FAILED";
+		const failure = eveTurnFailure.parse(event.data);
+		const message = failure.message ?? "";
 
 		return {
-			code,
+			code: failure.code ?? "AGENT_FAILED",
 			kind: /free tier users do not have access|RestrictedModelsError/i.test(
 				message,
 			)
@@ -389,32 +382,25 @@ export function latestTurnFailure(
 	return null;
 }
 
-function output(part: EveMessagePart): Record<string, unknown> | null {
-	return "output" in part && part.output && typeof part.output === "object"
-		? (part.output as Record<string, unknown>)
-		: null;
+function payloadOf(part: EveMessagePart) {
+	return "output" in part ? part.output : undefined;
 }
 
-function input(part: EveMessagePart): Record<string, unknown> | null {
-	return "input" in part && part.input && typeof part.input === "object"
-		? (part.input as Record<string, unknown>)
-		: null;
+function output(part: EveMessagePart): EveToolOutput {
+	return eveToolOutput.parse(payloadOf(part));
+}
+
+function outcome(part: EveMessagePart): EveToolOutcome {
+	return eveToolOutcome.parse(payloadOf(part));
+}
+
+function input(part: EveMessagePart): EveToolInput {
+	return eveToolInput.parse("input" in part ? part.input : undefined);
 }
 
 function errorTextOf(part: EveMessagePart): string | null {
-	if (!("errorText" in part)) return null;
-	const text = part.errorText;
-	return typeof text === "string" && text.trim() ? text : null;
-}
-
-function recordOf(value: unknown): Record<string, unknown> {
-	return value && typeof value === "object" && !Array.isArray(value)
-		? (value as Record<string, unknown>)
-		: {};
-}
-
-function stringOf(value: unknown): string | null {
-	return typeof value === "string" && value ? value : null;
+	const text = "errorText" in part ? part.errorText : undefined;
+	return text?.trim() ? text : null;
 }
 
 function timestampOf(value: string): number {
@@ -444,7 +430,7 @@ export type DealListItem = {
 		iconDarkUrl: string | null;
 		iconTone: string | null;
 		logoUrl: string | null;
-	} | null;
+	};
 	owner: {
 		id: string;
 		name: string;
@@ -468,35 +454,57 @@ export type DealListResult = {
 	hasMore: boolean;
 };
 
-export function dealListResultOf(value: unknown): DealListResult | null {
-	const result = recordOf(value);
-	const asOf = stringOf(result.asOf);
-	const criteria = recordOf(result.criteria);
-	const status = stringOf(criteria.status);
-	const inactiveForDays = nullableNumberOf(criteria.inactiveForDays);
-	const companyId = nullableStringOf(criteria.companyId);
-	const ownerId = nullableStringOf(criteria.ownerId);
-	const rows = Array.isArray(result.deals) ? result.deals : null;
+const requiredText = z.string().min(1);
 
-	if (
-		!asOf ||
-		!status ||
-		inactiveForDays === undefined ||
-		companyId === undefined ||
-		ownerId === undefined ||
-		!rows
-	)
-		return null;
+const finiteNumber = z.number().refine((value) => Number.isFinite(value));
 
-	const deals = rows.map(dealListItemOf);
-	if (deals.some((deal) => deal === null)) return null;
+const optionalText = z.string().min(1).nullable().catch(null);
 
-	return {
-		asOf,
-		criteria: { status, inactiveForDays, companyId, ownerId },
-		deals: deals as DealListItem[],
-		hasMore: result.hasMore === true,
-	};
+const dealListItem = z.object({
+	id: requiredText,
+	name: requiredText,
+	stage: requiredText,
+	amount: finiteNumber.nullable(),
+	currency: requiredText,
+	company: z.object({
+		id: requiredText,
+		name: requiredText,
+		domain: optionalText,
+		iconUrl: optionalText,
+		iconDarkUrl: optionalText,
+		iconTone: optionalText,
+		logoUrl: optionalText,
+	}),
+	owner: z
+		.object({
+			id: requiredText,
+			name: requiredText,
+			email: requiredText,
+			image: optionalText,
+		})
+		.nullable(),
+	daysSinceLastActivity: finiteNumber,
+	neverActive: z.boolean().catch(false),
+	expectedCloseDate: requiredText.nullable(),
+});
+
+const dealListResult = z
+	.object({
+		asOf: requiredText,
+		criteria: z.object({
+			status: requiredText,
+			inactiveForDays: finiteNumber.nullable(),
+			companyId: requiredText.nullable(),
+			ownerId: requiredText.nullable(),
+		}),
+		deals: z.array(dealListItem),
+		hasMore: z.boolean().catch(false),
+	})
+	.nullable()
+	.catch(null);
+
+export function dealListResultOf(value: EveToolOutput): DealListResult | null {
+	return dealListResult.parse(value);
 }
 
 export function groupDealListPages(
@@ -576,11 +584,13 @@ function stripMarkdownTables(markdown: string): string {
 		.trim();
 }
 
-export function splitMarkdownTable(markdown: string): {
+export type MarkdownTableSplit = {
 	after: string;
 	before: string;
 	found: boolean;
-} {
+};
+
+export function splitMarkdownTable(markdown: string): MarkdownTableSplit {
 	const lines = markdown.split("\n");
 
 	for (let index = 0; index < lines.length - 1; index += 1) {
@@ -605,94 +615,6 @@ export function splitMarkdownTable(markdown: string): {
 	return { before: "", after: normaliseMarkdown(markdown), found: false };
 }
 
-function dealListCompanyOf(
-	value: unknown,
-): DealListItem["company"] | undefined {
-	if (value === null || value === undefined) return null;
-
-	const company = recordOf(value);
-	const id = stringOf(company.id);
-	const name = stringOf(company.name);
-
-	if (!id || !name) return undefined;
-
-	return {
-		id,
-		name,
-		domain: nullableStringOf(company.domain) ?? null,
-		iconUrl: nullableStringOf(company.iconUrl) ?? null,
-		iconDarkUrl: nullableStringOf(company.iconDarkUrl) ?? null,
-		iconTone: nullableStringOf(company.iconTone) ?? null,
-		logoUrl: nullableStringOf(company.logoUrl) ?? null,
-	};
-}
-
-function dealListItemOf(value: unknown): DealListItem | null {
-	const deal = recordOf(value);
-	const owner = deal.owner === null ? null : recordOf(deal.owner);
-	const id = stringOf(deal.id);
-	const name = stringOf(deal.name);
-	const stage = stringOf(deal.stage);
-	const currency = stringOf(deal.currency);
-	const company = dealListCompanyOf(deal.company);
-	const daysSinceLastActivity = numberOf(deal.daysSinceLastActivity);
-	const amount = nullableNumberOf(deal.amount);
-	const expectedCloseDate = nullableStringOf(deal.expectedCloseDate);
-
-	if (
-		!id ||
-		!name ||
-		!stage ||
-		!currency ||
-		company === undefined ||
-		daysSinceLastActivity === null ||
-		amount === undefined ||
-		expectedCloseDate === undefined
-	) {
-		return null;
-	}
-
-	const parsedOwner = owner
-		? {
-				id: stringOf(owner.id),
-				name: stringOf(owner.name),
-				email: stringOf(owner.email),
-				image: nullableStringOf(owner.image) ?? null,
-			}
-		: null;
-	if (
-		parsedOwner &&
-		(!parsedOwner.id || !parsedOwner.name || !parsedOwner.email)
-	) {
-		return null;
-	}
-
-	return {
-		id,
-		name,
-		stage,
-		amount,
-		currency,
-		company,
-		owner: parsedOwner as DealListItem["owner"],
-		daysSinceLastActivity,
-		neverActive: deal.neverActive === true,
-		expectedCloseDate,
-	};
-}
-
-function numberOf(value: unknown): number | null {
-	return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function nullableNumberOf(value: unknown): number | null | undefined {
-	return value === null ? null : (numberOf(value) ?? undefined);
-}
-
-function nullableStringOf(value: unknown): string | null | undefined {
-	return value === null ? null : (stringOf(value) ?? undefined);
-}
-
 function isMarkdownTableSeparator(line: string): boolean {
 	return /^\s*\|?\s*:?-{3,}:?(?:\s*\|\s*:?-{3,}:?)+\s*\|?\s*$/.test(line);
 }
@@ -708,6 +630,11 @@ function normaliseMarkdown(markdown: string): string {
 
 export const NEW_THREAD = "new";
 
+export type ResolvedThread<T> = {
+	openId: string | null;
+	current: T | null;
+};
+
 export function resolveThread<T extends { id: string }>({
 	conversations,
 	fromUrl,
@@ -716,7 +643,7 @@ export function resolveThread<T extends { id: string }>({
 	conversations: readonly T[];
 	fromUrl: string | null;
 	landedOn: string | null;
-}): { openId: string | null; current: T | null } {
+}): ResolvedThread<T> {
 	const openId = fromUrl ?? landedOn;
 
 	if (!openId || openId === NEW_THREAD) return { openId, current: null };

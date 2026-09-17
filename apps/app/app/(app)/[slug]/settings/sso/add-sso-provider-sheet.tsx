@@ -31,9 +31,10 @@ import { useTranslations } from "next-intl";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import { type ComponentProps, Suspense, useId, useState } from "react";
 import { toast } from "sonner";
+import { SEARCH_PARAM } from "@/lib/search-param-keys";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
-import { CopyValue } from "./copy-value";
+import { CopyValue } from "../copy-value";
 
 const FORM = "add-sso-provider";
 
@@ -80,7 +81,7 @@ function AddSsoProviderForm() {
 	const redirectId = useId();
 
 	const [open, setOpen] = useQueryState(
-		"new",
+		SEARCH_PARAM.dialog.create,
 		parseAsBoolean.withDefault(false),
 	);
 	const [values, setValues] = useState(EMPTY);

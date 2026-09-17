@@ -19,6 +19,7 @@ import { useTranslations } from "next-intl";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { useOpenRecord } from "@/components/crm/record-sheet/record-stack";
+import { SEARCH_PARAM } from "@/lib/search-param-keys";
 import { useTRPC } from "@/lib/trpc/client";
 
 const GROUP_LABEL_KEY = {
@@ -35,7 +36,10 @@ export function QuickSwitcher() {
 	const openRecord = useOpenRecord();
 	const trpc = useTRPC();
 
-	const [open, setOpen] = useQueryState("k", parseAsBoolean.withDefault(false));
+	const [open, setOpen] = useQueryState(
+		SEARCH_PARAM.dialog.switcher,
+		parseAsBoolean.withDefault(false),
+	);
 	const [query, setQuery] = useState("");
 
 	useEffect(() => {

@@ -148,7 +148,6 @@ export class RollupService {
 			postgres_version: postgres,
 			members_bucket: bucket(members),
 
-			cap_rapidapi: isSet("RAPIDAPI_KEY"),
 			cap_perplexity: isSet("PERPLEXITY_API_KEY"),
 			cap_context_dev: Boolean(contextKey?.contextDevApiKey?.trim()),
 			cap_blob: isSet("BLOB_READ_WRITE_TOKEN"),
@@ -587,14 +586,16 @@ function isSet(name: string): boolean {
 	return Boolean(process.env[name]?.trim());
 }
 
-function byKind(rows: Counted[]): Record<string, number> {
+type CountsByKey = Record<string, number>;
+
+function byKind(rows: Counted[]): CountsByKey {
 	return merge(
 		rows.map((row) => ({ ...row, key: permittedTaskKind(row.key) })),
 	);
 }
 
-function merge(rows: Counted[]): Record<string, number> {
-	const counts: Record<string, number> = {};
+function merge(rows: Counted[]): CountsByKey {
+	const counts: CountsByKey = {};
 
 	for (const row of rows) {
 		counts[row.key] = (counts[row.key] ?? 0) + row.count;
@@ -603,12 +604,9 @@ function merge(rows: Counted[]): Record<string, number> {
 	return counts;
 }
 
-function countsOf(
-	rows: Counted[],
-	keys: readonly string[],
-): Record<string, number> {
+function countsOf(rows: Counted[], keys: readonly string[]): CountsByKey {
 	const merged = merge(rows);
-	const complete: Record<string, number> = {};
+	const complete: CountsByKey = {};
 
 	for (const key of keys) complete[key] = merged[key] ?? 0;
 

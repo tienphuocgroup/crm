@@ -28,13 +28,14 @@ import { parseAsString, useQueryStates } from "nuqs";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 import { DEAL_STAGE_OPTIONS, LOSING_STAGES } from "@/lib/deal-stage";
+import { SEARCH_PARAM } from "@/lib/search-param-keys";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 import { DealStageIndicator } from "./deal-stage";
 
 const closeReasonParams = {
-	closing: parseAsString,
-	closingStage: parseAsString,
+	[SEARCH_PARAM.dialog.closeDeal]: parseAsString,
+	[SEARCH_PARAM.dialog.closeStage]: parseAsString,
 };
 
 function useStageMutation(onDone?: () => void) {
@@ -101,8 +102,8 @@ export function DealStageMenu({
 						if (chosen === stage) return;
 						if (LOSING_STAGES.includes(chosen)) {
 							void setCloseParams({
-								closing: dealId,
-								closingStage: chosen,
+								[SEARCH_PARAM.dialog.closeDeal]: dealId,
+								[SEARCH_PARAM.dialog.closeStage]: chosen,
 							});
 							return;
 						}
@@ -124,13 +125,17 @@ export function CloseReasonDialog() {
 	const t = useTranslations("deals");
 	const common = useTranslations("common");
 	const reasonId = useId();
-	const [{ closing, closingStage }, setCloseParams] =
-		useQueryStates(closeReasonParams);
+	const [closeValues, setCloseParams] = useQueryStates(closeReasonParams);
+	const closing = closeValues[SEARCH_PARAM.dialog.closeDeal];
+	const closingStage = closeValues[SEARCH_PARAM.dialog.closeStage];
 	const [reason, setReason] = useState("");
 
 	const close = () => {
 		setReason("");
-		void setCloseParams({ closing: null, closingStage: null });
+		void setCloseParams({
+			[SEARCH_PARAM.dialog.closeDeal]: null,
+			[SEARCH_PARAM.dialog.closeStage]: null,
+		});
 	};
 
 	const setStage = useStageMutation(() => {

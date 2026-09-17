@@ -19,9 +19,9 @@ const secondOwnerId = `second-owner-${suffix}`;
 const ours = { OR: [{ email: { endsWith: `@${domain}` } }] };
 
 const agent = {
-	contactCreated: async () => undefined,
+	contactCreated: async () => true,
 	companyCreated: async () => undefined,
-	companyRequested: async () => undefined,
+	companyRequested: async () => true,
 	withCrmEvents: withDiscardedCrmEvents,
 } as unknown as AgentTriggerService;
 
@@ -59,14 +59,7 @@ async function clean() {
 	});
 	const companyIds = owned.map((row) => row.id);
 
-	await db.deal.deleteMany({
-		where: {
-			OR: [
-				{ companyId: { in: companyIds } },
-				{ ownerId: { in: [ownerId, secondOwnerId] } },
-			],
-		},
-	});
+	await db.deal.deleteMany({ where: { companyId: { in: companyIds } } });
 	await db.activity.deleteMany({ where: { companyId: { in: companyIds } } });
 	await db.agentTask.deleteMany({ where: { companyId: { in: companyIds } } });
 	await db.contact.deleteMany({ where: ours });
@@ -112,7 +105,13 @@ describe("assigning an owner to a selection", () => {
 				ids: [first.id, second.id],
 				ownerId: secondOwnerId,
 			}),
-		).toEqual({ requested: 2, succeeded: 2, failed: 0, message: null });
+		).toEqual({
+			requested: 2,
+			succeeded: 2,
+			skipped: 0,
+			failed: 0,
+			message: null,
+		});
 
 		expect(
 			await db.contact.count({
@@ -132,7 +131,13 @@ describe("assigning an owner to a selection", () => {
 				ids: [only.id, only.id],
 				ownerId,
 			}),
-		).toEqual({ requested: 1, succeeded: 1, failed: 0, message: null });
+		).toEqual({
+			requested: 1,
+			succeeded: 1,
+			skipped: 0,
+			failed: 0,
+			message: null,
+		});
 	});
 
 	it("refuses an owner who does not work here", async () => {
@@ -141,12 +146,16 @@ describe("assigning an owner to a selection", () => {
 			email: `alan@${domain}`,
 		});
 
-		await expect(
-			contacts.bulkAssignOwner({
+		let refused: Error | null = null;
+		try {
+			await contacts.bulkAssignOwner({
 				ids: [contact.id],
 				ownerId: `nobody-${suffix}`,
-			}),
-		).rejects.toThrow(/does not work here/);
+			});
+		} catch (cause) {
+			refused = cause as Error;
+		}
+		expect(refused?.message).toMatch(/does not work here/);
 
 		expect(
 			await db.contact.findUnique({
@@ -157,7 +166,7 @@ describe("assigning an owner to a selection", () => {
 	});
 });
 
-describe("deleting a selection", () => {
+describe("purging a selection", () => {
 	it("suppresses every address, exactly as deleting them one by one would", async () => {
 		const first = await contacts.create({
 			firstName: "Gone",
@@ -168,9 +177,10 @@ describe("deleting a selection", () => {
 			email: `also-gone@${domain}`,
 		});
 
-		expect(await contacts.bulkDelete([first.id, second.id])).toEqual({
+		expect(await contacts.bulkPurge([first.id, second.id])).toEqual({
 			requested: 2,
 			succeeded: 2,
+			skipped: 0,
 			failed: 0,
 			message: null,
 		});
@@ -188,10 +198,7 @@ describe("deleting a selection", () => {
 			email: `doomed@${domain}`,
 		});
 
-		const result = await contacts.bulkDelete([
-			survivor.id,
-			`missing-${suffix}`,
-		]);
+		const result = await contacts.bulkPurge([survivor.id, `missing-${suffix}`]);
 
 		expect(result.succeeded).toBe(1);
 		expect(result.failed).toBe(1);
@@ -201,7 +208,7 @@ describe("deleting a selection", () => {
 		).toBeNull();
 	});
 
-	it("leaves a company's deals behind without a company", async () => {
+	it("takes a company's deals with it", async () => {
 		const doomed = await companies.create({
 			name: `Doomed Co ${suffix}`,
 			domain: `doomed-${domain}`,
@@ -212,19 +219,15 @@ describe("deleting a selection", () => {
 			ownerId,
 		});
 
-		expect(await companies.bulkDelete([doomed.id])).toEqual({
+		expect(await companies.bulkPurge([doomed.id])).toEqual({
 			requested: 1,
 			succeeded: 1,
+			skipped: 0,
 			failed: 0,
 			message: null,
 		});
 
-		expect(
-			await db.deal.findUnique({
-				where: { id: deal.id },
-				select: { companyId: true },
-			}),
-		).toEqual({ companyId: null });
+		expect(await db.deal.findUnique({ where: { id: deal.id } })).toBeNull();
 	});
 });
 
@@ -236,16 +239,23 @@ describe("moving a selection of deals to a stage", () => {
 			ownerId,
 		});
 
-		await expect(
-			deals.bulkSetStage({ ids: [deal.id], stage: "LOST" }, ownerId),
-		).rejects.toThrow(/teaches nobody anything/);
+		let refused: Error | null = null;
+		try {
+			await deals.bulkSetStage(
+				{ ids: [deal.id], stage: "CLOSED_LOST" },
+				ownerId,
+			);
+		} catch (cause) {
+			refused = cause as Error;
+		}
+		expect(refused?.message).toMatch(/teaches nobody anything/);
 
 		expect(
 			await db.deal.findUnique({
 				where: { id: deal.id },
 				select: { stage: true },
 			}),
-		).toEqual({ stage: "INQUIRY" });
+		).toEqual({ stage: "DEMO_BOOKED" });
 	});
 
 	it("writes the one reason onto every deal's timeline", async () => {
@@ -264,19 +274,25 @@ describe("moving a selection of deals to a stage", () => {
 			await deals.bulkSetStage(
 				{
 					ids: [first.id, second.id],
-					stage: "LOST",
+					stage: "CLOSED_LOST",
 					closedReason: "Budget pulled",
 				},
 				ownerId,
 			),
-		).toEqual({ requested: 2, succeeded: 2, failed: 0, message: null });
+		).toEqual({
+			requested: 2,
+			succeeded: 2,
+			skipped: 0,
+			failed: 0,
+			message: null,
+		});
 
 		const closed = await db.deal.findMany({
 			where: { id: { in: [first.id, second.id] } },
 			select: { stage: true, closedReason: true, closedAt: true },
 		});
 
-		expect(closed.every((deal) => deal.stage === "LOST")).toBe(true);
+		expect(closed.every((deal) => deal.stage === "CLOSED_LOST")).toBe(true);
 		expect(closed.every((deal) => deal.closedReason === "Budget pulled")).toBe(
 			true,
 		);

@@ -35,6 +35,7 @@ export function focusOn(input: {
 			input.companyId === undefined ? current.companyId : input.companyId,
 		sessionId:
 			input.sessionId === undefined ? current.sessionId : input.sessionId,
+		taskKind: input.taskKind ?? current.taskKind,
 	}));
 }
 

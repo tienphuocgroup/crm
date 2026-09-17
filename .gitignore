@@ -49,3 +49,8 @@ apps/app/messages/pseudo/
 
 # local Claude Code tooling — not project source
 .claude/
+
+/dogfood-output
+
+# Agent scratch files
+.scratch/

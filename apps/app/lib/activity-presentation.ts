@@ -8,21 +8,23 @@ import Task from "@carbon/icons-react/es/Task";
 import type { ActivityType } from "@crm/db/enums";
 import type { CarbonIcon } from "@crm/ui/components/icon";
 
-const PRESENTATION: Record<
+type ActivityPresentation = Record<
 	ActivityType,
-	{ icon: CarbonIcon; labelKey: string }
-> = {
-	NOTE: { icon: Chat, labelKey: "activityTypeNote" },
-	CALL: { icon: Phone, labelKey: "activityTypeCall" },
-	EMAIL: { icon: Email, labelKey: "activityTypeEmail" },
-	MEETING: { icon: Events, labelKey: "activityTypeMeeting" },
-	TASK: { icon: Task, labelKey: "activityTypeTask" },
-	STAGE_CHANGE: { icon: ArrowRight, labelKey: "activityTypeStageChange" },
-	ENRICHMENT: { icon: MagicWand, labelKey: "activityTypeEnrichment" },
+	{ icon: CarbonIcon; label: string }
+>;
+
+const PRESENTATION: ActivityPresentation = {
+	NOTE: { icon: Chat, label: "Note" },
+	CALL: { icon: Phone, label: "Call" },
+	EMAIL: { icon: Email, label: "Email" },
+	MEETING: { icon: Events, label: "Meeting" },
+	TASK: { icon: Task, label: "Task" },
+	STAGE_CHANGE: { icon: ArrowRight, label: "Stage change" },
+	ENRICHMENT: { icon: MagicWand, label: "Enrichment" },
 };
 
-export function activityLabelKey(type: ActivityType): string {
-	return PRESENTATION[type].labelKey;
+export function activityLabel(type: ActivityType): string {
+	return PRESENTATION[type].label;
 }
 
 export function activityIcon(type: ActivityType): CarbonIcon {

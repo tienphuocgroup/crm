@@ -1,5 +1,7 @@
 "use client";
 
+import Archive from "@carbon/icons-react/es/Archive";
+import { Button } from "@crm/ui/components/button";
 import {
 	DataTable,
 	type DataTableColumn,
@@ -9,11 +11,11 @@ import { EmptyCellValue } from "@crm/ui/components/empty-cell";
 import { useTableSelection } from "@crm/ui/hooks/use-table-selection";
 import { formatMoney } from "@crm/ui/lib/format";
 import { useQuery } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { CLOSING_OPTIONS } from "@/components/crm/closing-window";
 import { CompanyCell } from "@/components/crm/company-cell";
 import { useFieldColumns } from "@/components/crm/fields/field-columns";
+import { useFieldFacets } from "@/components/crm/fields/field-facets";
 import { OwnerCell } from "@/components/crm/owner-cell";
 import { usePrefetchRecord } from "@/components/crm/record-sheet/record-prefetch";
 import { useOpenRecord } from "@/components/crm/record-sheet/record-stack";
@@ -29,113 +31,124 @@ import { dealsSearchParams } from "./deals-search-params";
 
 type DealRow = RouterOutputs["deals"]["list"]["rows"][number];
 
-function columns(
-	t: ReturnType<typeof useTranslations<"deals">>,
-	common: ReturnType<typeof useTranslations<"common">>,
-): DataTableColumn<DealRow>[] {
-	return [
-		{
-			id: "name",
-			header: t("nameLabel"),
-			sortable: true,
-			hideable: false,
-			width: "w-[24%]",
-			cell: (row) => <span className="truncate font-medium">{row.name}</span>,
-		},
-		{
-			id: "company",
-			header: t("companyLabel"),
-			sortable: true,
-			width: "w-[18%]",
-			cell: (row) => <CompanyCell company={row.company} />,
-		},
-		{
-			id: "stage",
-			header: t("stageLabel"),
-			sortable: true,
-			width: "w-[18%]",
-			cell: (row) => <DealStageMenu dealId={row.id} stage={row.stage} />,
-		},
-		{
-			id: "amount",
-			header: t("amountLabel"),
-			sortable: true,
-			align: "right",
-			width: "w-[12%]",
-			hideBelow: "sm",
-			cell: (row) =>
-				row.amountCents === null ? (
-					<EmptyCellValue />
-				) : (
-					<span className="tabular-nums">
-						{formatMoney(row.amountCents, row.currency)}
-					</span>
-				),
-		},
-		{
-			id: "owner",
-			header: common("ownerLabel"),
-			sortable: true,
-			width: "w-[14%]",
-			hideBelow: "md",
-			cell: (row) => <OwnerCell owner={row.owner} />,
-		},
-		{
-			id: "expectedCloseDate",
-			header: t("closeDateLabel"),
-			sortable: true,
-			width: "w-[12%]",
-			hideBelow: "lg",
-			cell: (row) =>
-				row.expectedCloseDate ? (
-					<span className="text-muted-foreground">
-						<LocalDay date={row.expectedCloseDate} />
-					</span>
-				) : (
-					<EmptyCellValue />
-				),
-		},
-		{
-			id: "createdAt",
-			header: t("createdColumnLabel"),
-			label: t("createdColumnFullLabel"),
-			sortable: true,
-			align: "right",
-			width: "w-[10%]",
-			defaultHidden: true,
-			cell: (row) => (
-				<span className="text-muted-foreground">
-					<LocalRelativeTime date={row.createdAt} />
+const COLUMNS: DataTableColumn<DealRow>[] = [
+	{
+		id: "name",
+		header: "Deal",
+		sortable: true,
+		hideable: false,
+		width: "w-[24%]",
+		cell: (row) => <span className="truncate font-medium">{row.name}</span>,
+	},
+	{
+		id: "company",
+		header: "Company",
+		sortable: true,
+		width: "w-[18%]",
+		cell: (row) => <CompanyCell company={row.company} />,
+	},
+	{
+		id: "stage",
+		header: "Stage",
+		sortable: true,
+		width: "w-[18%]",
+		cell: (row) => <DealStageMenu dealId={row.id} stage={row.stage} />,
+	},
+	{
+		id: "amount",
+		header: "Amount",
+		sortable: true,
+		align: "right",
+		width: "w-[12%]",
+		hideBelow: "sm",
+		cell: (row) =>
+			row.amountCents === null ? (
+				<EmptyCellValue />
+			) : (
+				<span className="tabular-nums">
+					{formatMoney(row.amountCents, row.currency)}
 				</span>
 			),
-		},
-		{
-			id: "lastActivity",
-			header: t("lastActivityColumnLabel"),
-			sortable: true,
-			align: "right",
-			width: "w-[12%]",
-			hideBelow: "lg",
-			cell: (row) => (
+	},
+	{
+		id: "owner",
+		header: "Owner",
+		sortable: true,
+		width: "w-[14%]",
+		hideBelow: "md",
+		cell: (row) => <OwnerCell owner={row.owner} />,
+	},
+	{
+		id: "expectedCloseDate",
+		header: "Close date",
+		sortable: true,
+		width: "w-[12%]",
+		hideBelow: "lg",
+		cell: (row) =>
+			row.expectedCloseDate ? (
 				<span className="text-muted-foreground">
-					{row.lastActivityAt ? (
-						<LocalRelativeTime date={row.lastActivityAt} />
-					) : (
-						<EmptyCellValue />
-					)}
+					<LocalDay date={row.expectedCloseDate} />
 				</span>
+			) : (
+				<EmptyCellValue />
 			),
-		},
-	];
-}
+	},
+	{
+		id: "createdAt",
+		header: "Created",
+		label: "Created date",
+		sortable: true,
+		align: "right",
+		width: "w-[10%]",
+		defaultHidden: true,
+		cell: (row) => (
+			<span className="text-muted-foreground">
+				<LocalRelativeTime date={row.createdAt} />
+			</span>
+		),
+	},
+	{
+		id: "lastActivity",
+		header: "Last activity",
+		sortable: true,
+		align: "right",
+		width: "w-[12%]",
+		hideBelow: "lg",
+		cell: (row) => (
+			<span className="text-muted-foreground">
+				{row.lastActivityAt ? (
+					<LocalRelativeTime date={row.lastActivityAt} />
+				) : (
+					<EmptyCellValue />
+				)}
+			</span>
+		),
+	},
+];
+
+const ARCHIVED_COLUMN: DataTableColumn<DealRow> = {
+	id: "archivedAt",
+	header: "Archived",
+	label: "Archived date",
+	sortable: true,
+	align: "right",
+	width: "w-[12%]",
+	cell: (row) => (
+		<span className="text-muted-foreground">
+			{row.archivedAt ? (
+				<LocalRelativeTime date={row.archivedAt} />
+			) : (
+				<EmptyCellValue />
+			)}
+		</span>
+	),
+};
 
 export function DealsTable() {
-	const t = useTranslations("deals");
-	const common = useTranslations("common");
 	const openRecord = useOpenRecord();
 	const trpc = useTRPC();
 	const prefetchRecord = usePrefetchRecord();
-	const { query, input } = useTableQuery(dealsSearchParams);
+	const { query, input, setArchived } = useTableQuery(dealsSearchParams);
 
 	const deals = useQuery({
 		...trpc.deals.list.queryOptions(input),
@@ -147,13 +160,33 @@ export function DealsTable() {
 	const selection = useTableSelection(
 		useMemo(() => rows.map((row) => row.id), [rows]),
 	);
+	const settledIds = useMemo(() => {
+		const matching = new Set(
+			rows
+				.filter((row) => Boolean(row.archivedAt) === input.archived)
+				.map((row) => row.id),
+		);
+		return selection.ids.filter((id) => matching.has(id));
+	}, [rows, input.archived, selection.ids]);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: clearing on archived-mode change is the entire purpose of this effect.
+	useEffect(() => {
+		selection.clear();
+	}, [input.archived]);
+
+	const toggleArchived = (next: boolean) => {
+		selection.clear();
+		if (!next && query.sort === "archivedAt") query.setSort("");
+		setArchived(next);
+	};
 
 	const facetCounts = deals.data?.facetCounts;
+	const fieldFacets = useFieldFacets("DEAL", facetCounts);
 
 	const facets: DataTableFacet[] = [
 		{
 			id: "owner",
-			label: common("ownerLabel"),
+			label: "Owner",
 			options: (users.data ?? []).flatMap((user) =>
 				(facetCounts?.owner?.[user.id] ?? 0) > 0
 					? [{ value: user.id, label: user.name }]
@@ -162,22 +195,21 @@ export function DealsTable() {
 		},
 		{
 			id: "stage",
-			label: t("stageLabel"),
-			options: DEAL_STAGE_OPTIONS.flatMap((option) =>
-				(facetCounts?.stage?.[option.value] ?? 0) > 0
-					? [{ value: option.value, label: t(option.labelKey) }]
-					: [],
+			label: "Stage",
+			options: DEAL_STAGE_OPTIONS.filter(
+				(option) => (facetCounts?.stage?.[option.value] ?? 0) > 0,
 			),
 		},
 		{
 			id: "closing",
-			label: t("closingFacetLabel"),
+			label: "Closing",
 			options: CLOSING_OPTIONS.flatMap((option) =>
 				(facetCounts?.closing?.[option.value] ?? 0) > 0
-					? [{ value: option.value, label: t(option.key) }]
+					? [{ value: option.value, label: option.label }]
 					: [],
 			),
 		},
+		...fieldFacets,
 	];
 
 	const openValueCents = deals.data?.openValueCents;
@@ -187,32 +219,50 @@ export function DealsTable() {
 	const openPipelineCents = openValueCents ?? (uncounted > 0 ? 0 : null);
 
 	const fieldColumns = useFieldColumns<DealRow>("DEAL");
-	const dataColumns = useMemo(
-		() => [...columns(t, common), ...fieldColumns],
-		[t, common, fieldColumns],
+	const columns = useMemo(
+		() =>
+			input.archived
+				? [...COLUMNS, ARCHIVED_COLUMN, ...fieldColumns]
+				: [...COLUMNS, ...fieldColumns],
+		[fieldColumns, input.archived],
 	);
 
 	return (
 		<DataTable
 			query={query}
-			search={<ListSearch placeholder={t("searchPlaceholder")} />}
-			columns={dataColumns}
+			search={<ListSearch placeholder="Search deals by name or company…" />}
+			actions={
+				<Button
+					variant={input.archived ? "contrast" : "outline"}
+					size="sm"
+					className="justify-start sm:justify-center"
+					onClick={() => toggleArchived(!input.archived)}
+				>
+					<Archive data-icon="inline-start" />
+					Archived
+				</Button>
+			}
+			columns={columns}
 			rows={rows}
 			total={deals.data?.total ?? 0}
 			facetCounts={facetCounts}
 			facets={facets}
 			tabs={{
 				id: "status",
-				allLabel: t("stageAllTabLabel"),
+				allLabel: "All deals",
 				options: [
-					{ value: "open", label: t("stageOpenOption") },
-					{ value: "closed", label: t("stageClosedOption") },
+					{ value: "open", label: "Open" },
+					{ value: "closed", label: "Closed" },
 				],
 			}}
 			selection={{
 				state: selection,
 				actions: (
-					<DealsBulkActions ids={selection.ids} onDone={selection.clear} />
+					<DealsBulkActions
+						ids={settledIds}
+						onDone={selection.clear}
+						archived={input.archived}
+					/>
 				),
 				rowLabel: (row) => row.name,
 			}}
@@ -220,24 +270,22 @@ export function DealsTable() {
 			loading={deals.isFetching}
 			onRowHover={(row) => prefetchRecord({ kind: "deal", id: row.id })}
 			onRowClick={(row) => openRecord({ kind: "deal", id: row.id })}
-			empty={t("emptyState")}
+			empty={
+				input.archived ? "No archived deals." : "No deals match this view."
+			}
 			meta={
-				openPipelineCents === null ? undefined : (
+				input.archived || openPipelineCents === null ? undefined : (
 					<span>
-						{t.rich("pipelineSummary", {
-							count: deals.data?.total ?? 0,
-							amount: () => (
-								<span className="tabular-nums">
-									{formatMoney(openPipelineCents, reportingCurrency)}
-								</span>
-							),
-						})}
+						{deals.data?.total ?? 0} deals ·{" "}
+						<span className="tabular-nums">
+							{formatMoney(openPipelineCents, reportingCurrency)}
+						</span>{" "}
+						open pipeline
 						{unconverted && unconverted.count > 0 ? (
 							<span className="text-muted-foreground">
-								{t("pipelineUncountedSuffix", {
-									count: unconverted.count,
-									currencies: unconverted.currencies.join(", "),
-								})}
+								{" "}
+								· {unconverted.count} not counted (no{" "}
+								{unconverted.currencies.join(", ")} rate)
 							</span>
 						) : null}
 					</span>
