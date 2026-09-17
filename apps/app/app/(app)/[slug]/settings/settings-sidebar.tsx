@@ -2,10 +2,12 @@
 
 import { Button } from "@crm/ui/components/button";
 import { cn } from "@crm/ui/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
+import { useTRPC } from "@/lib/trpc/client";
 import { useWorkspaceUrl } from "@/lib/use-workspace-url";
 
 type SettingsNavItem = {
@@ -15,12 +17,18 @@ type SettingsNavItem = {
 
 const ROOT = "/settings";
 
-function navItems(t: ReturnType<typeof useTranslations>): SettingsNavItem[] {
+function navItems(
+	t: ReturnType<typeof useTranslations>,
+	canImport = false,
+): SettingsNavItem[] {
 	return [
 		{ title: t("settings.general"), href: ROOT },
 		{ title: t("settings.tracking"), href: `${ROOT}/tracking` },
 		{ title: t("settings.connections"), href: `${ROOT}/connections` },
 		{ title: t("settings.currencies"), href: `${ROOT}/currencies` },
+		...(canImport
+			? [{ title: t("settings.import"), href: `${ROOT}/import` }]
+			: []),
 		{ title: t("settings.members"), href: `${ROOT}/members` },
 		{ title: t("settings.sso"), href: `${ROOT}/sso` },
 	];
@@ -111,12 +119,18 @@ export function SettingsSidebar() {
 	const t = useTranslations("nav");
 	const pathname = usePathname();
 	const workspaceUrl = useWorkspaceUrl();
+	const trpc = useTRPC();
+	const workspace = useQuery(trpc.workspace.get.queryOptions());
+	const canImport = workspace.data?.canImport === true;
 
 	const root = workspaceUrl(ROOT);
 	const items = useMemo(
 		() =>
-			navItems(t).map((item) => ({ ...item, href: workspaceUrl(item.href) })),
-		[t, workspaceUrl],
+			navItems(t, canImport).map((item) => ({
+				...item,
+				href: workspaceUrl(item.href),
+			})),
+		[t, canImport, workspaceUrl],
 	);
 
 	return (

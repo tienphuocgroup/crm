@@ -19,6 +19,7 @@ import { DealsModule } from "./deals/deals.module";
 import { FieldsModule } from "./fields/fields.module";
 import { GoogleModule } from "./google/google.module";
 import { HealthModule } from "./health/health.module";
+import { ImportsModule } from "./imports/imports.module";
 import { LoggingModule } from "./logging/logging.module";
 import { logAuthRoute } from "./logging/request-logger.middleware";
 import { MailboxModule } from "./mailbox/mailbox.module";
@@ -56,6 +57,7 @@ import { WorkspaceModule } from "./workspace/workspace.module";
 		CurrencyModule,
 		DealsModule,
 		FieldsModule,
+		ImportsModule,
 		ActivitiesModule,
 		AgentModule,
 		DashboardModule,

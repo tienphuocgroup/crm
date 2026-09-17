@@ -8,6 +8,7 @@ export {
 } from "./env";
 export {
 	canChangeRole,
+	canImportRecords,
 	canManageConnections,
 	canManageCurrency,
 	canManageTracking,
