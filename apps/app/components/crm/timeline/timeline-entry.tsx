@@ -16,6 +16,7 @@ import type { RouterOutputs } from "@/lib/trpc/types";
 import { ActivityIcon } from "./activity-icon";
 import { EmailThreadEntry } from "./email-thread-entry";
 import { MeetingEntry } from "./meeting-entry";
+import { MessageThreadEntry } from "./message-thread-entry";
 import type { TimelineAnchor } from "./timeline";
 
 export type TimelineEntryData =
@@ -30,6 +31,10 @@ function stageChange(meta: Record<string, unknown> | null) {
 	const from = typeof meta?.from === "string" ? meta.from : null;
 	const to = typeof meta?.to === "string" ? meta.to : null;
 	return from && to ? { from, to } : null;
+}
+
+function contactAnchor(anchor: TimelineAnchor): string | null {
+	return "contactId" in anchor ? anchor.contactId : null;
 }
 
 function anchorId(anchor: TimelineAnchor): string {
@@ -174,6 +179,15 @@ export function TimelineEntry({
 					<EmailThreadEntry
 						threadId={entry.emailThread.id}
 						messageCount={entry.emailThread.messageCount}
+					/>
+				) : null}
+
+				{entry.messageThread ? (
+					<MessageThreadEntry
+						contactId={entry.contact?.id ?? contactAnchor(anchor)}
+						displayName={entry.messageThread.displayName}
+						messageCount={entry.messageThread.messageCount}
+						threadId={entry.messageThread.id}
 					/>
 				) : null}
 

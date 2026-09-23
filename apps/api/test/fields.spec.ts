@@ -17,6 +17,7 @@ import { ActivityStampService } from "../src/crm/activity-stamp.service";
 import { ConversionService } from "../src/currency/conversion.service";
 import { DealsService } from "../src/deals/deals.service";
 import { FieldsService } from "../src/fields/fields.service";
+import { MessagingWriterService } from "../src/messaging/messaging-writer.service";
 import { withDiscardedCrmEvents } from "./agent-trigger.stub";
 
 const suffix = process.env.TEST_RUN_ID ?? "fields-spec";
@@ -56,6 +57,7 @@ const contacts = new ContactsService(
 	queue,
 	stamp,
 	fields,
+	new MessagingWriterService(db, stamp, agent),
 );
 const deals = new DealsService(db, agent, stamp, conversion, fields);
 

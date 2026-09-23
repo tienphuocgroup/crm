@@ -1,6 +1,7 @@
 import GoogleLogo from "@crm/ui/components/brand-logos/google";
 import MicrosoftLogo from "@crm/ui/components/brand-logos/microsoft";
 import SlackLogo from "@crm/ui/components/brand-logos/slack";
+import ZaloLogo from "@crm/ui/components/brand-logos/zalo";
 import { Button } from "@crm/ui/components/button";
 import { Spinner } from "@crm/ui/components/spinner";
 import type { Metadata } from "next";
@@ -35,10 +36,11 @@ async function ConnectionsSettingsPageContent({
 	const [{ slug }, query] = await Promise.all([params, searchParams]);
 	const queryClient = getServerQueryClient();
 	const trpc = getServerTrpc();
-	const [google, microsoft, slack, t] = await Promise.all([
+	const [google, microsoft, slack, zalo, t] = await Promise.all([
 		queryClient.fetchQuery(trpc.google.status.queryOptions()),
 		queryClient.fetchQuery(trpc.microsoft.status.queryOptions()),
 		queryClient.fetchQuery(trpc.slack.status.queryOptions()),
+		queryClient.fetchQuery(trpc.zalo.status.queryOptions()),
 		getTranslations("settings"),
 	]);
 	const rows = [
@@ -67,6 +69,20 @@ async function ConnectionsSettingsPageContent({
 						sends: t("connections.slackSends"),
 						href: `/${slug}/settings/connections/slack`,
 						logo: SlackLogo,
+					},
+				]
+			: []),
+		...(zalo.connected
+			? [
+					{
+						name: "Zalo Official Account",
+						status: zalo.oaName
+							? t("connections.zaloConnectedToOa", { oaName: zalo.oaName })
+							: t("connections.connected"),
+						bringsIn: t("connections.zaloBringsIn"),
+						sends: t("connections.zaloSends"),
+						href: `/${slug}/settings/connections/zalo`,
+						logo: ZaloLogo,
 					},
 				]
 			: []),

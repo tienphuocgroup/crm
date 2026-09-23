@@ -49,16 +49,19 @@ agent and the API both need it.
 
 | | Kinds | How | Per tick |
 | --- | --- | --- | --- |
-| **Visible** | `brand`, `portrait` | Directly — no `receive`, no model | 60, six at a time |
+| **Visible** | `brand`, `portrait`, `slack-people-match`, `slack-channel-join`, `agent-event`, `message-send`, `message-token-refresh`, `message-identity-profile` | Directly — no `receive`, no model | 60, six at a time |
 | **Research** | everything else | One eve session per row | 12 |
 
-**Neither visible kind has anything to decide**, and through a session they queued
+**No visible kind has anything to decide**, and through a session they queued
 behind sixty LLM runs for 25 minutes (`test/lanes.integration.spec.ts`). **The row says
 what the work is; the lane only says whether it needs a conversation.**
 
-**Priority**: `brand` 900 · `portrait` 800 · `workspace` 500 · `requested` 300 ·
-`meeting` 200 · `identify` 100 · `sweep` 50 · `companyProfile` 40 · `recheck` 0. The
-top two are what a rep reads *before* deciding what to open.
+**Priority**: `messageSend` 950 · `slackJoin` 950 · `messageToken` 940 ·
+`messageProfile` 930 · `brand` 900 · `portrait` 800 · `event` 700 · `workspace` 500 ·
+`requested` 300 · `meeting` 200 · `slackPeople` 150 · `identify` 100 · `sweep` 50 ·
+`companyProfile` 40 · `fieldBackfill` 20 · `recheck` 0. A reply a rep typed ties
+with a Slack join at the top, because a customer is waiting for it. `brand` and
+`portrait` follow: a rep reads them *before* deciding what to open.
 
 **`claimDue` sorts what it claims** — Postgres does not order `UPDATE … RETURNING` by
 its sub-select's `ORDER BY`.

@@ -3,6 +3,7 @@ import {
 	permittedErrorClass,
 	permittedModelId,
 	permittedRoute,
+	permittedStage,
 	permittedSyncErrorSource,
 	permittedSyncSource,
 	permittedTaskKind,
@@ -24,6 +25,8 @@ export const INSTALL_DAILY = "install_daily";
 export const AGENT_ERROR = "agent_error";
 
 export const SYNC_ERROR = "sync_error";
+
+export const MESSAGING_ERROR = "messaging_error";
 
 export const API_ERROR = "api_error";
 
@@ -83,6 +86,13 @@ export function syncError(input: { error: unknown; source: string }): void {
 		error_class: permittedErrorClass(input.error),
 		error_source: permittedSyncErrorSource(input.source),
 		sync_source: permittedSyncSource(input.source),
+	});
+}
+
+export function messagingError(input: { error: unknown; stage: string }): void {
+	capture(MESSAGING_ERROR, {
+		error_class: permittedErrorClass(input.error),
+		stage: permittedStage(input.stage),
 	});
 }
 

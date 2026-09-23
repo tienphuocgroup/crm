@@ -4,6 +4,7 @@ import Chat from "@carbon/icons-react/es/Chat";
 import Checkmark from "@carbon/icons-react/es/Checkmark";
 import Email from "@carbon/icons-react/es/Email";
 import Events from "@carbon/icons-react/es/Events";
+import SendAlt from "@carbon/icons-react/es/SendAlt";
 import Task from "@carbon/icons-react/es/Task";
 import Time from "@carbon/icons-react/es/Time";
 import { Button } from "@crm/ui/components/button";
@@ -38,6 +39,7 @@ const TAB_LABEL_KEY: Record<TimelineTab, string> = {
 	all: "timeline.tabAll",
 	notes: "timeline.tabNotes",
 	email: "timeline.tabEmail",
+	messages: "timeline.tabMessages",
 	meetings: "timeline.tabMeetings",
 	upcoming: "timeline.tabUpcoming",
 	done: "timeline.tabDone",
@@ -59,6 +61,10 @@ const EMPTY_STATE_KEY: Record<
 		title: "timeline.emptyEmailTitle",
 		description: "timeline.emptyEmailDescription",
 	},
+	messages: {
+		title: "timeline.emptyMessagesTitle",
+		description: "timeline.emptyMessagesDescription",
+	},
 	meetings: {
 		title: "timeline.emptyMeetingsTitle",
 		description: "timeline.emptyMeetingsDescription",
@@ -77,6 +83,7 @@ const EMPTY_ICONS: Record<TimelineTab, CarbonIcon> = {
 	all: Time,
 	notes: Chat,
 	email: Email,
+	messages: SendAlt,
 	meetings: Events,
 	upcoming: Task,
 	done: Checkmark,

@@ -32,6 +32,11 @@ is an edited migration that has already been applied.
   verification plus an annual CASA assessment. Going External later means the full
   review — a decision, not a checkbox.
 
+## Zalo
+
+`ZALO_APP_ID`, `ZALO_APP_SECRET` and `ZALO_OA_SECRET_KEY` are in `docs/environment.md`.
+The webhook needs a public URL, so local testing needs a tunnel to `API_URL`.
+
 ## The agent bridge
 
 ```sh

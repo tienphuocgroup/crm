@@ -1,8 +1,9 @@
 import type { ZodType, z } from "zod";
 import * as agents from "./agents";
+import * as messaging from "./messaging";
 import * as slack from "./slack";
 
-export const schemas = { agents, slack } as const;
+export const schemas = { agents, messaging, slack } as const;
 
 export type {
 	Handoff,
@@ -12,6 +13,16 @@ export type {
 	InputRequested,
 	Permission,
 } from "./agents";
+export type {
+	IdentityProfilePayload,
+	SendPayload,
+	TokenRefreshPayload,
+	ZaloErrorEnvelope,
+	ZaloOaProfile,
+	ZaloSentMessage,
+	ZaloTokens,
+	ZaloUserProfile,
+} from "./messaging";
 export type { AuthTest, Installation, JoinPayload, Reply } from "./slack";
 
 export class InvalidInput extends Error {

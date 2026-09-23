@@ -5,6 +5,9 @@ import { queueEventAgentRuns } from "./custom-agent-dispatch";
 import { settledWithin } from "./deadline";
 import { DISPATCH } from "./dispatch-config";
 import { markRunning, settle } from "./enrichment";
+import { runMessageIdentityProfile } from "./messaging/message-identity-profile";
+import { runMessageSend } from "./messaging/message-send";
+import { runMessageTokenRefresh } from "./messaging/message-token-refresh";
 import { collapsing, runLimited } from "./pool";
 import { runPortrait } from "./portrait";
 import { runSlackChannelJoin } from "./slack-join-task";
@@ -132,6 +135,21 @@ async function handleDirect(task: LeasedTask): Promise<void> {
 
 	if (task.kind === "slack-channel-join") {
 		await completeTask(task.id, await runSlackChannelJoin(task.payload));
+		return;
+	}
+
+	if (task.kind === "message-send") {
+		await completeTask(task.id, await runMessageSend(task));
+		return;
+	}
+
+	if (task.kind === "message-identity-profile") {
+		await completeTask(task.id, await runMessageIdentityProfile(task));
+		return;
+	}
+
+	if (task.kind === "message-token-refresh") {
+		await completeTask(task.id, await runMessageTokenRefresh(task));
 		return;
 	}
 

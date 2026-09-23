@@ -59,11 +59,15 @@ export function useRecordStack() {
 	);
 
 	const write = useCallback(
-		(next: RecordRef[], history: "push" | "replace") => {
+		(
+			next: RecordRef[],
+			history: "push" | "replace",
+			tab: string | null = null,
+		) => {
 			void setParams(
 				{
 					record: next.length === 0 ? null : next.map(recordKey),
-					tab: null,
+					tab,
 					add: null,
 					thread: null,
 					fields: null,
@@ -77,11 +81,12 @@ export function useRecordStack() {
 	);
 
 	const open = useCallback(
-		(ref: RecordRef) => {
+		(ref: RecordRef, tab?: string) => {
 			const key = recordKey(ref);
 			write(
 				[...stack.filter((entry) => recordKey(entry) !== key), ref],
 				stack.length === 0 ? "push" : "replace",
+				tab ?? null,
 			);
 		},
 		[stack, write],

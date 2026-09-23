@@ -160,6 +160,30 @@ sent.
 | `suppressed_domains`, `suppressed_contacts` | Counts. Never the domains or addresses |
 | `workspace_profile_written` | Whether a `WorkspaceProfile` row exists |
 
+`activities_by_type` counts `MESSAGE` with the rest: the map is keyed by
+`Object.values(ActivityType)`, so the Zalo row arrived with no change here. It is
+a count of threads with an activity, never a subject and never a body.
+
+#### Zalo messaging
+
+| Property | What it is |
+| --- | --- |
+| `zalo_connected` | Whether one `MessagingAccount` with `channel = ZALO` and no `disconnectedAt` exists |
+| `messages_inbound_7d` | Inbound `Message` rows in the last 7 days. A count |
+| `messages_outbound_7d` | Outbound `Message` rows in the last 7 days. A count |
+| `messages_failed_7d` | Of those, the ones that ended `FAILED`. A count |
+| `messaging_threads_bucket` | How many `MessageThread` rows exist, in bands |
+| `messaging_unmatched` | `MessageThread` rows with no contact, the inbox's Unmatched count. A count |
+
+These six are the only messaging properties. Never a body, never a Zalo user id,
+never a display name, never an OA name — a body is what a customer wrote to a
+business.
+
+The window is 7 days, not the 24 hours the rest of the rollup uses:
+`MESSAGING_WINDOW_HOURS` widens the one `since` the rollup is given, because a
+small install sends nothing on a given day and a zero would read as "not used"
+rather than "quiet Tuesday".
+
 #### Website tracking
 
 | Property | What it is |
@@ -219,6 +243,7 @@ our errors would carry contact fields.
 | --- | --- |
 | `agent_error` | `error_class`, `tool`, `task_kind`, `error_source` (`tool` / `turn` / `session`) |
 | `sync_error` | `error_class`, `sync_source` (`gmail` / `calendar` / `outlook`), `error_source` (`google_sync` / `microsoft_sync` / `mailbox_sync`) |
+| `messaging_error` | `error_class`, `stage` (`webhook` / `send` / `token` / `profile`) |
 | `api_error` | `error_class`, `route`, `status_code` |
 | `model_error` | `error_class`, `model_id` |
 
@@ -226,6 +251,13 @@ our errors would carry contact fields.
 mailbox pipeline that dispatches to both providers cannot report an Outlook failure as a Google
 one. A source that is not one of the three is sent as `other`, and its `error_source` as
 `mailbox_sync`.
+
+`messaging_error` carries two properties and no third. `stage` goes through
+`permittedStage()`, which accepts the four above and sends anything else as
+`other`. Its `error_class` is usually `zalo.<code>` — `zalo.-216`,
+`zalo.network`, `zalo.http-500` — which is a code Zalo returned, never the text
+beside it. The webhook, the send handler, the token refresh and the profile read
+are the four emitters.
 
 `route` is the **route pattern** — `/internal/sync/google`, `/trpc/contacts.list` — never a URL
 with parameters in it. Anything that does not match a strict path shape is sent as `other`, and
@@ -293,6 +325,10 @@ default and the page has no field to type in.
 - `AgentEvent.data`, `AgentConversation` content, prompts, completions, reasoning traces
 - `ALLOWED_SIGN_IN`, `AppSetting.contextDevApiKey`, any key, secret, token or connection string
 - `SuppressedDomain` and `SuppressedContact` values — counts only
+- `Message.body`, `Message.errorMessage` and the `MESSAGE` activity's subject — a
+  message body is what a customer wrote to a business
+- Zalo ids and names: `ContactChannelIdentity.externalId`, `.displayName`,
+  `.avatarUrl`, and the OA's own name. Counts only
 - **IP address.** Set `$ip: null` and disable geoip. n8n collects IP and has to caveat their
   anonymity claim because of it. We do not need it and we would rather the claim be unqualified.
 

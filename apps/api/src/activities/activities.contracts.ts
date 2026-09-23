@@ -19,6 +19,7 @@ const TIMELINE_FILTERS = [
 	"done",
 	"email",
 	"meetings",
+	"messages",
 ] as const;
 
 export type TimelineFilter = (typeof TIMELINE_FILTERS)[number];

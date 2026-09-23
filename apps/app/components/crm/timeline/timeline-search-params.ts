@@ -4,6 +4,7 @@ export const TIMELINE_TABS = [
 	"all",
 	"notes",
 	"email",
+	"messages",
 	"meetings",
 	"upcoming",
 	"done",

@@ -1,4 +1,5 @@
 import {
+	ActivityType,
 	type ContactBriefSections,
 	type Db,
 	type FactEvidence,
@@ -24,6 +25,7 @@ import { type BulkResult, requireOwner, runBulk } from "../crm/bulk";
 import { blankToNull, normalizeEmail, toCents } from "../crm/values";
 import { InjectDatabase } from "../database/database.constants";
 import { FieldsService } from "../fields/fields.service";
+import { MessagingWriterService } from "../messaging/messaging-writer.service";
 import {
 	countsByKey,
 	FACET_ALL,
@@ -119,6 +121,7 @@ export class ContactsService {
 		private readonly queue: AgentQueueService,
 		private readonly stamp: ActivityStampService,
 		private readonly fields: FieldsService,
+		private readonly messaging: MessagingWriterService,
 	) {}
 
 	async list(input: ContactListInput): Promise<ListResult<ContactRow>> {
@@ -358,6 +361,13 @@ export class ContactsService {
 
 				await tx.agentTask.deleteMany({ where: { contactId: id } });
 				await tx.agentEvent.deleteMany({ where: { contactId: id } });
+
+				await tx.activity.updateMany({
+					where: { contactId: id, type: ActivityType.MESSAGE },
+					data: { contactId: null, companyId: null },
+				});
+
+				await this.messaging.detachContact(tx, id);
 
 				const contact = await tx.contact.delete({
 					where: { id },

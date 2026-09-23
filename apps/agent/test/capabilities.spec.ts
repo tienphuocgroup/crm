@@ -11,6 +11,7 @@ const KEYS = [
 	"RAPIDAPI_KEY",
 	"PERPLEXITY_API_KEY",
 	"BLOB_READ_WRITE_TOKEN",
+	"ZALO_APP_ID",
 ] as const;
 
 const saved: Record<string, string | undefined> = {};
@@ -82,6 +83,26 @@ describe("the Context key is a setting, never a variable", () => {
 
 	it("points at the settings page rather than a variable name", () => {
 		expect(contextDev(null)?.from).toBe("Settings → General");
+	});
+});
+
+describe("the Zalo Official Account capability", () => {
+	const zalo = () => capabilitiesFrom(null).find((c) => c.id === "ZALO_APP_ID");
+
+	it("is off on an install with no Zalo app", () => {
+		expect(zalo()?.enabled).toBe(false);
+	});
+
+	it("turns on with the app id alone, because the secret is read beside it", async () => {
+		process.env.ZALO_APP_ID = "1234567890";
+
+		expect(zalo()?.enabled).toBe(true);
+		expect(await enabled("ZALO_APP_ID")).toBe(true);
+	});
+
+	it("says what the OA gives a rep", () => {
+		expect(zalo()?.label).toBe("Zalo Official Account");
+		expect(zalo()?.gives).toContain("inbound messages on the contact record");
 	});
 });
 

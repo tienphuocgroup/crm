@@ -145,6 +145,8 @@ export async function scheduleTask(input: {
 	dueAt: Date;
 	priority?: number;
 	budget?: number;
+	subject?: { path: string[]; value: string };
+	exceptId?: string;
 }): Promise<{ id: string }> {
 	const existing = await db.agentTask.findFirst({
 		where: {
@@ -153,6 +155,15 @@ export async function scheduleTask(input: {
 			contactId: input.contactId ?? undefined,
 			companyId: input.companyId ?? undefined,
 			dealId: input.dealId ?? undefined,
+			...(input.subject
+				? {
+						payload: {
+							path: input.subject.path,
+							equals: input.subject.value,
+						},
+					}
+				: {}),
+			...(input.exceptId ? { id: { not: input.exceptId } } : {}),
 		},
 		select: { id: true },
 	});
@@ -160,7 +171,13 @@ export async function scheduleTask(input: {
 	if (existing) {
 		await db.agentTask.update({
 			where: { id: existing.id },
-			data: { dueAt: input.dueAt, reason: input.reason },
+			data: {
+				dueAt: input.dueAt,
+				reason: input.reason,
+				...(input.payload === undefined || input.payload === null
+					? {}
+					: { payload: input.payload }),
+			},
 		});
 		return existing;
 	}

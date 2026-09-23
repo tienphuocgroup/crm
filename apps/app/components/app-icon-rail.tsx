@@ -6,6 +6,7 @@ import Chat from "@carbon/icons-react/es/Chat";
 import Close from "@carbon/icons-react/es/Close";
 import Dashboard from "@carbon/icons-react/es/Dashboard";
 import Partnership from "@carbon/icons-react/es/Partnership";
+import SendAlt from "@carbon/icons-react/es/SendAlt";
 import Settings from "@carbon/icons-react/es/Settings";
 import UserMultiple from "@carbon/icons-react/es/UserMultiple";
 import { Button } from "@crm/ui/components/button";
@@ -27,6 +28,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import { AgentBuilderSidebar } from "@/components/agent-builder/agent-builder-sidebar";
+import { MessagesUnreadBadge } from "@/components/crm/messaging/messages-unread-badge";
 import { usePrefetchSection } from "@/components/crm/section-prefetch";
 import { useMobileNav } from "@/components/mobile-nav";
 import { useWorkspaceUrl } from "@/lib/use-workspace-url";
@@ -34,6 +36,7 @@ import { useWorkspaceUrl } from "@/lib/use-workspace-url";
 type RailItemId =
 	| "overview"
 	| "chat"
+	| "messages"
 	| "companies"
 	| "contacts"
 	| "deals"
@@ -58,6 +61,7 @@ const ITEMS: RailItem[] = [
 		match: "prefix",
 		related: ["/agents"],
 	},
+	{ id: "messages", href: "/messages", icon: SendAlt, match: "prefix" },
 	{ id: "companies", href: "/companies", icon: Building, match: "prefix" },
 	{
 		id: "contacts",
@@ -72,6 +76,7 @@ const ITEMS: RailItem[] = [
 const RAIL_ITEM_KEY: Record<RailItemId, string> = {
 	overview: "overview",
 	chat: "chat",
+	messages: "messages",
 	companies: "companies",
 	contacts: "contacts",
 	deals: "deals",
@@ -84,6 +89,10 @@ function isActive(item: RailItem, pathname: string): boolean {
 		(item.match === "prefix" && pathname.startsWith(item.href)) ||
 		Boolean(item.related?.some((prefix) => pathname.startsWith(prefix)))
 	);
+}
+
+function RailBadge({ item }: { item: RailNavItem }) {
+	return item.id === "messages" ? <MessagesUnreadBadge /> : null;
 }
 
 function RailLink({
@@ -116,7 +125,12 @@ function RailLink({
 						aria-current={active ? "page" : undefined}
 						transitionTypes={["nav-lateral"]}
 					>
-						<Icon icon={item.icon} />
+						<span className="relative flex items-center">
+							<Icon icon={item.icon} />
+							<span className="-top-2.5 -right-3 absolute">
+								<RailBadge item={item} />
+							</span>
+						</span>
 						<span className="sr-only">{item.title}</span>
 					</Link>
 				</Button>
@@ -158,6 +172,9 @@ function MobileRailLink({
 			>
 				<Icon icon={item.icon} />
 				<span>{item.title}</span>
+				<span className="ms-auto">
+					<RailBadge item={item} />
+				</span>
 			</Link>
 		</Button>
 	);
@@ -193,7 +210,12 @@ function MobileRailIconLink({
 				aria-current={active ? "page" : undefined}
 				onClick={onNavigate}
 			>
-				<Icon icon={item.icon} />
+				<span className="relative flex items-center">
+					<Icon icon={item.icon} />
+					<span className="-top-2.5 -right-3 absolute">
+						<RailBadge item={item} />
+					</span>
+				</span>
 				<span className="sr-only">{item.title}</span>
 			</Link>
 		</Button>

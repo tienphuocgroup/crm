@@ -1,6 +1,7 @@
 "use client";
 
 import Add from "@carbon/icons-react/es/Add";
+import Chat from "@carbon/icons-react/es/Chat";
 import Email from "@carbon/icons-react/es/Email";
 import Partnership from "@carbon/icons-react/es/Partnership";
 import Star from "@carbon/icons-react/es/Star";
@@ -36,6 +37,7 @@ import {
 	InlineSelectField,
 	savingValue,
 } from "@/components/crm/inline-field";
+import { MESSAGING_UI } from "@/components/crm/messaging/messaging-ui-config";
 import { OwnerCell } from "@/components/crm/owner-cell";
 import { ContactSocials } from "@/components/crm/social-links";
 import { DealStageMenu } from "@/components/crm/stage-change";
@@ -60,6 +62,7 @@ import { hasContactLinks } from "@/lib/social-links";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 import type { RouterOutputs } from "@/lib/trpc/types";
+import { ContactMessagesTab } from "./contact-messages-tab";
 import { QuickAddDeal } from "./quick-add";
 import { RecordActions } from "./record-actions";
 import { AddRow, DealAmount, MetaLine, RecordSheetFrame } from "./record-parts";
@@ -98,6 +101,17 @@ export function ContactSheet({ contactId }: { contactId: string }) {
 	});
 	const contact = query.data;
 
+	const zalo = useQuery({
+		...trpc.zalo.status.queryOptions(),
+		staleTime: MESSAGING_UI.connectionStaleMs,
+	});
+
+	const messageThread = useQuery({
+		...trpc.messaging.threadByContact.queryOptions({ contactId }),
+		enabled: zalo.data?.configured === true && zalo.data.connected === true,
+		retry: false,
+	});
+
 	const setPrimary = useMutation(
 		trpc.companies.setPrimaryContact.mutationOptions({
 			onSuccess: async () => {
@@ -132,6 +146,11 @@ export function ContactSheet({ contactId }: { contactId: string }) {
 					value: "activity",
 					label: common("recordSheet.activityTab"),
 					content: <Timeline anchor={{ contactId: contact.id }} />,
+				},
+				{
+					value: "messages",
+					label: common("recordSheet.messagesTab"),
+					content: <ContactMessagesTab contactId={contact.id} />,
 				},
 				{
 					value: "agent",
@@ -192,6 +211,18 @@ export function ContactSheet({ contactId }: { contactId: string }) {
 									<Icon icon={Email} data-icon="inline-start" />
 									<span className="hidden sm:inline">{t("emailLabel")}</span>
 								</a>
+							</Button>
+						) : null}
+						{messageThread.data?.thread ? (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setTab("messages")}
+							>
+								<Icon icon={Chat} data-icon="inline-start" />
+								<span className="hidden sm:inline">
+									{t("messagingMessageAction")}
+								</span>
 							</Button>
 						) : null}
 						{contact.company && !contact.isPrimaryContact ? (

@@ -4,6 +4,7 @@ import Email from "@carbon/icons-react/es/Email";
 import Events from "@carbon/icons-react/es/Events";
 import MagicWand from "@carbon/icons-react/es/MagicWand";
 import Phone from "@carbon/icons-react/es/Phone";
+import SendAlt from "@carbon/icons-react/es/SendAlt";
 import Task from "@carbon/icons-react/es/Task";
 import type { ActivityType } from "@crm/db/enums";
 import type { CarbonIcon } from "@crm/ui/components/icon";
@@ -19,6 +20,7 @@ const PRESENTATION: Record<
 	TASK: { icon: Task, labelKey: "activityTypeTask" },
 	STAGE_CHANGE: { icon: ArrowRight, labelKey: "activityTypeStageChange" },
 	ENRICHMENT: { icon: MagicWand, labelKey: "activityTypeEnrichment" },
+	MESSAGE: { icon: SendAlt, labelKey: "activityTypeMessage" },
 };
 
 export function activityLabelKey(type: ActivityType): string {

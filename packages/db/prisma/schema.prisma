@@ -43,6 +43,9 @@ model User {
   conversationFeedback    AgentConversationFeedback[]   @relation("ConversationFeedbackAuthor")
   slackMemberMatch        SlackMemberMatch?
 
+  messagingAccounts MessagingAccount[] @relation("MessagingAccountConnector")
+  sentMessages      Message[]          @relation("MessageSender")
+
   members     Member[]
   invitations Invitation[]
 
@@ -53,14 +56,14 @@ model User {
 }
 
 model SlackMemberMatch {
-  id                  String   @id @default(cuid())
-  crmUserId           String   @unique
-  crmUser             User     @relation(fields: [crmUserId], references: [id], onDelete: Cascade)
-  slackUserId         String?
-  slackHandle         String?
-  slackEmail          String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id          String   @id @default(cuid())
+  crmUserId   String   @unique
+  crmUser     User     @relation(fields: [crmUserId], references: [id], onDelete: Cascade)
+  slackUserId String?
+  slackHandle String?
+  slackEmail  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([slackUserId])
   @@map("slackMemberMatch")
@@ -183,6 +186,7 @@ enum ActivityType {
   TASK
   STAGE_CHANGE
   ENRICHMENT
+  MESSAGE
 }
 
 enum EnrichmentStatus {
@@ -324,6 +328,7 @@ model Company {
   emailThreads   EmailThread[]
   calendarEvents CalendarEvent[]
   fieldValues    FieldValue[]
+  messageThreads MessageThread[]
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
 
@@ -383,8 +388,12 @@ model Contact {
   fieldValues     FieldValue[]
   visitors        TrackedVisitor[]   @relation("VisitorContact")
   submissions     FormSubmission[]   @relation("SubmissionContact")
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+
+  channelIdentities ContactChannelIdentity[]
+  messageThreads    MessageThread[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([companyId])
   @@index([ownerId])
@@ -1099,6 +1108,8 @@ model Activity {
   emailThread     EmailThread?   @relation(fields: [emailThreadId], references: [id], onDelete: Cascade)
   calendarEventId String?        @unique
   calendarEvent   CalendarEvent? @relation(fields: [calendarEventId], references: [id], onDelete: Cascade)
+  messageThreadId String?        @unique
+  messageThread   MessageThread? @relation(fields: [messageThreadId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1277,15 +1288,15 @@ model AppSetting {
 
   ratesRefreshedAt DateTime?
 
-  trackingSiteId           String?  @unique
-  trackingCrossDomain      Boolean  @default(true)
-  trackingLimitToDomains   Boolean  @default(true)
-  trackingCookieSubdomains Boolean  @default(false)
-  trackingSecureCookies    Boolean  @default(true)
-  trackingHonourDnt        Boolean  @default(true)
-  trackingCookieDays       Int      @default(395)
+  trackingSiteId           String? @unique
+  trackingCrossDomain      Boolean @default(true)
+  trackingLimitToDomains   Boolean @default(true)
+  trackingCookieSubdomains Boolean @default(false)
+  trackingSecureCookies    Boolean @default(true)
+  trackingHonourDnt        Boolean @default(true)
+  trackingCookieDays       Int     @default(395)
   trackingConfigHash       String?
-  trackingPaused           Boolean  @default(false)
+  trackingPaused           Boolean @default(false)
 
   updatedAt DateTime @updatedAt
 
@@ -1316,14 +1327,14 @@ model TrackedVisitor {
   contactId String?
   contact   Contact? @relation("VisitorContact", fields: [contactId], references: [id], onDelete: SetNull)
 
-  firstSource     String?
-  firstMedium     String?
-  firstCampaign   String?
-  firstTerm       String?
-  firstContent    String?
-  firstReferrer   String?
-  firstLanding    String?
-  firstTouchAt    DateTime?
+  firstSource   String?
+  firstMedium   String?
+  firstCampaign String?
+  firstTerm     String?
+  firstContent  String?
+  firstReferrer String?
+  firstLanding  String?
+  firstTouchAt  DateTime?
 
   lastSource   String?
   lastMedium   String?
@@ -1517,4 +1528,156 @@ model SsoProvider {
 
   @@unique([providerId])
   @@map("ssoProvider")
+}
+
+enum MessagingChannel {
+  ZALO
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageStatus {
+  QUEUED
+  SENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum MessageKind {
+  TEXT
+  IMAGE
+  FILE
+  STICKER
+  OTHER
+}
+
+model MessagingAccount {
+  id               String           @id @default(cuid())
+  channel          MessagingChannel
+  externalId       String
+  label            String
+  avatarUrl        String?
+  verified         Boolean          @default(false)
+  accessToken      String?
+  refreshToken     String?
+  tokenExpiresAt   DateTime?
+  tokenRefreshedAt DateTime?
+  tokenError       String?
+  connectedById    String
+  connectedBy      User             @relation("MessagingAccountConnector", fields: [connectedById], references: [id])
+  connectedAt      DateTime         @default(now())
+  disconnectedAt   DateTime?
+  lastInboundAt    DateTime?
+  lastOutboundAt   DateTime?
+  lastWebhookAt    DateTime?
+
+  identities ContactChannelIdentity[]
+  threads    MessageThread[]
+  receipts   MessageReceipt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([channel, externalId])
+  @@map("messagingAccount")
+}
+
+model ContactChannelIdentity {
+  id               String           @id @default(cuid())
+  channel          MessagingChannel
+  accountId        String
+  account          MessagingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  externalId       String
+  displayName      String?
+  avatarUrl        String?
+  profileCheckedAt DateTime?
+  contactId        String?
+  contact          Contact?         @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  followedAt       DateTime?
+  unfollowedAt     DateTime?
+  lastInboundAt    DateTime?
+  thread           MessageThread?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([channel, accountId, externalId])
+  @@index([contactId])
+  @@map("contactChannelIdentity")
+}
+
+model MessageThread {
+  id             String                 @id @default(cuid())
+  accountId      String
+  account        MessagingAccount       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  identityId     String                 @unique
+  identity       ContactChannelIdentity @relation(fields: [identityId], references: [id], onDelete: Cascade)
+  contactId      String?
+  contact        Contact?               @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  companyId      String?
+  company        Company?               @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  firstMessageAt DateTime
+  lastMessageAt  DateTime
+  lastInboundAt  DateTime?
+  lastOutboundAt DateTime?
+  messageCount   Int                    @default(0)
+  unreadCount    Int                    @default(0)
+
+  messages Message[]
+  activity Activity?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([contactId, lastMessageAt])
+  @@index([lastMessageAt])
+  @@map("messageThread")
+}
+
+model Message {
+  id              String           @id @default(cuid())
+  threadId        String
+  thread          MessageThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  direction       MessageDirection
+  status          MessageStatus
+  kind            MessageKind      @default(TEXT)
+  body            String?
+  attachments     Json?
+  externalId      String?
+  clientRequestId String?
+  sentById        String?
+  sentBy          User?            @relation("MessageSender", fields: [sentById], references: [id], onDelete: SetNull)
+  errorCode       String?
+  errorMessage    String?
+  queuedAt        DateTime         @default(now())
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  readAt          DateTime?
+  failedAt        DateTime?
+  createdAt       DateTime         @default(now())
+
+  @@unique([threadId, externalId])
+  @@unique([threadId, clientRequestId])
+  @@index([externalId])
+  @@index([threadId, queuedAt])
+  @@index([status])
+  @@map("message")
+}
+
+model MessageReceipt {
+  id         String           @id @default(cuid())
+  accountId  String
+  account    MessagingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  externalId String
+  kind       String
+  at         DateTime
+  createdAt  DateTime         @default(now())
+
+  @@unique([accountId, externalId, kind])
+  @@map("messageReceipt")
 }

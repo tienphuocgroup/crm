@@ -44,6 +44,15 @@ const ENTRY_SELECT = {
 			lastMessageAt: true,
 		},
 	},
+	messageThread: {
+		select: {
+			id: true,
+			messageCount: true,
+			lastMessageAt: true,
+			unreadCount: true,
+			identity: { select: { displayName: true, externalId: true } },
+		},
+	},
 	calendarEvent: {
 		select: {
 			id: true,
@@ -102,24 +111,30 @@ export class ActivitiesService {
 	) {
 		const anchor = this.anchor(input);
 
-		const [all, notes, upcoming, done, email, meetings] = await Promise.all([
-			this.db.activity.count({ where: anchor }),
-			this.db.activity.count({
-				where: { ...anchor, ...filterClause("notes") },
-			}),
-			this.db.activity.count({
-				where: { ...anchor, ...filterClause("upcoming") },
-			}),
-			this.db.activity.count({ where: { ...anchor, ...filterClause("done") } }),
-			this.db.activity.count({
-				where: { ...anchor, ...filterClause("email") },
-			}),
-			this.db.activity.count({
-				where: { ...anchor, ...filterClause("meetings") },
-			}),
-		]);
+		const [all, notes, upcoming, done, email, meetings, messages] =
+			await Promise.all([
+				this.db.activity.count({ where: anchor }),
+				this.db.activity.count({
+					where: { ...anchor, ...filterClause("notes") },
+				}),
+				this.db.activity.count({
+					where: { ...anchor, ...filterClause("upcoming") },
+				}),
+				this.db.activity.count({
+					where: { ...anchor, ...filterClause("done") },
+				}),
+				this.db.activity.count({
+					where: { ...anchor, ...filterClause("email") },
+				}),
+				this.db.activity.count({
+					where: { ...anchor, ...filterClause("meetings") },
+				}),
+				this.db.activity.count({
+					where: { ...anchor, ...filterClause("messages") },
+				}),
+			]);
 
-		return { all, notes, upcoming, done, email, meetings };
+		return { all, notes, upcoming, done, email, meetings, messages };
 	}
 
 	async create(input: ActivityCreateInput, actingUserId: string) {
@@ -259,6 +274,8 @@ function filterClause(filter: TimelineFilter): Prisma.ActivityWhereInput {
 			return { type: ActivityType.EMAIL };
 		case "meetings":
 			return { type: ActivityType.MEETING };
+		case "messages":
+			return { type: ActivityType.MESSAGE };
 		case "all":
 			return {};
 	}
@@ -280,6 +297,17 @@ function serializeEntry(entry: Entry) {
 					id: entry.emailThread.id,
 					messageCount: entry.emailThread.messageCount,
 					lastMessageAt: entry.emailThread.lastMessageAt.toISOString(),
+				}
+			: null,
+
+		messageThread: entry.messageThread
+			? {
+					id: entry.messageThread.id,
+					messageCount: entry.messageThread.messageCount,
+					unreadCount: entry.messageThread.unreadCount,
+					lastMessageAt: entry.messageThread.lastMessageAt.toISOString(),
+					displayName: entry.messageThread.identity.displayName,
+					externalId: entry.messageThread.identity.externalId,
 				}
 			: null,
 

@@ -32,7 +32,10 @@
 				"MICROSOFT_CLIENT_SECRET",
 				"MICROSOFT_TENANT_ID",
 				"PORT",
-				"REDIS_URL"
+				"REDIS_URL",
+				"ZALO_APP_ID",
+				"ZALO_APP_SECRET",
+				"ZALO_OA_SECRET_KEY"
 			]
 		},
 		"test": {
@@ -50,7 +53,10 @@
 				"MICROSOFT_CLIENT_SECRET",
 				"MICROSOFT_TENANT_ID",
 				"PORT",
-				"REDIS_URL"
+				"REDIS_URL",
+				"ZALO_APP_ID",
+				"ZALO_APP_SECRET",
+				"ZALO_OA_SECRET_KEY"
 			]
 		}
 	}
