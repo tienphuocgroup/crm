@@ -8,10 +8,10 @@ export const PSEUDO_LOCALE = "pseudo";
 
 export type ActiveLocale = SupportedLocale | typeof PSEUDO_LOCALE;
 
-const INTL_LOCALES: Record<SupportedLocale, string> = {
+const INTL_LOCALES = {
 	en: "en-US",
 	vi: "vi-VN",
-};
+} satisfies Record<SupportedLocale, string>;
 
 export const DEFAULT_INTL_LOCALE = INTL_LOCALES[DEFAULT_LOCALE];
 

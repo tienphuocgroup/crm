@@ -41,6 +41,16 @@ import { isSyncing, SYNC_POLL_MS } from "@/lib/sync-status";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 
+const CONNECT_ERROR_KEYS = {
+	"email_doesn't_match": "connections.microsoftEmailMismatch",
+} satisfies Record<string, string>;
+
+function isConnectErrorCode(
+	code: string,
+): code is keyof typeof CONNECT_ERROR_KEYS {
+	return Object.hasOwn(CONNECT_ERROR_KEYS, code);
+}
+
 function MicrosoftUnavailable() {
 	const t = useTranslations("settings");
 
@@ -74,10 +84,6 @@ function ConnectMicrosoft({
 }) {
 	const t = useTranslations("settings");
 	const [pending, setPending] = useState(false);
-
-	const connectErrors: Record<string, string> = {
-		"email_doesn't_match": t("connections.microsoftEmailMismatch"),
-	};
 
 	function fail(message?: string) {
 		setPending(false);
@@ -143,8 +149,9 @@ function ConnectMicrosoft({
 							{t("connections.microsoftConnectFailedTitle")}
 						</AlertTitle>
 						<AlertDescription>
-							{connectErrors[connectError] ??
-								t("connections.microsoftGenericConnectError")}
+							{isConnectErrorCode(connectError)
+								? t(CONNECT_ERROR_KEYS[connectError])
+								: t("connections.microsoftGenericConnectError")}
 						</AlertDescription>
 					</Alert>
 				</CardContent>

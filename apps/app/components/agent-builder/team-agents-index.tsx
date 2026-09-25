@@ -13,14 +13,14 @@ import { useWorkspaceUrl } from "@/lib/use-workspace-url";
 type Agents = RouterOutputs["agents"]["list"];
 type AgentStatus = Agents[number]["status"];
 
-const AGENT_STATUS_KEYS: Record<AgentStatus, string> = {
+const AGENT_STATUS_KEYS = {
 	DRAFT: "agentLifecycleDraft",
 	DEPLOYING: "agentLifecycleDeploying",
 	LIVE: "agentLifecycleLive",
 	PAUSED: "agentLifecyclePaused",
 	ARCHIVED: "agentLifecycleArchived",
 	DELETED: "agentLifecycleDeleted",
-};
+} satisfies Record<AgentStatus, string>;
 
 export function TeamAgentsIndex({ initialAgents }: { initialAgents: Agents }) {
 	const t = useTranslations("agent-panel");

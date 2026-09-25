@@ -313,7 +313,7 @@ const EMAIL_SUBJECTS = [
 	"Pre-op instructions for next week",
 ] as const;
 
-const TRANSLITERATIONS: Record<string, string> = {
+const TRANSLITERATIONS = {
 	ø: "o",
 	æ: "ae",
 	œ: "oe",
@@ -324,12 +324,18 @@ const TRANSLITERATIONS: Record<string, string> = {
 	þ: "th",
 	ư: "u",
 	ơ: "o",
-};
+} satisfies Record<string, string>;
+
+function isTransliterated(char: string): char is keyof typeof TRANSLITERATIONS {
+	return Object.hasOwn(TRANSLITERATIONS, char);
+}
 
 function slug(value: string): string {
 	return value
 		.toLowerCase()
-		.replace(/[øæœåßđłþươ]/g, (char) => TRANSLITERATIONS[char] ?? char)
+		.replace(/[øæœåßđłþươ]/g, (char) =>
+			isTransliterated(char) ? TRANSLITERATIONS[char] : char,
+		)
 		.normalize("NFD")
 		.replace(/\p{Mn}/gu, "")
 		.replace(/[^a-z0-9]+/g, "-")
@@ -340,11 +346,9 @@ function mailbox(value: string): string {
 	return slug(value).replace(/-/g, "");
 }
 
-function clientName(): {
-	firstName: string;
-	lastName: string;
-	female: boolean;
-} {
+type ClientName = { firstName: string; lastName: string; female: boolean };
+
+function clientName(): ClientName {
 	const vietnamese = chance(0.6);
 	const first = vietnamese ? pick(VI_FIRST_NAMES) : pick(INTL_FIRST_NAMES);
 	const lastName = vietnamese ? pick(VI_LAST_NAMES) : pick(INTL_LAST_NAMES);
@@ -527,13 +531,19 @@ type SeededDeal = {
 	stage: DealStage;
 };
 
-const SEED_RATES: Record<string, number> = {
+const SEED_RATES = {
 	EUR: 1.09,
 	GBP: 1.27,
 	CAD: 0.73,
 	AUD: 0.66,
 	JPY: 0.0067,
-};
+} satisfies Record<string, number>;
+
+function isSeededCurrency(
+	currency: string,
+): currency is keyof typeof SEED_RATES {
+	return Object.hasOwn(SEED_RATES, currency);
+}
 
 const DEAL_CURRENCIES = ["USD", "USD", "USD", "EUR", "GBP", "JPY", "CAD"];
 
@@ -586,7 +596,7 @@ async function seedRates(): Promise<number> {
 }
 
 function money(usdAmount: number, currency: string) {
-	const rate = SEED_RATES[currency] ?? 1;
+	const rate = isSeededCurrency(currency) ? SEED_RATES[currency] : 1;
 	const places = currency === "JPY" ? 0 : 2;
 	const amount = Number((usdAmount / rate).toFixed(places));
 

@@ -103,7 +103,7 @@ export function mapRecords(
 		for (const column of mapping) {
 			if (!column.field) continue;
 			const value = record[column.header];
-			if (typeof value === "string" && value.trim() !== "") {
+			if (value !== undefined && value.trim() !== "") {
 				values[column.field] = value.trim();
 			}
 		}

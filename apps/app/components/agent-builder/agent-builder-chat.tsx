@@ -97,12 +97,12 @@ type Conversation = RouterOutputs["conversations"]["builderById"];
 type SharedConversation = RouterOutputs["conversations"]["shared"];
 
 const BUILDER_STEPS = ["scope", "instructions", "manifest", "review"] as const;
-const BUILDER_STEP_KEYS: Record<(typeof BUILDER_STEPS)[number], string> = {
+const BUILDER_STEP_KEYS = {
 	scope: "agentCreationStepScope",
 	instructions: "agentCreationStepInstructions",
 	manifest: "agentCreationStepManifest",
 	review: "agentCreationStepReview",
-};
+} satisfies Record<(typeof BUILDER_STEPS)[number], string>;
 const BUILDER_STEP_ARTIFACTS = [
 	null,
 	"agent/instructions.md",

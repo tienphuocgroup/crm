@@ -10,13 +10,11 @@ import {
 	overviewParsers,
 } from "./overview-search-params";
 
-function scopeLabels(
-	t: ReturnType<typeof useTranslations>,
-): Record<OverviewScope, string> {
+function scopeLabels(t: ReturnType<typeof useTranslations>) {
 	return {
 		me: t("scopeMe"),
 		everyone: t("scopeEveryone"),
-	};
+	} satisfies Record<OverviewScope, string>;
 }
 
 function isScope(value: string): value is OverviewScope {

@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { Glob } from "bun";
+import { z } from "zod";
 import allowlist from "./allowlist.json" with { type: "json" };
 import ratchet from "./ratchet.json" with { type: "json" };
 import { type Finding, scanSource } from "./rules";
@@ -28,7 +29,15 @@ const TEST_FILE = /\.(?:test|spec)\.[cm]?tsx?$/;
 
 const ALLOWLIST_SEPARATOR = "::";
 
-type AllowlistEntry = { reason: string };
+const allowlistEntry = z.object({
+	reason: z.string().refine((reason) => reason.trim().length > 0),
+});
+
+type Allowlist = {
+	anywhere: Set<string>;
+	scoped: Set<string>;
+	size: number;
+};
 
 function isExcluded(relative: string): boolean {
 	if (EXCLUDED_PREFIXES.some((prefix) => relative.startsWith(prefix))) {
@@ -51,17 +60,12 @@ async function collectFiles(): Promise<string[]> {
 	return [...files].sort();
 }
 
-function loadAllowlist(): {
-	anywhere: Set<string>;
-	scoped: Set<string>;
-	size: number;
-} {
-	const entries = allowlist as Record<string, AllowlistEntry>;
+function loadAllowlist(): Allowlist {
 	const anywhere = new Set<string>();
 	const scoped = new Set<string>();
 	const missing: string[] = [];
-	for (const [key, entry] of Object.entries(entries)) {
-		if (!entry || typeof entry.reason !== "string" || !entry.reason.trim()) {
+	for (const [key, entry] of Object.entries(allowlist)) {
+		if (!allowlistEntry.safeParse(entry).success) {
 			missing.push(key);
 			continue;
 		}

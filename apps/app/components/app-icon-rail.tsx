@@ -71,14 +71,14 @@ const ITEMS: RailItem[] = [
 	{ id: "settings", href: "/settings", icon: Settings, match: "prefix" },
 ];
 
-const RAIL_ITEM_KEY: Record<RailItemId, string> = {
+const RAIL_ITEM_KEY = {
 	overview: "overview",
 	chat: "chat",
 	companies: "companies",
 	contacts: "contacts",
 	deals: "deals",
 	settings: "settingsLabel",
-};
+} satisfies Record<RailItemId, string>;
 
 function isActive(item: RailItem, pathname: string): boolean {
 	return (

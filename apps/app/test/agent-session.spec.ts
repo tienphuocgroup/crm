@@ -112,11 +112,11 @@ describe("eventsOf", () => {
 });
 
 describe("record context", () => {
-	const KIND_PREFIX: Record<AgentRecordKind, string> = {
+	const KIND_PREFIX = {
 		contact: "recordContact",
 		company: "recordCompany",
 		deal: "recordDeal",
-	};
+	} satisfies Record<AgentRecordKind, string>;
 
 	it("asks about the thing you are actually looking at", () => {
 		expect(recordCopyKeys("contact").title).toBe("recordContactTitle");

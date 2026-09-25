@@ -612,11 +612,14 @@ export class DealsService {
 			throw new NotFoundException(`No deal with id ${dealId}.`);
 		}
 
+		const notIn = deal.contacts.map((row) => row.contactId);
+		const where =
+			deal.companyId === null
+				? { id: { notIn } }
+				: { companyId: deal.companyId, id: { notIn } };
+
 		return this.db.contact.findMany({
-			where: {
-				...(deal.companyId === null ? {} : { companyId: deal.companyId }),
-				id: { notIn: deal.contacts.map((row) => row.contactId) },
-			},
+			where,
 			select: CONTACT_SELECT,
 			orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
 			take: 100,

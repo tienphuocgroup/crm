@@ -127,7 +127,7 @@ export function mergeUiStrings(strings?: Partial<UiStrings>): UiStrings {
 	if (!strings) return DEFAULT_UI_STRINGS;
 	const merged = { ...DEFAULT_UI_STRINGS };
 	for (const [key, value] of Object.entries(strings)) {
-		if (typeof value === "string" && key in merged) {
+		if (value !== undefined && key in merged) {
 			merged[key as keyof UiStrings] = value;
 		}
 	}

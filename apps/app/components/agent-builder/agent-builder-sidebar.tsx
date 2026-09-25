@@ -19,11 +19,11 @@ import { useHydrated } from "@/lib/use-hydrated";
 import { useWorkspaceUrl } from "@/lib/use-workspace-url";
 import { DeleteChatAction } from "./delete-chat-action";
 
-const CHAT_DATE_GROUP_KEYS: Record<ChatDateGroupKey, string> = {
+const CHAT_DATE_GROUP_KEYS = {
 	today: "chatDateGroupToday",
 	yesterday: "chatDateGroupYesterday",
 	last7Days: "chatDateGroupLast7Days",
-};
+} satisfies Record<ChatDateGroupKey, string>;
 
 type Conversation = RouterOutputs["conversations"]["builderList"][number];
 type TeamAgent = RouterOutputs["agents"]["list"][number];

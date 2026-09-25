@@ -9,11 +9,11 @@ type RecordProtocol = {
 	field: "contactId" | "companyId" | "dealId";
 };
 
-const PROTOCOL: Record<AgentRecordKind, RecordProtocol> = {
+const PROTOCOL = {
 	contact: { header: "x-crm-contact", field: "contactId" },
 	company: { header: "x-crm-company", field: "companyId" },
 	deal: { header: "x-crm-deal", field: "dealId" },
-};
+} satisfies Record<AgentRecordKind, RecordProtocol>;
 
 export type RecordCopyKeys = {
 	title: string;

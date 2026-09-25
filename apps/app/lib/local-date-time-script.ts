@@ -31,7 +31,7 @@ export function localDateTimeLabels(
 	};
 }
 
-export function scriptJson(value: unknown): string {
+export function scriptJson(value: string | LocalDateTimeLabels): string {
 	return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 

@@ -1,4 +1,4 @@
-import { mailboxGrantsNeeded } from "@crm/auth";
+import { type MailboxProviderId, mailboxGrantsNeeded } from "@crm/auth";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -24,10 +24,10 @@ export default async function GrantAccessPage() {
 	}
 
 	const only = providers.length === 1 ? providers[0] : undefined;
-	const description: Record<string, string> = {
+	const description = {
 		google: t("grantAccessDescriptionGoogle"),
 		microsoft: t("grantAccessDescriptionMicrosoft"),
-	};
+	} satisfies Record<MailboxProviderId, string>;
 	const both = t("grantAccessDescriptionBoth");
 
 	return (

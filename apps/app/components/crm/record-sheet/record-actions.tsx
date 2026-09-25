@@ -127,29 +127,29 @@ export function RecordActions({
 	const contacts = useTranslations("contacts");
 	const deals = useTranslations("deals");
 
-	const archiveMenuLabel: Record<RecordKind, string> = {
+	const archiveMenuLabel = {
 		company: companies("archiveMenuLabel"),
 		contact: contacts("archiveMenuLabel"),
 		deal: deals("archiveMenuLabel"),
-	};
+	} satisfies Record<RecordKind, string>;
 
-	const restoreMenuLabel: Record<RecordKind, string> = {
+	const restoreMenuLabel = {
 		company: companies("restoreMenuLabel"),
 		contact: contacts("restoreMenuLabel"),
 		deal: deals("restoreMenuLabel"),
-	};
+	} satisfies Record<RecordKind, string>;
 
-	const purgeMenuLabel: Record<RecordKind, string> = {
+	const purgeMenuLabel = {
 		company: companies("purgeMenuLabel"),
 		contact: contacts("purgeMenuLabel"),
 		deal: deals("purgeMenuLabel"),
-	};
+	} satisfies Record<RecordKind, string>;
 
-	const recordNounWithArticle: Record<RecordKind, string> = {
+	const recordNounWithArticle = {
 		company: companies("recordNounWithArticle"),
 		contact: contacts("recordNounWithArticle"),
 		deal: deals("recordNounWithArticle"),
-	};
+	} satisfies Record<RecordKind, string>;
 
 	const [confirming, setConfirming] = useState(false);
 	const toastArgs = {

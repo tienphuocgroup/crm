@@ -4,7 +4,7 @@ import {
 	eveToolText,
 } from "@crm/validation/eve-tool";
 
-const ARTIFACT_KEYS: Record<string, { pending: string; done: string }> = {
+const ARTIFACT_KEYS = {
 	"agent/instructions.md": {
 		pending: "toolWritingInstructions",
 		done: "toolWroteInstructions",
@@ -17,7 +17,11 @@ const ARTIFACT_KEYS: Record<string, { pending: string; done: string }> = {
 		pending: "toolWritingReadme",
 		done: "toolWroteReadme",
 	},
-};
+} satisfies Record<string, { pending: string; done: string }>;
+
+function isArtifactPath(path: string): path is keyof typeof ARTIFACT_KEYS {
+	return Object.hasOwn(ARTIFACT_KEYS, path);
+}
 
 export type ToolLabel = {
 	key: string;
@@ -42,8 +46,10 @@ const INPUT_LABELS: ToolInputLabels = {
 		const path = eveToolText.parse(input.path);
 		if (!path) return null;
 
-		const artifact = ARTIFACT_KEYS[path];
-		if (artifact) return { key: pending ? artifact.pending : artifact.done };
+		if (isArtifactPath(path)) {
+			const artifact = ARTIFACT_KEYS[path];
+			return { key: pending ? artifact.pending : artifact.done };
+		}
 
 		return {
 			key: pending ? "toolWritingFile" : "toolWroteFile",
