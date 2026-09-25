@@ -18,6 +18,7 @@ export type UiStrings = {
 	dataTableDetail: string;
 	dataTableEmpty: string;
 	dataTableFilters: string;
+	dataTableNoMatch: string;
 	dataTableSelectAll: string;
 	dataTableSelected: string;
 	dataTableSort: string;
@@ -65,6 +66,7 @@ export const DEFAULT_UI_STRINGS: UiStrings = {
 	dataTableDetail: "Detail",
 	dataTableEmpty: "No results found.",
 	dataTableFilters: "Filters",
+	dataTableNoMatch: "Nothing matches.",
 	dataTableSelectAll: "Select every row on this page",
 	dataTableSelected: "selected",
 	dataTableSort: "Sort",

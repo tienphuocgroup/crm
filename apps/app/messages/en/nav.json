@@ -10,6 +10,7 @@
 	"overview": "Overview",
 	"primaryNavLabel": "Primary",
 	"settings": {
+		"apiKeys": "API Keys",
 		"ariaLabel": "Workspace settings",
 		"connections": "Connections",
 		"currencies": "Currencies",

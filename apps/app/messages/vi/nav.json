@@ -10,6 +10,7 @@
 	"overview": "Tổng quan",
 	"primaryNavLabel": "Chính",
 	"settings": {
+		"apiKeys": "Khóa API",
 		"ariaLabel": "Cài đặt không gian làm việc",
 		"connections": "Tích hợp",
 		"currencies": "Tiền tệ",
