@@ -11,13 +11,13 @@ export const identityProfilePayload = z.object({
 	identityId: z.string().min(1),
 });
 
-const flag = z
-	.union([z.boolean(), z.number(), z.string()])
-	.transform((value) => {
-		if (typeof value === "boolean") return value;
-		if (typeof value === "number") return value !== 0;
-		return value === "true" || value === "1";
-	});
+export const zaloJson = z.json();
+
+const flag = z.union([
+	z.boolean(),
+	z.number().transform((value) => value !== 0),
+	z.string().transform((value) => value === "true" || value === "1"),
+]);
 
 export const zaloTokens = z.object({
 	access_token: z.string().trim().min(1),

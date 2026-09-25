@@ -86,9 +86,22 @@ async function seedOutbound(externalId: string): Promise<string> {
 	return row.id;
 }
 
+type TextEventOverrides = {
+	event_name?: string;
+	timestamp?: string;
+	sender?: { id: string };
+	recipient?: { id: string };
+};
+
+type TextMessageOverrides = {
+	msg_id?: string;
+	text?: string;
+	attachments?: { type: string; payload: { url: string } }[];
+};
+
 function textEvent(
-	overrides: Record<string, unknown> = {},
-	message: Record<string, unknown> = {},
+	overrides: TextEventOverrides = {},
+	message: TextMessageOverrides = {},
 ): string {
 	return JSON.stringify({
 		app_id: appId,

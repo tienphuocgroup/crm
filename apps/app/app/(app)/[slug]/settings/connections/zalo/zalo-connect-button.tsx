@@ -9,16 +9,18 @@ function connectHref(slug: string): string {
 	return `${API_URL}/api/messaging/zalo/connect?returnTo=${encodeURIComponent(returnTo)}`;
 }
 
-function connectErrorMessages(
-	t: ReturnType<typeof useTranslations>,
-): Record<string, string> {
-	return {
-		book: t("connections.zaloConnectErrorBook"),
-		code: t("connections.zaloConnectErrorCode"),
-		exchange: t("connections.zaloConnectErrorExchange"),
-		profile: t("connections.zaloConnectErrorProfile"),
-		state: t("connections.zaloConnectErrorState"),
-	};
+const CONNECT_ERROR_KEYS = {
+	book: "connections.zaloConnectErrorBook",
+	code: "connections.zaloConnectErrorCode",
+	exchange: "connections.zaloConnectErrorExchange",
+	profile: "connections.zaloConnectErrorProfile",
+	state: "connections.zaloConnectErrorState",
+} satisfies Record<string, string>;
+
+function isConnectErrorCode(
+	code: string,
+): code is keyof typeof CONNECT_ERROR_KEYS {
+	return Object.hasOwn(CONNECT_ERROR_KEYS, code);
 }
 
 export function ZaloConnectError({ error }: { error?: string }) {
@@ -28,10 +30,11 @@ export function ZaloConnectError({ error }: { error?: string }) {
 
 	return (
 		<p className="max-w-sm text-destructive text-xs" role="alert">
-			{connectErrorMessages(t)[error] ??
-				t("connections.zaloConnectErrorFallback", {
-					error: error.replaceAll("_", " "),
-				})}
+			{isConnectErrorCode(error)
+				? t(CONNECT_ERROR_KEYS[error])
+				: t("connections.zaloConnectErrorFallback", {
+						error: error.replaceAll("_", " "),
+					})}
 		</p>
 	);
 }

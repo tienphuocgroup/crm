@@ -14,9 +14,12 @@ export type ZaloUserProfile = z.infer<typeof schemas.messaging.zaloUserProfile>;
 
 export type ZaloCredentials = { appId: string; appSecret: string };
 
+type ZaloJson = z.infer<typeof schemas.messaging.zaloJson>;
+type ZaloCodeFailure = Extract<ZaloFailure, { reason: "code" }>;
+
 async function call<Value>(
 	request: () => Promise<Response>,
-	read: (body: unknown, status: number) => ZaloResult<Value>,
+	read: (body: ZaloJson, status: number) => ZaloResult<Value>,
 ): Promise<ZaloResult<Value>> {
 	let response: Response;
 
@@ -30,9 +33,9 @@ async function call<Value>(
 		return { ok: false, failure: { reason: timedOut ? "timeout" : "network" } };
 	}
 
-	let body: unknown;
+	let body: ZaloJson;
 	try {
-		body = await response.json();
+		body = schemas.messaging.zaloJson.parse(await response.json());
 	} catch {
 		return {
 			ok: false,
@@ -47,16 +50,14 @@ async function call<Value>(
 	const envelope = schemas.messaging.zaloErrorEnvelope.safeParse(body);
 	if (envelope.success && envelope.data.error !== 0) {
 		const vendorMessage = envelope.data.message?.trim();
-
-		return {
-			ok: false,
-			failure: {
-				reason: "code",
-				status: response.status,
-				error: envelope.data.error,
-				...(vendorMessage ? { vendorMessage } : {}),
-			},
+		const failure: ZaloCodeFailure = {
+			reason: "code",
+			status: response.status,
+			error: envelope.data.error,
 		};
+		if (vendorMessage) failure.vendorMessage = vendorMessage;
+
+		return { ok: false, failure };
 	}
 
 	if (!response.ok) {

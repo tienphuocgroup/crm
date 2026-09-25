@@ -37,7 +37,14 @@ function asSession(userId: string): ConnectArgs[0] {
 	return { user: { id: userId } } as unknown as ConnectArgs[0];
 }
 
-function asRequest(query: Record<string, unknown>): ConnectArgs[1] {
+type ZaloQuery = {
+	returnTo?: string | string[];
+	code?: string | string[];
+	oa_id?: string | string[];
+	state?: string | string[];
+};
+
+function asRequest(query: ZaloQuery): ConnectArgs[1] {
 	return { query } as unknown as ConnectArgs[1];
 }
 
@@ -59,7 +66,7 @@ let calls: string[] = [];
 
 function zaloAnswers(oaId: string) {
 	calls = [];
-	globalThis.fetch = (async (input: unknown) => {
+	globalThis.fetch = (async (input: Request | URL | string) => {
 		const url = String(input instanceof Request ? input.url : input);
 		calls.push(url);
 

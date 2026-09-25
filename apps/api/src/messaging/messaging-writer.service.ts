@@ -44,6 +44,8 @@ type ChannelIdentity = {
 	profileCheckedAt: Date | null;
 };
 
+type IdentityRefresh = { displayName?: string; avatarUrl?: string };
+
 export type WriterAccount = {
 	id: string;
 	externalId: string;
@@ -592,10 +594,9 @@ export class MessagingWriterService {
 			},
 		});
 
-		const fresh = {
-			...(input.displayName ? { displayName: input.displayName } : {}),
-			...(input.avatarUrl ? { avatarUrl: input.avatarUrl } : {}),
-		};
+		const fresh: IdentityRefresh = {};
+		if (input.displayName) fresh.displayName = input.displayName;
+		if (input.avatarUrl) fresh.avatarUrl = input.avatarUrl;
 
 		if (Object.keys(fresh).length > 0) {
 			await this.db.contactChannelIdentity.updateMany({

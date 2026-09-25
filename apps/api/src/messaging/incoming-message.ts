@@ -48,14 +48,20 @@ export const messageAttachments = z
 
 export type MessageAttachment = z.infer<typeof messageAttachment>;
 
-const attachmentUrl = z.object({ url: z.string() });
+export type AttachmentCandidate = {
+	url: string;
+	name?: string;
+	size?: number;
+};
 
 export type AttachmentIntake = {
 	attachments: MessageAttachment[];
 	droppedHosts: string[];
 };
 
-export function acceptAttachments(candidates: unknown[]): AttachmentIntake {
+export function acceptAttachments(
+	candidates: AttachmentCandidate[],
+): AttachmentIntake {
 	const attachments: MessageAttachment[] = [];
 	const droppedHosts: string[] = [];
 
@@ -71,11 +77,8 @@ export function acceptAttachments(candidates: unknown[]): AttachmentIntake {
 	return { attachments: messageAttachments.parse(attachments), droppedHosts };
 }
 
-function hostLabelOf(candidate: unknown): string {
-	const parsed = attachmentUrl.safeParse(candidate);
-	if (!parsed.success) return "invalid";
-
-	const host = attachmentHostOf(parsed.data.url);
+function hostLabelOf(candidate: AttachmentCandidate): string {
+	const host = attachmentHostOf(candidate.url);
 
 	return host && host.length > 0 ? host : "invalid";
 }

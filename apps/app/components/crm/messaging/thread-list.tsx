@@ -30,16 +30,15 @@ export type MessagingThread =
 
 type ThreadCounts = { needsReply: number; unmatched: number };
 
-const FILTER_LABEL_KEY: Record<MessagingFilter, string> = {
+type EmptyCopyKeys = { title: string; description: string };
+
+const FILTER_LABEL_KEY = {
 	all: "messagingFilterAll",
 	needsReply: "messagingFilterNeedsReply",
 	unmatched: "messagingFilterUnmatched",
-};
+} satisfies Record<MessagingFilter, string>;
 
-const EMPTY_KEY: Record<
-	MessagingFilter,
-	{ title: string; description: string }
-> = {
+const EMPTY_KEY = {
 	all: {
 		title: "messagingEmptyAllTitle",
 		description: "messagingEmptyAllDescription",
@@ -52,7 +51,7 @@ const EMPTY_KEY: Record<
 		title: "messagingEmptyUnmatchedTitle",
 		description: "messagingEmptyUnmatchedDescription",
 	},
-};
+} satisfies Record<MessagingFilter, EmptyCopyKeys>;
 
 export function ThreadList({
 	counts,

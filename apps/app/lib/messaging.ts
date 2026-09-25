@@ -132,26 +132,26 @@ export function threadLabel(thread: {
 	return identityLabel(thread.identity);
 }
 
-const MESSAGE_KIND_KEY: Record<MessageKind, string> = {
+const MESSAGE_KIND_KEY = {
 	TEXT: "",
 	IMAGE: "messagingKindImage",
 	FILE: "messagingKindFile",
 	STICKER: "messagingKindSticker",
 	OTHER: "messagingKindOther",
-};
+} satisfies Record<MessageKind, string>;
 
 export function messageKindKey(kind: MessageKind): string {
 	return MESSAGE_KIND_KEY[kind];
 }
 
-const MESSAGE_STATUS_KEY: Record<MessageStatus, string> = {
+const MESSAGE_STATUS_KEY = {
 	QUEUED: "messagingStatusSending",
 	SENDING: "messagingStatusSending",
 	SENT: "messagingStatusSent",
 	DELIVERED: "messagingStatusDelivered",
 	READ: "messagingStatusRead",
 	FAILED: "",
-};
+} satisfies Record<MessageStatus, string>;
 
 export function messageStatusKey(status: MessageStatus): string {
 	return MESSAGE_STATUS_KEY[status];
@@ -163,10 +163,9 @@ export function hasPendingSend(rows: { status: MessageStatus }[]): boolean {
 	);
 }
 
-export function nameParts(displayName: string): {
-	firstName: string;
-	lastName: string;
-} {
+export type NameParts = { firstName: string; lastName: string };
+
+export function nameParts(displayName: string): NameParts {
 	const name = displayName.trim().replace(/\s+/g, " ");
 	const split = name.lastIndexOf(" ");
 

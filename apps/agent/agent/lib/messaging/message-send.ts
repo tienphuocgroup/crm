@@ -76,8 +76,8 @@ async function settleSent(
 				status: seen ? "READ" : delivered ? "DELIVERED" : "SENT",
 				sentAt: now,
 				externalId,
-				...(delivered ? { deliveredAt: delivered.at } : {}),
-				...(seen ? { readAt: seen.at } : {}),
+				deliveredAt: delivered?.at,
+				readAt: seen?.at,
 			},
 		});
 

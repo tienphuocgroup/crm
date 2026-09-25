@@ -9,9 +9,13 @@ import {
 } from "bun:test";
 import { db } from "@crm/db";
 import { PRIORITY } from "@crm/db/agent-tasks";
+import type { schemas } from "@crm/validation";
+import type { z } from "zod";
 import { runDirect } from "../agent/lib/dispatch";
 import { runMessageIdentityProfile } from "../agent/lib/messaging/message-identity-profile";
 import { claimDue, type LeasedTask } from "../agent/lib/tasks";
+
+type ZaloJson = z.infer<typeof schemas.messaging.zaloJson>;
 
 const suffix = process.env.TEST_RUN_ID ?? "message-profile-spec";
 const userId = `zalo-profile-user-${suffix}`;
@@ -25,7 +29,7 @@ const realFetch = globalThis.fetch;
 let calls = 0;
 let seenUrls: string[] = [];
 
-function answers(payload: unknown, status = 200) {
+function answers(payload: ZaloJson, status = 200) {
 	calls = 0;
 	seenUrls = [];
 	globalThis.fetch = (async (input: URL | RequestInfo) => {

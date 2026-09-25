@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { schemas } from "@crm/validation";
+import type { z } from "zod";
 import { MESSAGING } from "../agent/lib/messaging/messaging-config";
 import {
 	readOaProfile,
@@ -16,6 +17,8 @@ import {
 	type ZaloFailure,
 } from "../agent/lib/messaging/zalo-errors";
 
+type ZaloJson = z.infer<typeof schemas.messaging.zaloJson>;
+
 const realFetch = globalThis.fetch;
 
 const CREDENTIALS = { appId: "app-1", appSecret: "secret-1" };
@@ -26,7 +29,7 @@ type Seen = { url: string; headers: Record<string, string>; body: string };
 
 let seen: Seen[] = [];
 
-function answers(payload: unknown, status = 200) {
+function answers(payload: ZaloJson, status = 200) {
 	globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
 		seen.push({
 			url: String(input instanceof Request ? input.url : input),

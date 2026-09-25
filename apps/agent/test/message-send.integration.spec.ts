@@ -9,10 +9,14 @@ import {
 } from "bun:test";
 import { db } from "@crm/db";
 import { PRIORITY } from "@crm/db/agent-tasks";
+import type { schemas } from "@crm/validation";
+import type { z } from "zod";
 import { runDirect } from "../agent/lib/dispatch";
 import { runMessageSend } from "../agent/lib/messaging/message-send";
 import { MESSAGING } from "../agent/lib/messaging/messaging-config";
 import { claimDue, completeTask, type LeasedTask } from "../agent/lib/tasks";
+
+type ZaloJson = z.infer<typeof schemas.messaging.zaloJson>;
 
 const suffix = process.env.TEST_RUN_ID ?? "message-send-spec";
 const userId = `zalo-send-user-${suffix}`;
@@ -26,7 +30,7 @@ const realFetch = globalThis.fetch;
 
 let calls = 0;
 
-function answers(payload: unknown, status = 200) {
+function answers(payload: ZaloJson, status = 200) {
 	calls = 0;
 	globalThis.fetch = (async () => {
 		calls += 1;
@@ -419,7 +423,10 @@ describe("a send Zalo refuses", () => {
 		const seenTokens: string[] = [];
 
 		calls = 0;
-		globalThis.fetch = (async (_input: unknown, init?: RequestInit) => {
+		globalThis.fetch = (async (
+			_input: URL | RequestInfo,
+			init?: RequestInit,
+		) => {
 			calls += 1;
 			const headers = (init?.headers ?? {}) as Record<string, string>;
 			seenTokens.push(headers.access_token ?? "");

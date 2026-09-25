@@ -141,12 +141,12 @@ export class MessagingService {
 					clientRequestId: input.clientRequestId,
 				}),
 			)
-			.catch(async (error: unknown) => {
-				const first = isUniqueViolation(error)
+			.catch(async (cause: unknown) => {
+				const first = isUniqueViolation(cause)
 					? await this.outboundByRequest(input)
 					: null;
 
-				if (!first) throw error;
+				if (!first) throw cause;
 
 				return first;
 			});
@@ -178,11 +178,14 @@ export class MessagingService {
 	async threads(userId: string, input: MessagingThreadsInput) {
 		await this.access.assertMember(userId);
 
+		const cursor = input.cursor ? { id: input.cursor } : undefined;
+
 		const [rows, needsReply, unmatched] = await Promise.all([
 			this.db.messageThread.findMany({
 				where: filterClause(input.filter),
 				take: input.limit + 1,
-				...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
+				cursor,
+				skip: cursor ? 1 : undefined,
 				orderBy: [{ lastMessageAt: "desc" }, { id: "desc" }],
 				select: THREAD_SELECT,
 			}),
@@ -236,10 +239,13 @@ export class MessagingService {
 	async messages(userId: string, input: MessagingMessagesInput) {
 		await this.access.assertMember(userId);
 
+		const cursor = input.cursor ? { id: input.cursor } : undefined;
+
 		const rows = await this.db.message.findMany({
 			where: { threadId: input.threadId },
 			take: input.limit + 1,
-			...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
+			cursor,
+			skip: cursor ? 1 : undefined,
 			orderBy: [{ queuedAt: "desc" }, { id: "desc" }],
 			select: MESSAGE_SELECT,
 		});
@@ -334,10 +340,10 @@ export class MessagingService {
 	}
 }
 
-function isUniqueViolation(error: unknown): boolean {
+function isUniqueViolation(cause: unknown): boolean {
 	return (
-		error instanceof PrismaNamespace.PrismaClientKnownRequestError &&
-		error.code === "P2002"
+		cause instanceof PrismaNamespace.PrismaClientKnownRequestError &&
+		cause.code === "P2002"
 	);
 }
 

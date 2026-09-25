@@ -1,12 +1,14 @@
 import { createHash, randomInt, randomUUID } from "node:crypto";
 import { canManageConnections, WORKSPACE_ID, WORKSPACE_ROLES } from "@crm/auth";
 import type { Db, Prisma } from "@crm/db";
+import { schemas } from "@crm/validation";
 import {
 	BadRequestException,
 	ForbiddenException,
 	Injectable,
 	Logger,
 } from "@nestjs/common";
+import type { z } from "zod";
 import { AgentAccessService } from "../../agent/agent-access.service";
 import { AgentTriggerService } from "../../agent/agent-trigger.service";
 import { InjectDatabase } from "../../database/database.constants";
@@ -23,6 +25,8 @@ import {
 	zaloPkceValue,
 	zaloTokenResponse,
 } from "./zalo-oauth.schema";
+
+type ZaloJson = z.infer<typeof schemas.messaging.zaloJson>;
 
 const CONNECT_MANAGER_ROLES = WORKSPACE_ROLES.filter((role) =>
 	canManageConnections(role),
@@ -416,9 +420,9 @@ function challengeFor(verifier: string): string {
 	return createHash("sha256").update(verifier, "ascii").digest("base64url");
 }
 
-function safeJson(value: string): unknown {
+function safeJson(value: string): ZaloJson | null {
 	try {
-		return JSON.parse(value);
+		return schemas.messaging.zaloJson.parse(JSON.parse(value));
 	} catch {
 		return null;
 	}

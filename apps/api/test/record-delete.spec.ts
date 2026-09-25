@@ -64,13 +64,16 @@ const match = new MailboxMatchService(db, directory, agent, log);
 const zaloOaId = `delete-oa-${suffix}`;
 
 async function zaloHistory(address: string, companyId?: string) {
-	const contact = await contacts.create({
+	const draft = {
 		firstName: "Zalo",
 		lastName: "Person",
 		email: address,
 		ownerId: userId,
-		...(companyId ? { companyId } : {}),
-	});
+	};
+
+	const contact = await contacts.create(
+		companyId ? { ...draft, companyId } : draft,
+	);
 
 	await db.messagingAccount.upsert({
 		where: { channel_externalId: { channel: "ZALO", externalId: zaloOaId } },

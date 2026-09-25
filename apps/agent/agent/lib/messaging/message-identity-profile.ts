@@ -101,8 +101,8 @@ export async function runMessageIdentityProfile(
 			where: { id: identityId },
 			data: {
 				profileCheckedAt: new Date(),
-				...(displayName ? { displayName } : {}),
-				...(avatarUrl ? { avatarUrl } : {}),
+				displayName: displayName ?? undefined,
+				avatarUrl: avatarUrl ?? undefined,
 			},
 		});
 

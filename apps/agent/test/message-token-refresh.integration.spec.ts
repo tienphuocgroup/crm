@@ -7,12 +7,16 @@ import {
 	expect,
 	it,
 } from "bun:test";
-import { db } from "@crm/db";
+import { db, type Prisma } from "@crm/db";
 import { PRIORITY } from "@crm/db/agent-tasks";
+import type { schemas } from "@crm/validation";
+import { z } from "zod";
 import { runDirect } from "../agent/lib/dispatch";
 import { runMessageTokenRefresh } from "../agent/lib/messaging/message-token-refresh";
 import { MESSAGING } from "../agent/lib/messaging/messaging-config";
 import { claimDue, completeTask, type LeasedTask } from "../agent/lib/tasks";
+
+type ZaloJson = z.infer<typeof schemas.messaging.zaloJson>;
 
 const suffix = process.env.TEST_RUN_ID ?? "token-refresh-spec";
 const userId = `zalo-refresh-user-${suffix}`;
@@ -23,7 +27,7 @@ const realFetch = globalThis.fetch;
 
 let calls = 0;
 
-function answers(payload: unknown, status = 200) {
+function answers(payload: ZaloJson, status = 200) {
 	calls = 0;
 	globalThis.fetch = (async () => {
 		calls += 1;
@@ -91,9 +95,12 @@ async function book(
 	});
 }
 
-function attemptOf(payload: unknown): number {
-	const value = (payload as { attempt?: unknown } | null)?.attempt;
-	return typeof value === "number" ? value : -1;
+const refreshAttempt = z.object({ attempt: z.number() });
+
+function attemptOf(payload: Prisma.JsonValue | undefined): number {
+	const parsed = refreshAttempt.safeParse(payload);
+
+	return parsed.success ? parsed.data.attempt : -1;
 }
 
 async function makeDue(taskId: string) {

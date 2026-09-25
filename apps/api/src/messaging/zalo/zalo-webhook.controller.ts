@@ -1,9 +1,12 @@
 import { MessageKind, MessagingChannel } from "@crm/db";
 import { messagingError } from "@crm/telemetry";
+import { schemas } from "@crm/validation";
 import { Controller, Logger, Post, Req, Res } from "@nestjs/common";
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
 import type { Request, Response } from "express";
+import type { z } from "zod";
 import {
+	type AttachmentCandidate,
 	acceptAttachments,
 	type IncomingChannelMessage,
 	type StoreResult,
@@ -28,12 +31,18 @@ import {
 	zaloWebhookEvent,
 } from "./zalo-webhook.schema";
 
-const KINDS: Record<string, MessageKind> = {
+type ZaloJson = z.infer<typeof schemas.messaging.zaloJson>;
+
+const KINDS = {
 	user_send_text: MessageKind.TEXT,
 	user_send_image: MessageKind.IMAGE,
 	user_send_file: MessageKind.FILE,
 	user_send_sticker: MessageKind.STICKER,
-};
+} satisfies Record<string, MessageKind>;
+
+function isMessageKindEvent(name: string): name is keyof typeof KINDS {
+	return Object.hasOwn(KINDS, name);
+}
 
 @Controller("api/messaging/zalo")
 export class ZaloWebhookController {
@@ -194,13 +203,11 @@ export class ZaloWebhookController {
 				const payload = item.payload;
 				if (!payload?.url) return [];
 
-				return [
-					{
-						url: payload.url,
-						...(payload.name ? { name: payload.name } : {}),
-						...(payload.size === undefined ? {} : { size: payload.size }),
-					},
-				];
+				const candidate: AttachmentCandidate = { url: payload.url };
+				if (payload.name) candidate.name = payload.name;
+				if (payload.size !== undefined) candidate.size = payload.size;
+
+				return [candidate];
 			}),
 		);
 
@@ -223,7 +230,9 @@ export class ZaloWebhookController {
 					: event.sender.id,
 			displayName: null,
 			avatarUrl: null,
-			kind: KINDS[event.event_name] ?? MessageKind.OTHER,
+			kind: isMessageKindEvent(event.event_name)
+				? KINDS[event.event_name]
+				: MessageKind.OTHER,
 			body: text.length > 0 ? text : null,
 			attachments: intake.attachments,
 			externalId: event.message.msg_id,
@@ -267,15 +276,15 @@ function answer(response: Response, status: number): void {
 	response.status(status).end();
 }
 
-function jsonOf(body: string): unknown {
+function jsonOf(body: string): ZaloJson | null {
 	try {
-		return JSON.parse(body);
+		return schemas.messaging.zaloJson.parse(JSON.parse(body));
 	} catch {
 		return null;
 	}
 }
 
-function envelopeOf(payload: unknown): ZaloEventEnvelope | null {
+function envelopeOf(payload: ZaloJson): ZaloEventEnvelope | null {
 	const parsed = zaloEventEnvelope.safeParse(payload);
 
 	return parsed.success ? parsed.data : null;
@@ -283,7 +292,7 @@ function envelopeOf(payload: unknown): ZaloEventEnvelope | null {
 
 function candidateAccountIds(envelope: ZaloEventEnvelope): string[] {
 	return [envelope.oa_id, envelope.recipient?.id, envelope.sender?.id].filter(
-		(value): value is string => typeof value === "string" && value.length > 0,
+		(value): value is string => value !== undefined && value.length > 0,
 	);
 }
 
@@ -293,6 +302,6 @@ function isJsonRequest(header: string | undefined): boolean {
 	return type === MESSAGING_API.webhook.contentType;
 }
 
-function errorName(error: unknown): string {
-	return error instanceof Error ? error.name : typeof error;
+function errorName(cause: unknown): string {
+	return cause instanceof Error ? cause.name : "NonError";
 }

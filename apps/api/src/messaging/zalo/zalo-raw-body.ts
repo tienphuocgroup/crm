@@ -1,8 +1,16 @@
 import type { IncomingMessage } from "node:http";
+import { z } from "zod";
 
 export type RawBody =
 	| { ok: true; body: string }
 	| { ok: false; reason: "too-large" | "unreadable" };
+
+const emptyParsedBody = z.union([
+	z.null(),
+	z.instanceof(Buffer).refine((value) => value.length === 0),
+	z.array(z.unknown()).max(0),
+	z.looseObject({}).refine((value) => Object.keys(value).length === 0),
+]);
 
 export class ParsedBodyError extends Error {
 	override readonly name = "ParsedBodyError";
@@ -24,7 +32,7 @@ export function rawBody(
 
 	const parsed = (request as { body?: unknown }).body;
 
-	if (parsed !== undefined && parsed !== null && !isEmptyBody(parsed)) {
+	if (parsed !== undefined && !emptyParsedBody.safeParse(parsed).success) {
 		throw new ParsedBodyError(
 			"A body parser read the Zalo webhook first and kept no raw buffer. The signature covers the wire bytes and a re-serialised object cannot be checked.",
 		);
@@ -60,12 +68,4 @@ export function rawBody(
 		);
 		request.on("error", () => finish({ ok: false, reason: "unreadable" }));
 	});
-}
-
-function isEmptyBody(value: unknown): boolean {
-	return (
-		typeof value === "object" &&
-		value !== null &&
-		Object.keys(value).length === 0
-	);
 }

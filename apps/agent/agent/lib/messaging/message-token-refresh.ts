@@ -30,7 +30,7 @@ async function book(input: {
 		reason: REASON,
 		payload: { accountId: input.accountId, attempt: input.attempt },
 		subject: { path: ["accountId"], value: input.accountId },
-		...(input.exceptId ? { exceptId: input.exceptId } : {}),
+		exceptId: input.exceptId,
 		dueAt: input.dueAt,
 		priority: PRIORITY.messageToken,
 		budget: 1,

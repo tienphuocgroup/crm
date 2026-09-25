@@ -167,15 +167,10 @@ export async function scheduleTask(input: {
 			contactId: input.contactId ?? undefined,
 			companyId: input.companyId ?? undefined,
 			dealId: input.dealId ?? undefined,
-			...(input.subject
-				? {
-						payload: {
-							path: input.subject.path,
-							equals: input.subject.value,
-						},
-					}
-				: {}),
-			...(input.exceptId ? { id: { not: input.exceptId } } : {}),
+			payload: input.subject
+				? { path: input.subject.path, equals: input.subject.value }
+				: undefined,
+			id: input.exceptId ? { not: input.exceptId } : undefined,
 		},
 		select: { id: true },
 	});
@@ -186,9 +181,7 @@ export async function scheduleTask(input: {
 			data: {
 				dueAt: input.dueAt,
 				reason: input.reason,
-				...(input.payload === undefined || input.payload === null
-					? {}
-					: { payload: input.payload }),
+				payload: input.payload ?? undefined,
 			},
 		});
 		return existing;
