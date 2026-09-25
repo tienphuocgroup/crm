@@ -52,10 +52,10 @@ const VI_MESSAGES: typeof EN_MESSAGES = {
 	ui: viUi,
 };
 
-const CATALOGS: Record<SupportedLocale, typeof EN_MESSAGES> = {
+const CATALOGS = {
 	en: EN_MESSAGES,
 	vi: VI_MESSAGES,
-};
+} satisfies Record<SupportedLocale, typeof EN_MESSAGES>;
 
 type Namespace = keyof typeof EN_MESSAGES;
 

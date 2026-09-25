@@ -11,9 +11,16 @@ import MicrosoftLogo from "@crm/ui/components/brand-logos/microsoft";
 import { Button } from "@crm/ui/components/button";
 import { Spinner } from "@crm/ui/components/spinner";
 import { useTranslations } from "next-intl";
+import type { FC, SVGProps } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { signOutAndRedirect } from "@/lib/sign-out";
+
+type ProviderGrant = {
+	labelKey: string;
+	scopes: readonly string[];
+	Logo: FC<SVGProps<SVGSVGElement>>;
+};
 
 const PROVIDER_META = {
 	google: {
@@ -26,7 +33,7 @@ const PROVIDER_META = {
 		scopes: [...MICROSOFT_SYNC_SCOPES],
 		Logo: MicrosoftLogo,
 	},
-} as const satisfies Record<MailboxProviderId, unknown>;
+} as const satisfies Record<MailboxProviderId, ProviderGrant>;
 
 export function GrantAccess({
 	providers,

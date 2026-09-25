@@ -25,7 +25,9 @@ export type FieldValueColumn =
 	| "optionId"
 	| "userId";
 
-const COLUMNS: Record<FieldTypeName, FieldValueColumn> = {
+export type FieldValueWrite = Partial<Record<FieldValueColumn, unknown>>;
+
+const COLUMNS = {
 	TEXT: "text",
 	LONG_TEXT: "text",
 	URL: "text",
@@ -36,7 +38,7 @@ const COLUMNS: Record<FieldTypeName, FieldValueColumn> = {
 	CHECKBOX: "bool",
 	SELECT: "optionId",
 	USER: "userId",
-};
+} as const satisfies Record<FieldTypeName, FieldValueColumn>;
 
 export function columnFor(type: FieldTypeName): FieldValueColumn {
 	return COLUMNS[type];

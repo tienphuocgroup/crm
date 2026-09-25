@@ -1,10 +1,13 @@
+import { apiKey } from "@better-auth/api-key";
 import { sso } from "@better-auth/sso";
 import { db } from "@crm/db";
+import { schemas } from "@crm/validation";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError } from "better-auth/api";
 import { genericOAuth } from "better-auth/plugins/generic-oauth";
 import { organization } from "better-auth/plugins/organization";
+import { API_KEY_EXPIRATION, API_KEY_HEADER, API_KEY_PREFIX } from "./api-keys";
 import { AUTH_COOKIE_PREFIX } from "./cookies";
 import { env } from "./env";
 import { ensureWorkspaceMembership } from "./organization";
@@ -34,15 +37,18 @@ const slackRedirectUri = new URL(
 ).toString();
 
 if (env.google) {
-	socialProviders.google = {
+	const google: NonNullable<typeof socialProviders.google> = {
 		...env.google,
 
 		scope: [...SYNC_SCOPES],
 
 		accessType: "offline",
-
-		...(primaryWorkspaceDomain() ? { hd: primaryWorkspaceDomain() } : {}),
 	};
+
+	const hostedDomain = primaryWorkspaceDomain();
+	if (hostedDomain) google.hd = hostedDomain;
+
+	socialProviders.google = google;
 }
 
 if (env.microsoft) {
@@ -148,30 +154,30 @@ export const auth = betterAuth({
 											}),
 										},
 									);
-									const raw = recordValue(await response.json());
-									const accessToken = stringValue(raw, "access_token");
-									if (!response.ok || raw.ok !== true || !accessToken) {
-										const reason = stringValue(raw, "error") ?? "rejected";
+									const grant = schemas.slack.oauthAccess.parse(
+										await response.json(),
+									);
+									if (!response.ok || !grant.ok || !grant.access_token) {
 										throw new APIError("BAD_REQUEST", {
-											message: `Slack authorization failed (${reason}).`,
+											message: `Slack authorization failed (${grant.error ?? "rejected"}).`,
 										});
 									}
-									await rememberSlackInstall(raw);
+									await rememberSlackInstall(grant);
 
 									return {
-										accessToken,
-										tokenType: stringValue(raw, "token_type"),
-										scopes: (stringValue(raw, "scope") ?? "")
+										accessToken: grant.access_token,
+										tokenType: grant.token_type,
+										scopes: (grant.scope ?? "")
 											.split(",")
 											.map((scope) => scope.trim())
 											.filter(Boolean),
-										raw,
+										raw: grant,
 									};
 								},
 								getUserInfo: async (tokens) => {
 									try {
-										const installer = objectValue(tokens.raw, "authed_user");
-										const userId = stringValue(installer, "id");
+										const granted = schemas.slack.oauthAccess.parse(tokens.raw);
+										const userId = granted.authed_user?.id;
 										if (!tokens.accessToken || !userId) return null;
 										const userResponse = await fetch(
 											`https://slack.com/api/users.info?user=${encodeURIComponent(userId)}`,
@@ -181,21 +187,19 @@ export const auth = betterAuth({
 												},
 											},
 										);
-										const profile = recordValue(await userResponse.json());
-										if (!userResponse.ok || profile.ok !== true) return null;
-										const user = objectValue(profile, "user");
-										const details = objectValue(user, "profile");
-										const email = stringValue(details, "email");
+										const profile = schemas.slack.userInfo.parse(
+											await userResponse.json(),
+										);
+										if (!userResponse.ok || !profile.ok) return null;
+										const details = profile.user.profile;
+										const email = details.email;
 										if (!email) return null;
 										return {
 											id: userId,
-											name:
-												stringValue(details, "real_name") ??
-												stringValue(user, "name") ??
-												email,
+											name: details.real_name ?? profile.user.name ?? email,
 											email,
 											emailVerified: true,
-											image: stringValue(details, "image_512"),
+											image: details.image_512,
 										};
 									} catch {
 										return null;
@@ -225,6 +229,20 @@ export const auth = betterAuth({
 
 		sso({
 			organizationProvisioning: { disabled: true },
+		}),
+
+		apiKey({
+			apiKeyHeaders: API_KEY_HEADER,
+			defaultPrefix: API_KEY_PREFIX,
+			enableSessionForAPIKeys: true,
+			requireName: true,
+			defaultKeyLength: 32,
+			maximumNameLength: 64,
+			rateLimit: { enabled: false },
+			keyExpiration: {
+				maxExpiresIn: API_KEY_EXPIRATION.maxDays,
+				minExpiresIn: API_KEY_EXPIRATION.minDays,
+			},
 		}),
 	],
 
@@ -297,22 +315,4 @@ async function replaceSlackAccount(account: {
 	if (account.providerId !== SLACK_PROVIDER_ID) return;
 	await replaceSlackConnection(account);
 	await queueSlackInventorySync();
-}
-
-function objectValue(value: unknown, key: string): Record<string, unknown> {
-	return recordValue(recordValue(value)[key]);
-}
-
-function recordValue(value: unknown): Record<string, unknown> {
-	return value && typeof value === "object" && !Array.isArray(value)
-		? (value as Record<string, unknown>)
-		: {};
-}
-
-function stringValue(value: unknown, key: string): string | undefined {
-	if (!value || typeof value !== "object" || Array.isArray(value)) {
-		return undefined;
-	}
-	const nested = Reflect.get(value, key);
-	return typeof nested === "string" && nested.length > 0 ? nested : undefined;
 }

@@ -28,10 +28,10 @@ const userId = `user-${suffix}`;
 const stamp = new ActivityStampService(db);
 
 const agent = {
-	contactCreated: async () => undefined,
+	contactCreated: async () => true,
 	companyCreated: async () => undefined,
 	withCrmEvents: withDiscardedCrmEvents,
-	companyRequested: async () => undefined,
+	companyRequested: async () => true,
 } as unknown as AgentTriggerService;
 
 const directory = new CompanyDirectoryService(agent);
@@ -196,7 +196,7 @@ beforeAll(async () => {
 
 afterAll(clean);
 
-describe("deleting a contact", () => {
+describe("purging a contact", () => {
 	let contactId: string;
 
 	it("takes the record, its queued research and its transcript with it", async () => {
@@ -221,7 +221,7 @@ describe("deleting a contact", () => {
 			},
 		});
 
-		expect(await contacts.delete(contactId)).toEqual({
+		expect(await contacts.purge(contactId)).toEqual({
 			id: contactId,
 			name: "Gone Person",
 		});
@@ -298,7 +298,7 @@ describe("deleting a contact", () => {
 			}),
 		).toEqual({ email: asSynced });
 
-		await contacts.delete(created.id);
+		await contacts.purge(created.id);
 
 		expect(
 			await db.suppressedContact.findUnique({ where: { email: asSynced } }),
@@ -323,7 +323,7 @@ describe("deleting a contact", () => {
 	it("keeps the Zalo history and returns the conversation to unmatched", async () => {
 		const zalo = await zaloHistory(`zalo-keep@${domain}`);
 
-		await contacts.delete(zalo.contactId);
+		await contacts.purge(zalo.contactId);
 
 		const identity = await db.contactChannelIdentity.findUnique({
 			where: { id: zalo.identityId },
@@ -368,7 +368,7 @@ describe("deleting a contact", () => {
 			companyId: company.id,
 		});
 
-		await contacts.delete(zalo.contactId);
+		await contacts.purge(zalo.contactId);
 
 		expect(
 			await db.messageThread.findUnique({
@@ -378,7 +378,7 @@ describe("deleting a contact", () => {
 		).toEqual({ contactId: null, companyId: null });
 
 		await db.messagingAccount.deleteMany({ where: { externalId: zaloOaId } });
-		await companies.delete(company.id);
+		await companies.purge(company.id);
 	});
 
 	it("erases all four rows when the conversation itself is deleted", async () => {
@@ -400,12 +400,12 @@ describe("deleting a contact", () => {
 		expect(await db.activity.count({ where: { id: zalo.activityId } })).toBe(0);
 		expect(await db.contact.count({ where: { id: zalo.contactId } })).toBe(1);
 
-		await contacts.delete(zalo.contactId);
+		await contacts.purge(zalo.contactId);
 		await db.messagingAccount.deleteMany({ where: { externalId: zaloOaId } });
 	});
 });
 
-describe("deleting a company", () => {
+describe("purging a company", () => {
 	it("leaves its deals and its people without a company", async () => {
 		const company = await companies.create({
 			name: "Doomed",
@@ -424,7 +424,7 @@ describe("deleting a company", () => {
 
 		await parked({ companyId: company.id });
 
-		expect(await companies.delete(company.id)).toEqual({
+		expect(await companies.purge(company.id)).toEqual({
 			id: company.id,
 			name: "Doomed",
 		});
@@ -450,7 +450,7 @@ describe("deleting a company", () => {
 	});
 });
 
-describe("the activity stamps a delete leaves behind", () => {
+describe("the activity stamps a purge leaves behind", () => {
 	it("are recomputed on every record the deleted one's activities touched", async () => {
 		const company = await companies.create({
 			name: "Stamped",
@@ -483,7 +483,7 @@ describe("the activity stamps a delete leaves behind", () => {
 			at,
 		);
 
-		await contacts.delete(contact.id);
+		await contacts.purge(contact.id);
 
 		expect(
 			await db.company.findUnique({
@@ -527,7 +527,7 @@ describe("the activity stamps a delete leaves behind", () => {
 		});
 		await stamp.touch({ contactId: contact.id, dealId: deal.id }, at);
 
-		await companies.delete(company.id);
+		await companies.purge(company.id);
 
 		expect(
 			await db.contact.findUnique({
@@ -547,7 +547,7 @@ describe("the activity stamps a delete leaves behind", () => {
 	});
 });
 
-describe("deleting a company a deal depends on", () => {
+describe("purging a company a deal depends on", () => {
 	it("re-anchors the deal's history and takes only what was the company's", async () => {
 		const at = new Date("2026-06-01T09:00:00.000Z");
 
@@ -592,7 +592,7 @@ describe("deleting a company a deal depends on", () => {
 		const dealTask = await parked({ dealId: deal.id, companyId: company.id });
 		const companyTask = await parked({ companyId: company.id });
 
-		expect(await companies.delete(company.id)).toEqual({
+		expect(await companies.purge(company.id)).toEqual({
 			id: company.id,
 			name: "Kept",
 		});

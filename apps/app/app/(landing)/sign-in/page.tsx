@@ -32,6 +32,16 @@ async function signInOptions(): Promise<SignInOptions | null> {
 	}
 }
 
+async function currentSession() {
+	try {
+		return await getSession();
+	} catch (error) {
+		unstable_rethrow(error);
+		console.error("Sign-in: could not read the session.", error);
+		return null;
+	}
+}
+
 export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
 	return (
 		<AuthShell>
@@ -57,11 +67,7 @@ async function SignIn({
 }: Pick<PageProps<"/sign-in">, "searchParams">) {
 	const t = await getTranslations("landing");
 	const [session, options, { method }] = await Promise.all([
-		getSession().catch((error: unknown) => {
-			unstable_rethrow(error);
-			console.error("Sign-in: could not read the session.", error);
-			return null;
-		}),
+		currentSession(),
 		signInOptions(),
 		searchParams,
 	]);

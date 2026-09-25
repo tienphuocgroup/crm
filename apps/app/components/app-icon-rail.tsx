@@ -1,8 +1,6 @@
 "use client";
 
 import Building from "@carbon/icons-react/es/Building";
-import type { CarbonIconType } from "@carbon/icons-react/es/CarbonIcon";
-import Chat from "@carbon/icons-react/es/Chat";
 import Close from "@carbon/icons-react/es/Close";
 import Dashboard from "@carbon/icons-react/es/Dashboard";
 import Partnership from "@carbon/icons-react/es/Partnership";
@@ -10,7 +8,9 @@ import SendAlt from "@carbon/icons-react/es/SendAlt";
 import Settings from "@carbon/icons-react/es/Settings";
 import UserMultiple from "@carbon/icons-react/es/UserMultiple";
 import { Button } from "@crm/ui/components/button";
+import type { CarbonIcon } from "@crm/ui/components/icon";
 import { Icon } from "@crm/ui/components/icon";
+import Bot from "@crm/ui/components/icons/bot";
 import {
 	Sheet,
 	SheetContent,
@@ -45,7 +45,8 @@ type RailItemId =
 type RailItem = {
 	id: RailItemId;
 	href: string;
-	icon: CarbonIconType;
+	icon: CarbonIcon;
+	iconClassName?: string;
 	match: "exact" | "prefix";
 	related?: string[];
 };
@@ -57,7 +58,8 @@ const ITEMS: RailItem[] = [
 	{
 		id: "chat",
 		href: "/chat",
-		icon: Chat,
+		icon: Bot,
+		iconClassName: "size-5",
 		match: "prefix",
 		related: ["/agents"],
 	},
@@ -73,7 +75,7 @@ const ITEMS: RailItem[] = [
 	{ id: "settings", href: "/settings", icon: Settings, match: "prefix" },
 ];
 
-const RAIL_ITEM_KEY: Record<RailItemId, string> = {
+const RAIL_ITEM_KEY = {
 	overview: "overview",
 	chat: "chat",
 	messages: "messages",
@@ -81,7 +83,7 @@ const RAIL_ITEM_KEY: Record<RailItemId, string> = {
 	contacts: "contacts",
 	deals: "deals",
 	settings: "settingsLabel",
-};
+} satisfies Record<RailItemId, string>;
 
 function isActive(item: RailItem, pathname: string): boolean {
 	return (
@@ -126,7 +128,7 @@ function RailLink({
 						transitionTypes={["nav-lateral"]}
 					>
 						<span className="relative flex items-center">
-							<Icon icon={item.icon} />
+							<Icon icon={item.icon} className={item.iconClassName} />
 							<span className="-top-2.5 -right-3 absolute">
 								<RailBadge item={item} />
 							</span>
@@ -170,7 +172,7 @@ function MobileRailLink({
 				onClick={onNavigate}
 				transitionTypes={[item.id === "chat" ? "nav-forward" : "nav-lateral"]}
 			>
-				<Icon icon={item.icon} />
+				<Icon icon={item.icon} className={item.iconClassName} />
 				<span>{item.title}</span>
 				<span className="ms-auto">
 					<RailBadge item={item} />
@@ -211,7 +213,7 @@ function MobileRailIconLink({
 				onClick={onNavigate}
 			>
 				<span className="relative flex items-center">
-					<Icon icon={item.icon} />
+					<Icon icon={item.icon} className={item.iconClassName} />
 					<span className="-top-2.5 -right-3 absolute">
 						<RailBadge item={item} />
 					</span>
@@ -239,7 +241,7 @@ export function AppIconRailFallback() {
 					disabled
 					className="text-muted-foreground"
 				>
-					<Icon icon={item.icon} />
+					<Icon icon={item.icon} className={item.iconClassName} />
 					<span className="sr-only">{t(RAIL_ITEM_KEY[item.id])}</span>
 				</Button>
 			))}

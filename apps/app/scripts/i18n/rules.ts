@@ -34,10 +34,9 @@ function hasLetter(value: string): boolean {
 	return LETTER.test(value.replace(ENTITY, " "));
 }
 
-function positionOf(
-	source: ts.SourceFile,
-	offset: number,
-): { line: number; column: number } {
+type Position = { line: number; column: number };
+
+function positionOf(source: ts.SourceFile, offset: number): Position {
 	const { line, character } = source.getLineAndCharacterOfPosition(offset);
 	return { line: line + 1, column: character + 1 };
 }

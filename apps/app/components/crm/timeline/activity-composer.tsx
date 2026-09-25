@@ -37,13 +37,13 @@ const DUE_OPTIONS = {
 	day: "numeric",
 } as const;
 
-const PLACEHOLDER_KEY: Record<ComposableType, string> = {
+const PLACEHOLDER_KEY = {
 	NOTE: "timeline.composerPlaceholderNote",
 	CALL: "timeline.composerPlaceholderCall",
 	EMAIL: "timeline.composerPlaceholderEmail",
 	MEETING: "timeline.composerPlaceholderMeeting",
 	TASK: "timeline.composerPlaceholderTask",
-};
+} satisfies Record<ComposableType, string>;
 
 export function ActivityComposer({ anchor }: { anchor: TimelineAnchor }) {
 	const common = useTranslations("common");

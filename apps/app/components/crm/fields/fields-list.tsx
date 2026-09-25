@@ -5,6 +5,7 @@ import ChevronRight from "@carbon/icons-react/es/ChevronRight";
 import OverflowMenuVertical from "@carbon/icons-react/es/OverflowMenuVertical";
 import Renew from "@carbon/icons-react/es/Renew";
 import Warning from "@carbon/icons-react/es/Warning";
+import { fieldKeyFromLabel } from "@crm/db/fields-shape";
 import { Badge } from "@crm/ui/components/badge";
 import { Button } from "@crm/ui/components/button";
 import {
@@ -30,6 +31,7 @@ import {
 import { Icon } from "@crm/ui/components/icon";
 import { SortableItem, SortableList } from "@crm/ui/components/sortable-list";
 import { Spinner } from "@crm/ui/components/spinner";
+import { FIELD_TEMPLATES } from "@crm/validation/field-templates";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -64,6 +66,7 @@ function summaryOf(
 	}
 
 	if (field.showOnTable) parts.push(common("fields.tableNote"));
+	if (field.showOnFilter) parts.push(common("fields.filterNote"));
 
 	return parts.join(" · ");
 }
@@ -167,10 +170,22 @@ export function FieldsList({
 		}),
 	);
 
+	const addSuggested = useMutation(
+		trpc.fields.create.mutationOptions({
+			onSuccess: () => cache.fields(kindOf(entity)),
+			onError: (error) => toast.error(error.message),
+		}),
+	);
+
 	const all = query.data ?? [];
 	const live = all.filter((field) => !field.archived);
 	const archived = all.filter((field) => field.archived);
 	const standard = STANDARD_FIELDS[entity];
+
+	const existingKeys = new Set(all.map((field) => field.key));
+	const suggestions = FIELD_TEMPLATES[entity].filter(
+		(template) => !existingKeys.has(fieldKeyFromLabel(template.label)),
+	);
 
 	return (
 		<>
@@ -190,6 +205,54 @@ export function FieldsList({
 						))}
 					</ul>
 				</DisclosureRow>
+
+				{suggestions.length > 0 && (
+					<DisclosureRow
+						title={common("fields.suggestedRow")}
+						note={`${suggestions.length} · ${common("fields.suggestedNote")}`}
+					>
+						<ul className="border-b bg-muted/40 py-1">
+							{suggestions.map((template) => (
+								<li
+									key={template.label}
+									className="flex items-center gap-2.5 px-5 py-1.5"
+								>
+									<span className="flex-1 truncate text-muted-foreground text-xs">
+										{template.label}
+										{template.options && template.options.length > 0
+											? ` · ${template.options.join(", ")}`
+											: ` · ${common(`fieldType.${template.type}`)}`}
+									</span>
+									<Button
+										variant="outline"
+										size="xs"
+										disabled={addSuggested.isPending}
+										onClick={() =>
+											addSuggested.mutate({
+												entity,
+												label: template.label,
+												type: template.type,
+												options: (template.options ?? []).map((label) => ({
+													label,
+												})),
+												agentFilled:
+													template.type !== "USER" &&
+													template.type !== "NUMBER",
+												required: false,
+												showOnSheet: true,
+												showOnTable: false,
+												showOnFilter: false,
+											})
+										}
+									>
+										<Icon icon={Add} data-icon="inline-start" />
+										{common("fields.add")}
+									</Button>
+								</li>
+							))}
+						</ul>
+					</DisclosureRow>
+				)}
 
 				{query.isPending ? (
 					<div className="flex flex-1 items-center justify-center">

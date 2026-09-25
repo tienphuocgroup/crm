@@ -379,17 +379,17 @@ function Failure({ message }: { message: string }) {
 	);
 }
 
-const TONE_ICONS: Record<Tone, CarbonIcon> = {
+const TONE_ICONS = {
 	neutral: CircleDash,
 	success: Checkmark,
 	warning: Warning,
-};
+} satisfies Record<Tone, CarbonIcon>;
 
-const SOURCE_ICONS: Record<Source["network"], CarbonIcon> = {
+const SOURCE_ICONS = {
 	linkedin: LogoLinkedin,
 	github: LogoGithub,
 	web: Document,
-};
+} satisfies Record<Source["network"], CarbonIcon>;
 
 function Item({ item }: { item: TranscriptItem }) {
 	const t = useTranslations("agent-panel");
@@ -522,14 +522,14 @@ function useSavedConversation({
 	const persist = useEffectEvent(() => {
 		save.mutate(
 			{
-				...(contactId ? { contactId } : {}),
-				...(companyId ? { companyId } : {}),
-				...(dealId ? { dealId } : {}),
+				contactId: contactId || undefined,
+				companyId: companyId || undefined,
+				dealId: dealId || undefined,
 				sessionId: sessionId ?? "",
 				continuationToken: token,
 				streamIndex,
 				messageCount: messages,
-				...(isNew ? { title: opening.current ?? undefined } : {}),
+				title: isNew ? (opening.current ?? undefined) : undefined,
 			},
 			{
 				onSuccess: () => {

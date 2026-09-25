@@ -35,6 +35,7 @@ import { Reasoning } from "@crm/ui/components/reasoning";
 import { ThinkingIndicator } from "@crm/ui/components/thinking-indicator";
 import { useMountEffect } from "@crm/ui/hooks/use-mount-effect";
 import { cn } from "@crm/ui/lib/utils";
+import type { AgentManifestSummary } from "@crm/validation/agent-manifest";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Client, type MessageStreamEvent } from "eve/client";
 import type { EveMessage, EveMessageInputRequest } from "eve/react";
@@ -42,6 +43,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Fragment, type ReactNode, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 import {
 	AgentClarificationComposer,
 	type ClarificationResponse,
@@ -95,39 +97,99 @@ type Conversation = RouterOutputs["conversations"]["builderById"];
 type SharedConversation = RouterOutputs["conversations"]["shared"];
 
 const BUILDER_STEPS = ["scope", "instructions", "manifest", "review"] as const;
-const BUILDER_STEP_KEYS: Record<(typeof BUILDER_STEPS)[number], string> = {
+const BUILDER_STEP_KEYS = {
 	scope: "agentCreationStepScope",
 	instructions: "agentCreationStepInstructions",
 	manifest: "agentCreationStepManifest",
 	review: "agentCreationStepReview",
-};
+} satisfies Record<(typeof BUILDER_STEPS)[number], string>;
 const BUILDER_STEP_ARTIFACTS = [
 	null,
 	"agent/instructions.md",
 	"agent/manifest.json",
 	"agent/README.md",
 ] as const;
-type DraftVersion = {
-	id: string;
-	status: string;
-	manifest: unknown;
-};
+const submissionResource = z.object({
+	kind: z.enum(["integration", "company", "contact", "deal"]),
+	id: z.string().min(1),
+	label: z.string().min(1),
+	detail: z.string().nullable().optional().catch(null),
+	imageUrl: z.string().nullable().optional().catch(null),
+});
 
-type BuilderSubmission = {
-	id: string;
-	createdAt: string;
-	clientRequestId?: string | null;
-	commandType: "CHAT" | "CREATE_AGENT";
-	message: unknown;
-	status: string;
-	errorMessage: string | null;
-};
+const storedAttachment = z.object({
+	id: z.string().min(1),
+	name: z.string().min(1),
+	type: z.string().min(1),
+	size: z.number(),
+	previewUrl: z.string().nullable().optional().catch(null),
+});
+
+const uploadAttachment = z.object({
+	name: z.string().min(1),
+	type: z.string().min(1),
+	size: z.number(),
+	contentBase64: z.string().min(1),
+	previewUrl: z.string().nullable().optional().catch(null),
+});
+
+const builderMessage = z
+	.object({
+		text: z.string().nullable().catch(null),
+		resources: z.array(submissionResource).catch([]),
+		attachments: z
+			.array(z.union([storedAttachment, uploadAttachment]))
+			.catch([]),
+		inputResponse: z
+			.object({ requestId: z.string().min(1) })
+			.nullable()
+			.catch(null),
+	})
+	.catch({
+		text: null,
+		resources: [],
+		attachments: [],
+		inputResponse: null,
+	});
+
+type BuilderMessage = z.infer<typeof builderMessage>;
+
+const builderSubmissions = z.array(
+	z.object({
+		id: z.string(),
+		createdAt: z.string(),
+		clientRequestId: z.string().nullable().catch(null),
+		commandType: z.enum(["CHAT", "CREATE_AGENT"]),
+		message: builderMessage,
+		status: z.string(),
+		errorMessage: z.string().nullable().catch(null),
+	}),
+);
+
+type BuilderSubmission = z.infer<typeof builderSubmissions>[number];
+
+const streamEventShape = z.object({
+	type: z.string().min(1),
+	meta: z.object({ id: z.string().min(1), at: z.string().min(1) }),
+});
+
+const streamEvents = z
+	.array(
+		z
+			.custom<MessageStreamEvent>(
+				(value) => streamEventShape.safeParse(value).success,
+			)
+			.nullable()
+			.catch(null),
+	)
+	.catch([])
+	.transform((events) => events.filter((event) => event !== null));
 
 type PendingSubmission = {
 	clientRequestId: string;
 	createdAt: string;
 	commandType: "CHAT" | "CREATE_AGENT";
-	message: unknown;
+	message: BuilderMessage;
 };
 
 export function AgentBuilderChat({
@@ -242,7 +304,7 @@ export function AgentBuilderChat({
 	}
 
 	const data = conversation.data ?? (initialData as Conversation);
-	const submissions = data.submissions as BuilderSubmission[];
+	const submissions = builderSubmissions.parse(data.submissions);
 	const confirmedRequestIds = new Set(
 		submissions
 			.map((submission) => submission.clientRequestId)
@@ -251,8 +313,7 @@ export function AgentBuilderChat({
 	const pendingSubmissions = sending.filter(
 		(item) => !confirmedRequestIds.has(item.clientRequestId),
 	);
-	const persistedEvents = (events.data ??
-		[]) as unknown as MessageStreamEvent[];
+	const persistedEvents = streamEvents.parse(events.data ?? []);
 	const streamKey = builderSessionStreamKey(
 		data.sessionId,
 		submissions.at(-1)?.id ?? null,
@@ -297,6 +358,7 @@ export function AgentBuilderChat({
 					text: prompt.message,
 					resources: prompt.resources,
 					attachments: prompt.attachments,
+					inputResponse: null,
 				},
 			},
 		]);
@@ -397,6 +459,7 @@ export function AgentBuilderChat({
 										submission={{
 											id: item.clientRequestId,
 											createdAt: item.createdAt,
+											clientRequestId: item.clientRequestId,
 											commandType: item.commandType,
 											message: item.message,
 											status: "PENDING",
@@ -549,13 +612,15 @@ function BuilderEventFollower({
 			}
 		};
 
-		void follow()
-			.catch((error: unknown) => {
+		void (async () => {
+			try {
+				await follow();
+			} catch (error) {
 				if (!controller.signal.aborted) console.error(error);
-			})
-			.finally(() => {
+			} finally {
 				if (!controller.signal.aborted) onEnded();
-			});
+			}
+		})();
 
 		return () => controller.abort();
 	});
@@ -621,9 +686,8 @@ function SharedAgentChat({
 	conversation: SharedConversation;
 }) {
 	const t = useTranslations("agent-panel");
-	const submissions =
-		conversation.submissions as unknown as BuilderSubmission[];
-	const events = conversation.events as unknown as MessageStreamEvent[];
+	const submissions = builderSubmissions.parse(conversation.submissions);
+	const events = streamEvents.parse(conversation.events);
 	const messages = messagesFromEvents(events);
 	const timeline = conversationTimeline(submissions, events, messages);
 	const answeredQuestionIds = questionResponseIds(submissions);
@@ -770,13 +834,14 @@ function UserSubmission({
 	sending?: boolean;
 }) {
 	const t = useTranslations("agent-panel");
-	const message = builderMessageOf(submission.message, t);
+	const message = submission.message;
+	const messageText = message.text ?? t("messageUnavailable");
 	const command =
 		submission.commandType === "CREATE_AGENT"
-			? consumeBuilderCommand(message.text)
+			? consumeBuilderCommand(messageText)
 			: null;
-	const text = command?.body ?? message.text;
-	const response = inputResponseOf(submission.message);
+	const text = command?.body ?? messageText;
+	const response = message.inputResponse;
 
 	return (
 		<div
@@ -1232,11 +1297,11 @@ function ReviewAgentCard({
 	const workspaceUrl = useWorkspaceUrl();
 	const version = conversation.createdVersions.find(
 		(candidate) => candidate.id === versionId,
-	) as DraftVersion | undefined;
+	);
 	const agent = conversation.agent;
-	const manifest = manifestOf(version?.manifest, t);
 
 	if (!version || !agent) return null;
+	const manifest = manifestOf(version.manifest, t);
 
 	return (
 		<div className="flex flex-col gap-5">
@@ -1488,22 +1553,6 @@ const RESOURCE_ICONS = {
 	deal: Partnership,
 } as const;
 
-function builderMessageOf(
-	message: unknown,
-	t: ReturnType<typeof useTranslations>,
-) {
-	const row = recordOf(message);
-	return {
-		text: typeof row.text === "string" ? row.text : t("messageUnavailable"),
-		resources: Array.isArray(row.resources)
-			? (row.resources as BuilderPrompt["resources"])
-			: [],
-		attachments: Array.isArray(row.attachments)
-			? (row.attachments as BuilderPrompt["attachments"])
-			: [],
-	};
-}
-
 function hasQueuedQuestionResponse(
 	submissions: BuilderSubmission[],
 	requestId: string,
@@ -1513,7 +1562,7 @@ function hasQueuedQuestionResponse(
 			return false;
 		}
 
-		return inputResponseOf(submission.message)?.requestId === requestId;
+		return submission.message.inputResponse?.requestId === requestId;
 	});
 }
 
@@ -1526,36 +1575,25 @@ function questionResponseIds(
 				return [];
 			}
 
-			const response = inputResponseOf(submission.message);
+			const response = submission.message.inputResponse;
 			return response ? [response.requestId] : [];
 		}),
 	);
-}
-
-function inputResponseOf(message: unknown): { requestId: string } | null {
-	const response = recordOf(recordOf(message).inputResponse);
-	return typeof response.requestId === "string" && response.requestId
-		? { requestId: response.requestId }
-		: null;
 }
 
 function retryPromptOf(
 	submission: BuilderSubmission | undefined,
 ): BuilderPrompt | null {
 	if (!submission) return null;
-	const row = recordOf(submission.message);
-	if (Object.keys(recordOf(row.inputResponse)).length > 0) return null;
-	if (typeof row.text !== "string" || !row.text.trim()) return null;
+	const { message } = submission;
+	if (message.inputResponse) return null;
+	if (!message.text?.trim()) return null;
 
 	return {
 		commandType: submission.commandType,
-		message: row.text,
-		resources: Array.isArray(row.resources)
-			? (row.resources as BuilderPrompt["resources"])
-			: [],
-		attachments: Array.isArray(row.attachments)
-			? (row.attachments as BuilderPrompt["attachments"])
-			: [],
+		message: message.text,
+		resources: message.resources,
+		attachments: message.attachments,
 	};
 }
 
@@ -1571,30 +1609,14 @@ function sharedConversationNeedsPolling(
 	return !eventStreamSettled(conversation.events);
 }
 
-function manifestOf(value: unknown, t: ReturnType<typeof useTranslations>) {
-	const manifest = recordOf(value);
-	const triggers = Array.isArray(manifest.triggers)
-		? manifest.triggers.map(recordOf)
-		: [];
-	const dataScope = recordOf(manifest.dataScope);
-	const actions = Array.isArray(manifest.actions)
-		? manifest.actions.map(recordOf)
-		: [];
-	const access = Array.isArray(manifest.access)
-		? manifest.access.filter((item): item is string => typeof item === "string")
-		: [];
-
+function manifestOf(
+	manifest: AgentManifestSummary,
+	t: ReturnType<typeof useTranslations>,
+) {
 	return {
-		name:
-			typeof manifest.name === "string" && manifest.name.trim()
-				? manifest.name.trim()
-				: null,
-		description:
-			typeof manifest.description === "string" && manifest.description.trim()
-				? manifest.description.trim()
-				: null,
+		name: manifest.name?.trim() || null,
 		trigger:
-			triggers
+			manifest.triggers
 				.map((trigger) =>
 					trigger.type === "MANUAL"
 						? t("triggerOnDemand")
@@ -1606,22 +1628,19 @@ function manifestOf(value: unknown, t: ReturnType<typeof useTranslations>) {
 							),
 				)
 				.join(" · ") || t("triggerOnDemand"),
-		looksAt: textOf(dataScope.summary, t("scopeApprovedFallback")),
-		action: compactSummary(actions[0]?.summary, t("actionRequestedFallback")),
-		access,
+		looksAt: textOf(manifest.dataScope.summary, t("scopeApprovedFallback")),
+		action: compactSummary(
+			manifest.actions[0]?.summary,
+			t("actionRequestedFallback"),
+		),
+		access: manifest.access,
 	};
 }
 
-function compactSummary(value: unknown, fallback: string): string {
+function compactSummary(value: string | undefined, fallback: string): string {
 	return textOf(value, fallback).replace(/\s+\([^()]+\)\s*\.?$/, "");
 }
 
-function recordOf(value: unknown): Record<string, unknown> {
-	return value && typeof value === "object" && !Array.isArray(value)
-		? (value as Record<string, unknown>)
-		: {};
-}
-
-function textOf(value: unknown, fallback: string): string {
-	return typeof value === "string" && value.trim() ? value : fallback;
+function textOf(value: string | undefined, fallback: string): string {
+	return value?.trim() ? value : fallback;
 }

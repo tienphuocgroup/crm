@@ -1,12 +1,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Glob } from "bun";
+import { z } from "zod";
 
 const ROOT = path.resolve(import.meta.dir, "../../../..");
 const SOURCE_DIR = path.join(ROOT, "apps/app/messages/en");
 const TARGET_DIR = path.join(ROOT, "apps/app/messages/pseudo");
 
-const ACCENTS: Record<string, string> = {
+const ACCENTS = {
 	a: "à",
 	b: "ƀ",
 	c: "ç",
@@ -59,7 +60,11 @@ const ACCENTS: Record<string, string> = {
 	X: "Ẋ",
 	Y: "Ý",
 	Z: "Ž",
-};
+} satisfies Record<string, string>;
+
+function isAccented(char: string): char is keyof typeof ACCENTS {
+	return Object.hasOwn(ACCENTS, char);
+}
 
 type Catalog = { [key: string]: string | number | boolean | null | Catalog };
 
@@ -152,21 +157,27 @@ export function pseudoMessage(message: string): string {
 			index = close + 1;
 			continue;
 		}
-		out += ACCENTS[char] ?? char;
+		out += isAccented(char) ? ACCENTS[char] : char;
 		index += 1;
 	}
 	return out;
 }
 
+const pseudoCatalogSchema: z.ZodType<Catalog, unknown> = z.lazy(() =>
+	z.record(
+		z.string(),
+		z.union([
+			z.string().transform(pseudoMessage),
+			z.number(),
+			z.boolean(),
+			z.null(),
+			pseudoCatalogSchema,
+		]),
+	),
+);
+
 export function pseudoCatalog(catalog: Catalog): Catalog {
-	const out: Catalog = {};
-	for (const [key, value] of Object.entries(catalog)) {
-		if (typeof value === "string") out[key] = pseudoMessage(value);
-		else if (value !== null && typeof value === "object") {
-			out[key] = pseudoCatalog(value);
-		} else out[key] = value;
-	}
-	return out;
+	return pseudoCatalogSchema.parse(catalog);
 }
 
 async function main(): Promise<void> {

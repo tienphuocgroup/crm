@@ -7,12 +7,22 @@ import {
 	Router,
 	UseMiddlewares,
 } from "nestjs-trpc";
-import type { z } from "zod";
+import { z } from "zod";
 import { AuthService } from "../auth/auth.service";
 import type { AuthedTrpcContext } from "../trpc/context.types";
 import { AuthMiddleware } from "../trpc/middlewares/auth.middleware";
+import { restMeta } from "../trpc/openapi";
 import { setLocaleInput } from "./users.contracts";
 import { UsersService } from "./users.service";
+
+const usersListOutput = z.array(
+	z.object({
+		id: z.string(),
+		name: z.string(),
+		email: z.string(),
+		image: z.string().nullable(),
+	}),
+);
 
 @Router({ alias: "users" })
 @UseMiddlewares(AuthMiddleware)
@@ -27,15 +37,18 @@ export class UsersRouter {
 		return this.auth.getProfile(ctx.user.id);
 	}
 
-	@Query()
+	@Query({
+		output: usersListOutput,
+		meta: restMeta("GET", "/users", ["Users"]),
+	})
 	async list() {
 		return this.users.list();
 	}
 
 	@Mutation({ input: setLocaleInput })
 	async setLocale(
-		@Input() input: z.infer<typeof setLocaleInput>,
 		@Ctx() ctx: AuthedTrpcContext,
+		@Input() input: z.infer<typeof setLocaleInput>,
 	) {
 		return this.users.setLocale(ctx.user.id, input.locale);
 	}

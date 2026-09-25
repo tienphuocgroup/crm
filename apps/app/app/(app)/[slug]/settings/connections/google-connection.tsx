@@ -47,6 +47,16 @@ import { isSyncing, SYNC_POLL_MS } from "@/lib/sync-status";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 
+const CONNECT_ERROR_KEYS = {
+	"email_doesn't_match": "connections.googleEmailMismatch",
+} satisfies Record<string, string>;
+
+function isConnectErrorCode(
+	code: string,
+): code is keyof typeof CONNECT_ERROR_KEYS {
+	return Object.hasOwn(CONNECT_ERROR_KEYS, code);
+}
+
 function sources(t: ReturnType<typeof useTranslations>) {
 	return {
 		calendar: {
@@ -141,10 +151,6 @@ function ConnectGoogle({
 	const t = useTranslations("settings");
 	const [pending, setPending] = useState(false);
 
-	const connectErrors: Record<string, string> = {
-		"email_doesn't_match": t("connections.googleEmailMismatch"),
-	};
-
 	function fail(message?: string) {
 		setPending(false);
 		toast.error(message ?? t("connections.googleUnreachable"));
@@ -207,8 +213,9 @@ function ConnectGoogle({
 						<Icon icon={Warning} />
 						<AlertTitle>{t("connections.googleConnectFailedTitle")}</AlertTitle>
 						<AlertDescription>
-							{connectErrors[connectError] ??
-								t("connections.googleGenericConnectError")}
+							{isConnectErrorCode(connectError)
+								? t(CONNECT_ERROR_KEYS[connectError])
+								: t("connections.googleGenericConnectError")}
 						</AlertDescription>
 					</Alert>
 				</CardContent>

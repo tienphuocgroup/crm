@@ -19,11 +19,11 @@ import { useHydrated } from "@/lib/use-hydrated";
 import { useWorkspaceUrl } from "@/lib/use-workspace-url";
 import { DeleteChatAction } from "./delete-chat-action";
 
-const CHAT_DATE_GROUP_KEYS: Record<ChatDateGroupKey, string> = {
+const CHAT_DATE_GROUP_KEYS = {
 	today: "chatDateGroupToday",
 	yesterday: "chatDateGroupYesterday",
 	last7Days: "chatDateGroupLast7Days",
-};
+} satisfies Record<ChatDateGroupKey, string>;
 
 type Conversation = RouterOutputs["conversations"]["builderList"][number];
 type TeamAgent = RouterOutputs["agents"]["list"][number];
@@ -247,18 +247,16 @@ function groupConversations(conversations: Conversation[], now: number) {
 	if (!now) return [];
 
 	const order: ChatDateGroupKey[] = ["today", "yesterday", "last7Days"];
-	const items: Record<ChatDateGroupKey, Conversation[]> = {
-		today: [],
-		yesterday: [],
-		last7Days: [],
-	};
+	const items = new Map<ChatDateGroupKey, Conversation[]>(
+		order.map((key) => [key, []]),
+	);
 
 	for (const conversation of conversations) {
 		const key = chatDateGroup(conversation.lastMessageAt, now);
-		if (key) items[key].push(conversation);
+		if (key) items.get(key)?.push(conversation);
 	}
 
 	return order
-		.map((key) => ({ key, items: items[key] }))
+		.map((key) => ({ key, items: items.get(key) ?? [] }))
 		.filter((group) => group.items.length > 0);
 }

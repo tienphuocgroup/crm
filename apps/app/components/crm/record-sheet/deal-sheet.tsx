@@ -25,6 +25,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { AgentPanel } from "@/components/crm/agent-panel";
+import { InlineCompanyField } from "@/components/crm/company-picker";
 import { contactName } from "@/components/crm/contact-name";
 import { FieldsCog, RecordFields } from "@/components/crm/fields/record-fields";
 import {
@@ -222,6 +223,7 @@ export function DealSheet({ dealId }: { dealId: string }) {
 											count: deal.contacts.length,
 										})
 							}
+							archivedAt={deal.archivedAt}
 						/>
 					</>
 				) : null
@@ -268,7 +270,6 @@ function DealOverview({ deal }: { deal: Deal }) {
 	const cache = useCrmCache();
 
 	const users = useQuery(trpc.users.list.queryOptions());
-	const companies = useQuery(trpc.companies.options.queryOptions({ q: "" }));
 
 	const update = useMutation(
 		trpc.deals.update.mutationOptions({
@@ -354,16 +355,12 @@ function DealOverview({ deal }: { deal: Deal }) {
 						saving={isSaving("expectedCloseDate")}
 						onSave={(next) => save({ expectedCloseDate: next || null })}
 					/>
-					<InlineSelectField
+					<InlineCompanyField
 						label={t("companyLabel")}
 						value={deal.company?.id ?? NO_COMPANY}
-						options={[
-							{ value: NO_COMPANY, label: t("noCompanyOption") },
-							...(companies.data ?? []).map((company) => ({
-								value: company.id,
-								label: company.name,
-							})),
-						]}
+						company={deal.company}
+						saving={isSaving("companyId")}
+						none={{ value: NO_COMPANY, label: t("noCompanyOption") }}
 						onSave={(companyId) =>
 							save({ companyId: companyId === NO_COMPANY ? null : companyId })
 						}

@@ -9,10 +9,12 @@ import Task from "@carbon/icons-react/es/Task";
 import type { ActivityType } from "@crm/db/enums";
 import type { CarbonIcon } from "@crm/ui/components/icon";
 
-const PRESENTATION: Record<
+type ActivityPresentation = Record<
 	ActivityType,
 	{ icon: CarbonIcon; labelKey: string }
-> = {
+>;
+
+const PRESENTATION: ActivityPresentation = {
 	NOTE: { icon: Chat, labelKey: "activityTypeNote" },
 	CALL: { icon: Phone, labelKey: "activityTypeCall" },
 	EMAIL: { icon: Email, labelKey: "activityTypeEmail" },

@@ -1,7 +1,9 @@
 import { type Db, type FieldEntity, Prisma } from "@crm/db";
 import { PRIORITY } from "@crm/db/agent-tasks";
 import { CRM_EVENT_CATALOG, type CrmEventType } from "@crm/db/crm-events";
+import { RECORD_ID_COLUMNS } from "@crm/db/fields";
 import { lockIdempotencyKey } from "@crm/db/idempotency";
+import { fieldBackfillPayload } from "@crm/validation/field-backfill";
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectDatabase } from "../database/database.constants";
 import { AGENT_DISPATCH } from "./agent-dispatch.config";
@@ -36,6 +38,21 @@ const MESSAGE_SEND_REASON = "A rep replied on Zalo.";
 const MESSAGE_PROFILE_REASON =
 	"Read the Zalo profile of a person who wrote to the OA.";
 
+async function runWithConcurrency<T>(
+	items: readonly T[],
+	concurrency: number,
+	run: (item: T) => Promise<void>,
+): Promise<void> {
+	const queue = items[Symbol.iterator]();
+	const width = Math.max(1, Math.min(concurrency, items.length));
+
+	await Promise.all(
+		Array.from({ length: width }, async () => {
+			for (const item of queue) await run(item);
+		}),
+	);
+}
+
 @Injectable()
 export class AgentTriggerService {
 	private readonly logger = new Logger(AgentTriggerService.name);
@@ -64,22 +81,30 @@ export class AgentTriggerService {
 		});
 	}
 
-	async companyRequested(companyId: string, reason: string): Promise<void> {
-		await this.enqueue({
-			companyId,
-			kind: "brand",
-			reason,
-			priority: PRIORITY.brand,
-			budget: 2,
-		});
+	async companyRequested(companyId: string, reason: string): Promise<boolean> {
+		const brand = await this.enqueue(
+			{
+				companyId,
+				kind: "brand",
+				reason,
+				priority: PRIORITY.brand,
+				budget: 2,
+			},
+			true,
+		);
 
-		await this.enqueue({
-			companyId,
-			kind: "company-profile",
-			reason,
-			priority: PRIORITY.requested,
-			budget: 8,
-		});
+		const profile = await this.enqueue(
+			{
+				companyId,
+				kind: "company-profile",
+				reason,
+				priority: PRIORITY.requested,
+				budget: 8,
+			},
+			true,
+		);
+
+		return brand || profile;
 	}
 
 	async workspaceChanged(website: string, reason: string): Promise<void> {
@@ -91,14 +116,21 @@ export class AgentTriggerService {
 		});
 	}
 
-	async contactCreated(contactId: string, reason: string): Promise<void> {
-		await this.enqueue({
-			contactId,
-			kind: "identify",
-			reason,
-			priority: PRIORITY.identify,
-			budget: 4,
-		});
+	async contactCreated(
+		contactId: string,
+		reason: string,
+		required = false,
+	): Promise<boolean> {
+		return this.enqueue(
+			{
+				contactId,
+				kind: "identify",
+				reason,
+				priority: PRIORITY.identify,
+				budget: 4,
+			},
+			required,
+		);
 	}
 
 	async slackPeopleRequested(reason: string, required = false): Promise<void> {
@@ -275,54 +307,103 @@ export class AgentTriggerService {
 		return result;
 	}
 
-	async fieldBackfill(
+	async fieldBackfillRecords(
 		entity: FieldEntity,
-		key: string,
+		keys: string[],
+		ids: string[],
 		reason: string,
-	): Promise<void> {
-		const subject = `${entity.toLowerCase()}.${key}`;
-
-		try {
-			const pending = await this.db.agentTask.findFirst({
-				where: {
-					kind: "field-backfill",
-					finishedAt: null,
-					reason: { startsWith: `${subject}: ` },
-				},
-				select: { id: true },
-			});
-
-			if (pending) return;
-
-			await this.db.agentTask.create({
-				data: {
-					kind: "field-backfill",
-					reason: `${subject}: ${reason}`,
-					priority: PRIORITY.fieldBackfill,
-					budget: 8,
-					dueAt: new Date(),
-				},
-			});
-
-			this.logger.log({
-				message: "Agent task queued",
-				kind: "field-backfill",
-				entity,
-				key,
-			});
-
-			this.poke();
-		} catch (error) {
-			this.logger.error(
-				{
-					message: "Could not queue agent task",
-					kind: "field-backfill",
-					entity,
-					key,
-				},
-				error instanceof Error ? error.stack : String(error),
-			);
+	): Promise<{ queued: number; merged: number }> {
+		if (ids.length === 0 || keys.length === 0) {
+			return { queued: 0, merged: 0 };
 		}
+
+		const column = RECORD_ID_COLUMNS[entity];
+		let queued = 0;
+		let merged = 0;
+
+		const queueOne = async (id: string): Promise<void> => {
+			try {
+				const outcome = await this.db.$transaction(async (tx) => {
+					await lockIdempotencyKey(
+						tx,
+						`agent-task:field-backfill:${entity}:${id}`,
+					);
+
+					const pending = await tx.agentTask.findFirst({
+						where: {
+							kind: "field-backfill",
+							finishedAt: null,
+							[column]: id,
+						} as Prisma.AgentTaskWhereInput,
+						select: { id: true, payload: true },
+					});
+
+					if (!pending) {
+						await tx.agentTask.create({
+							data: {
+								[column]: id,
+								kind: "field-backfill",
+								reason,
+								priority: PRIORITY.fieldBackfill,
+								budget: 8,
+								dueAt: new Date(),
+								payload: { entity, keys } satisfies Prisma.InputJsonValue,
+							},
+						});
+						return "queued" as const;
+					}
+
+					const parsed = fieldBackfillPayload.safeParse(pending.payload);
+					const priorKeys = parsed.success ? parsed.data.keys : [];
+					const nextKeys = [...new Set([...priorKeys, ...keys])];
+					if (nextKeys.length === priorKeys.length) return "unchanged" as const;
+
+					await tx.agentTask.update({
+						where: { id: pending.id },
+						data: {
+							payload: {
+								entity,
+								keys: nextKeys,
+							} satisfies Prisma.InputJsonValue,
+						},
+					});
+					return "merged" as const;
+				});
+
+				if (outcome === "queued") queued += 1;
+				if (outcome === "merged") merged += 1;
+			} catch (error) {
+				this.logger.error(
+					{
+						message: "Could not queue agent task",
+						kind: "field-backfill",
+						entity,
+						keys,
+						recordId: id,
+					},
+					error instanceof Error ? error.stack : String(error),
+				);
+			}
+		};
+
+		await runWithConcurrency(
+			ids,
+			AGENT_DISPATCH.fieldBackfill.concurrency,
+			queueOne,
+		);
+
+		this.logger.log({
+			message: "Agent task queued",
+			kind: "field-backfill",
+			entity,
+			keys,
+			queued,
+			merged,
+		});
+
+		if (queued > 0 || merged > 0) this.poke();
+
+		return { queued, merged };
 	}
 
 	async meetingSoon(contactId: string, when: Date): Promise<void> {
@@ -405,11 +486,13 @@ export class AgentTriggerService {
 					finishedAt: null,
 					[subject]: { in: ids },
 				},
-				select: { [subject]: true },
+				select: { companyId: true, contactId: true },
 			});
 
 			const taken = new Set(
-				outstanding.map((row) => (row as Record<string, unknown>)[subject]),
+				outstanding.map((row) =>
+					subject === "contactId" ? row.contactId : row.companyId,
+				),
 			);
 			const fresh = ids.filter((id) => !taken.has(id));
 
@@ -474,16 +557,11 @@ export class AgentTriggerService {
 					where: {
 						kind: task.kind,
 						finishedAt: null,
-						...(task.contactId ? { contactId: task.contactId } : {}),
-						...(task.companyId ? { companyId: task.companyId } : {}),
-						...(task.subject
-							? {
-									payload: {
-										path: task.subject.path,
-										equals: task.subject.value,
-									},
-								}
-							: {}),
+						contactId: task.contactId ?? undefined,
+						companyId: task.companyId ?? undefined,
+						payload: task.subject
+							? { path: task.subject.path, equals: task.subject.value }
+							: undefined,
 					},
 					select: { id: true },
 				});
@@ -498,7 +576,7 @@ export class AgentTriggerService {
 						priority: task.priority,
 						budget: task.budget,
 						dueAt: task.dueAt ?? new Date(),
-						...(task.payload ? { payload: task.payload } : {}),
+						payload: task.payload ?? undefined,
 					},
 				});
 				return true;
@@ -583,13 +661,15 @@ export class AgentTriggerService {
 		if (!agent) return false;
 
 		try {
+			const headers = new Headers({
+				authorization: `Bearer ${agent.secret}`,
+			});
+			if (body) headers.set("content-type", "application/json");
+
 			const response = await fetch(agent.url(path), {
 				method: "POST",
-				headers: {
-					authorization: `Bearer ${agent.secret}`,
-					...(body ? { "content-type": "application/json" } : {}),
-				},
-				...(body ? { body: JSON.stringify(body) } : {}),
+				headers,
+				body: body ? JSON.stringify(body) : undefined,
 				signal: AbortSignal.timeout(AGENT_DISPATCH.poke.timeoutMs),
 			});
 

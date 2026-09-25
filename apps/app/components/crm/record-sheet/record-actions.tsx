@@ -1,7 +1,9 @@
 "use client";
 
+import Archive from "@carbon/icons-react/es/Archive";
 import OverflowMenuVertical from "@carbon/icons-react/es/OverflowMenuVertical";
 import TrashCan from "@carbon/icons-react/es/TrashCan";
+import Undo from "@carbon/icons-react/es/Undo";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -32,20 +34,70 @@ import {
 	useRecordStack,
 } from "./record-stack";
 
-function useDeleteRecord(
-	record: RecordRef,
-	recordNounWithArticle: Record<RecordKind, string>,
-	common: ReturnType<typeof useTranslations<"common">>,
-) {
+const RECORD_PROCEDURES = {
+	company: "companies",
+	contact: "contacts",
+	deal: "deals",
+} satisfies Record<RecordKind, "companies" | "contacts" | "deals">;
+
+type RecordToast = {
+	record: RecordRef;
+	nounWithArticle: string;
+	common: ReturnType<typeof useTranslations<"common">>;
+};
+
+function useArchiveRecord({ record, nounWithArticle, common }: RecordToast) {
+	const trpc = useTRPC();
+	const cache = useCrmCache();
+
+	const handlers = {
+		onSuccess: (archived: { name: string }) => {
+			toast.success(
+				common("recordSheet.archivedToast", {
+					subject: archived.name || nounWithArticle,
+				}),
+			);
+			void cache[record.kind](record.id);
+		},
+		onError: (error: { message: string }) => toast.error(error.message),
+	};
+
+	return useMutation(
+		trpc[RECORD_PROCEDURES[record.kind]].archive.mutationOptions(handlers),
+	);
+}
+
+function useRestoreRecord({ record, nounWithArticle, common }: RecordToast) {
+	const trpc = useTRPC();
+	const cache = useCrmCache();
+
+	const handlers = {
+		onSuccess: (restored: { name: string }) => {
+			toast.success(
+				common("recordSheet.restoredToast", {
+					subject: restored.name || nounWithArticle,
+				}),
+			);
+			void cache[record.kind](record.id);
+		},
+		onError: (error: { message: string }) => toast.error(error.message),
+	};
+
+	return useMutation(
+		trpc[RECORD_PROCEDURES[record.kind]].restore.mutationOptions(handlers),
+	);
+}
+
+function usePurgeRecord({ record, nounWithArticle, common }: RecordToast) {
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 	const { close } = useRecordStack();
 
 	const handlers = {
-		onSuccess: (deleted: { name: string }) => {
+		onSuccess: (purged: { name: string }) => {
 			toast.success(
 				common("recordSheet.deletedToast", {
-					subject: deleted.name || recordNounWithArticle[record.kind],
+					subject: purged.name || nounWithArticle,
 				}),
 			);
 			void cache.removed(record);
@@ -54,50 +106,68 @@ function useDeleteRecord(
 		onError: (error: { message: string }) => toast.error(error.message),
 	};
 
-	const options =
-		record.kind === "contact"
-			? trpc.contacts.delete.mutationOptions(handlers)
-			: record.kind === "company"
-				? trpc.companies.delete.mutationOptions(handlers)
-				: trpc.deals.delete.mutationOptions(handlers);
-
-	return useMutation(options);
+	return useMutation(
+		trpc[RECORD_PROCEDURES[record.kind]].purge.mutationOptions(handlers),
+	);
 }
 
 export function RecordActions({
 	record,
 	name,
 	consequence,
+	archivedAt,
 }: {
 	record: RecordRef;
 	name: string;
 	consequence: string;
+	archivedAt: string | null;
 }) {
 	const common = useTranslations("common");
 	const companies = useTranslations("companies");
 	const contacts = useTranslations("contacts");
 	const deals = useTranslations("deals");
 
-	const deleteMenuLabel: Record<RecordKind, string> = {
-		company: companies("deleteMenuLabel"),
-		contact: contacts("deleteMenuLabel"),
-		deal: deals("deleteMenuLabel"),
-	};
+	const archiveMenuLabel = {
+		company: companies("archiveMenuLabel"),
+		contact: contacts("archiveMenuLabel"),
+		deal: deals("archiveMenuLabel"),
+	} satisfies Record<RecordKind, string>;
 
-	const recordNounWithArticle: Record<RecordKind, string> = {
+	const restoreMenuLabel = {
+		company: companies("restoreMenuLabel"),
+		contact: contacts("restoreMenuLabel"),
+		deal: deals("restoreMenuLabel"),
+	} satisfies Record<RecordKind, string>;
+
+	const purgeMenuLabel = {
+		company: companies("purgeMenuLabel"),
+		contact: contacts("purgeMenuLabel"),
+		deal: deals("purgeMenuLabel"),
+	} satisfies Record<RecordKind, string>;
+
+	const recordNounWithArticle = {
 		company: companies("recordNounWithArticle"),
 		contact: contacts("recordNounWithArticle"),
 		deal: deals("recordNounWithArticle"),
-	};
+	} satisfies Record<RecordKind, string>;
 
 	const [confirming, setConfirming] = useState(false);
-	const remove = useDeleteRecord(record, recordNounWithArticle, common);
+	const toastArgs = {
+		record,
+		nounWithArticle: recordNounWithArticle[record.kind],
+		common,
+	};
+	const archive = useArchiveRecord(toastArgs);
+	const restore = useRestoreRecord(toastArgs);
+	const purge = usePurgeRecord(toastArgs);
+
+	const pending = archive.isPending || restore.isPending || purge.isPending;
 
 	return (
 		<>
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
-					<Button variant="ghost" size="icon-sm" disabled={remove.isPending}>
+					<Button variant="ghost" size="icon-sm" disabled={pending}>
 						<Icon icon={OverflowMenuVertical} />
 						<span className="sr-only">
 							{common("recordSheet.moreActionsLabel")}
@@ -105,13 +175,30 @@ export function RecordActions({
 					</Button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end" className="min-w-44">
-					<DropdownMenuItem
-						variant="destructive"
-						onSelect={() => setConfirming(true)}
-					>
-						<Icon icon={TrashCan} />
-						{deleteMenuLabel[record.kind]}
-					</DropdownMenuItem>
+					{archivedAt ? (
+						<>
+							<DropdownMenuItem
+								onSelect={() => restore.mutate({ id: record.id })}
+							>
+								<Icon icon={Undo} />
+								{restoreMenuLabel[record.kind]}
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								variant="destructive"
+								onSelect={() => setConfirming(true)}
+							>
+								<Icon icon={TrashCan} />
+								{purgeMenuLabel[record.kind]}
+							</DropdownMenuItem>
+						</>
+					) : (
+						<DropdownMenuItem
+							onSelect={() => archive.mutate({ id: record.id })}
+						>
+							<Icon icon={Archive} />
+							{archiveMenuLabel[record.kind]}
+						</DropdownMenuItem>
+					)}
 				</DropdownMenuContent>
 			</DropdownMenu>
 
@@ -128,9 +215,9 @@ export function RecordActions({
 						<AlertDialogCancel>{common("cancel")}</AlertDialogCancel>
 						<AlertDialogAction
 							variant="destructive"
-							onClick={() => remove.mutate({ id: record.id })}
+							onClick={() => purge.mutate({ id: record.id })}
 						>
-							{common("delete")}
+							{common("recordSheet.purgeConfirmAction")}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

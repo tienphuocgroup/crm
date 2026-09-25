@@ -3,19 +3,18 @@
 import { ToggleGroup, ToggleGroupItem } from "@crm/ui/components/toggle-group";
 import { useTranslations } from "next-intl";
 import { useQueryState } from "nuqs";
+import { SEARCH_PARAM } from "@/lib/search-param-keys";
 import {
 	OVERVIEW_SCOPES,
 	type OverviewScope,
 	overviewParsers,
 } from "./overview-search-params";
 
-function scopeLabels(
-	t: ReturnType<typeof useTranslations>,
-): Record<OverviewScope, string> {
+function scopeLabels(t: ReturnType<typeof useTranslations>) {
 	return {
 		me: t("scopeMe"),
 		everyone: t("scopeEveryone"),
-	};
+	} satisfies Record<OverviewScope, string>;
 }
 
 function isScope(value: string): value is OverviewScope {
@@ -47,7 +46,10 @@ export function OverviewScopeToggleFallback() {
 export function OverviewScopeToggle() {
 	const t = useTranslations("dashboard");
 	const labels = scopeLabels(t);
-	const [scope, setScope] = useQueryState("scope", overviewParsers.scope);
+	const [scope, setScope] = useQueryState(
+		SEARCH_PARAM.overview.scope,
+		overviewParsers[SEARCH_PARAM.overview.scope],
+	);
 
 	return (
 		<ToggleGroup

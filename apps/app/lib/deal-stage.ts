@@ -16,14 +16,14 @@ const ORDER = [
 	DealStage.LOST,
 ] as const;
 
-const PRESENTATION: Record<DealStage, StagePresentation> = {
+const PRESENTATION = {
 	INQUIRY: { labelKey: "stageInquiry", tone: "neutral" },
 	CONSULT_BOOKED: { labelKey: "stageConsultBooked", tone: "info" },
 	CONSULT_DONE: { labelKey: "stageConsultDone", tone: "info" },
 	PROPOSAL_SENT: { labelKey: "stageProposalSent", tone: "warning" },
 	ENROLLED: { labelKey: "stageEnrolled", tone: "success" },
 	LOST: { labelKey: "stageLost", tone: "error" },
-};
+} satisfies Record<DealStage, StagePresentation>;
 
 export const OPEN_STAGES = ORDER.slice(0, 4) as readonly DealStage[];
 

@@ -18,13 +18,13 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useQueryState } from "nuqs";
 import { DetailSheetEmpty, SECTION_TITLE } from "@/components/detail-sheet";
+import { SEARCH_PARAM } from "@/lib/search-param-keys";
 import { useTRPC } from "@/lib/trpc/client";
 import { useHydrated } from "@/lib/use-hydrated";
 import { ActivityComposer } from "./activity-composer";
 import { TimelineEntry, type TimelineEntryData } from "./timeline-entry";
 import {
 	historyFilter,
-	TIMELINE_PARAM,
 	TIMELINE_TABS,
 	type TimelineTab,
 	timelineTabParser,
@@ -35,7 +35,7 @@ export type TimelineAnchor =
 	| { contactId: string }
 	| { dealId: string };
 
-const TAB_LABEL_KEY: Record<TimelineTab, string> = {
+const TAB_LABEL_KEY = {
 	all: "timeline.tabAll",
 	notes: "timeline.tabNotes",
 	email: "timeline.tabEmail",
@@ -43,12 +43,9 @@ const TAB_LABEL_KEY: Record<TimelineTab, string> = {
 	meetings: "timeline.tabMeetings",
 	upcoming: "timeline.tabUpcoming",
 	done: "timeline.tabDone",
-};
+} satisfies Record<TimelineTab, string>;
 
-const EMPTY_STATE_KEY: Record<
-	TimelineTab,
-	{ title: string; description: string }
-> = {
+const EMPTY_STATE_KEY = {
 	all: {
 		title: "timeline.emptyAllTitle",
 		description: "timeline.emptyAllDescription",
@@ -77,9 +74,9 @@ const EMPTY_STATE_KEY: Record<
 		title: "timeline.emptyDoneTitle",
 		description: "timeline.emptyDoneDescription",
 	},
-};
+} satisfies Record<TimelineTab, { title: string; description: string }>;
 
-const EMPTY_ICONS: Record<TimelineTab, CarbonIcon> = {
+const EMPTY_ICONS = {
 	all: Time,
 	notes: Chat,
 	email: Email,
@@ -87,7 +84,7 @@ const EMPTY_ICONS: Record<TimelineTab, CarbonIcon> = {
 	meetings: Events,
 	upcoming: Task,
 	done: Checkmark,
-};
+} satisfies Record<TimelineTab, CarbonIcon>;
 
 const DAY_OPTIONS = {
 	weekday: "short",
@@ -184,7 +181,10 @@ export function Timeline({ anchor }: { anchor: TimelineAnchor }) {
 	const trpc = useTRPC();
 	const hydrated = useHydrated();
 
-	const [tab, setTab] = useQueryState(TIMELINE_PARAM, timelineTabParser);
+	const [tab, setTab] = useQueryState(
+		SEARCH_PARAM.record.timeline,
+		timelineTabParser,
+	);
 
 	const counts = useQuery(trpc.activities.timelineCounts.queryOptions(anchor));
 

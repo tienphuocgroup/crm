@@ -6,20 +6,20 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 
-function connectErrorMessages(
-	t: ReturnType<typeof useTranslations>,
-): Record<string, string> {
-	return {
-		access_denied: t("connections.slackConnectErrorAccessDenied"),
-		account_already_linked_to_different_user: t(
-			"connections.slackConnectErrorAlreadyLinked",
-		),
-		"email_doesn't_match": t("connections.slackConnectErrorEmailMismatch"),
-		oauth_code_verification_failed: t(
-			"connections.slackConnectErrorVerificationFailed",
-		),
-		user_info_is_missing: t("connections.slackConnectErrorUserInfoMissing"),
-	};
+const CONNECT_ERROR_KEYS = {
+	access_denied: "connections.slackConnectErrorAccessDenied",
+	account_already_linked_to_different_user:
+		"connections.slackConnectErrorAlreadyLinked",
+	"email_doesn't_match": "connections.slackConnectErrorEmailMismatch",
+	oauth_code_verification_failed:
+		"connections.slackConnectErrorVerificationFailed",
+	user_info_is_missing: "connections.slackConnectErrorUserInfoMissing",
+} satisfies Record<string, string>;
+
+function isConnectErrorCode(
+	code: string,
+): code is keyof typeof CONNECT_ERROR_KEYS {
+	return Object.hasOwn(CONNECT_ERROR_KEYS, code);
 }
 
 async function startSlackOAuth(slug: string, fallbackMessage: string) {
@@ -84,10 +84,11 @@ export function SlackConnectButton({
 			</Button>
 			{connectError ? (
 				<p role="alert" className="max-w-sm text-destructive text-xs">
-					{connectErrorMessages(t)[connectError] ??
-						t("connections.slackConnectErrorFallback", {
-							error: connectError.replaceAll("_", " "),
-						})}
+					{isConnectErrorCode(connectError)
+						? t(CONNECT_ERROR_KEYS[connectError])
+						: t("connections.slackConnectErrorFallback", {
+								error: connectError.replaceAll("_", " "),
+							})}
 				</p>
 			) : null}
 		</div>

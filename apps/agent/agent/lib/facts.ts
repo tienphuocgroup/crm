@@ -1,4 +1,4 @@
-import { db, FactBand, FactStatus } from "@crm/db";
+import { db, FactBand, FactStatus, type Prisma } from "@crm/db";
 import { type Evidence, scoreEvidence } from "./evidence";
 import { currentFocus } from "./focus";
 import { isDerivedName, splitName } from "./names";
@@ -10,13 +10,15 @@ const FIELDS = {
 	twitterUrl: { column: "twitterUrl" },
 	githubUrl: { column: "githubUrl" },
 	employer: { column: null },
-	seniority: { column: null },
-	function: { column: null },
+	seniority: { column: "seniority" },
+	function: { column: "function" },
 	location: { column: null },
 	tenure: { column: null },
 } as const;
 
 export type FactField = keyof typeof FIELDS;
+
+export type FactColumn = NonNullable<(typeof FIELDS)[FactField]["column"]>;
 
 export const FACT_FIELDS = Object.keys(FIELDS) as FactField[];
 
@@ -24,9 +26,9 @@ export type FactSubject = {
 	email: string | null;
 	firstName: string;
 	lastName: string | null;
-} & Record<string, unknown>;
+} & { [Column in FactColumn]: string | null };
 
-export function factColumn(field: FactField): string | null {
+export function factColumn(field: FactField): FactColumn | null {
 	return FIELDS[field].column;
 }
 
@@ -94,6 +96,8 @@ export async function recordFact(
 			firstName: true,
 			lastName: true,
 			title: true,
+			seniority: true,
+			function: true,
 			linkedinUrl: true,
 			twitterUrl: true,
 			githubUrl: true,
@@ -195,7 +199,7 @@ export async function recordFact(
 				value: trimmed,
 				score: scored.score,
 				band: scored.band as FactBand,
-				evidence: input.evidence as unknown as object,
+				evidence: input.evidence as Prisma.InputJsonValue,
 				method: input.method,
 				sourceUrl: input.sourceUrl ?? null,
 				sessionId,
@@ -287,7 +291,7 @@ export async function writeBrief(input: {
 
 	const data = {
 		narrative: input.narrative.trim(),
-		sections: input.sections as unknown as object,
+		sections: input.sections as Prisma.InputJsonValue,
 		score: scored.score,
 		sourceUrl: input.sourceUrl ?? null,
 		sessionId: currentFocus().sessionId,
@@ -310,12 +314,8 @@ function humanOwns({
 	hasAgentFact,
 }: {
 	field: FactField;
-	column: string | null;
-	contact: {
-		email: string | null;
-		firstName: string;
-		lastName: string | null;
-	} & Record<string, unknown>;
+	column: FactColumn | null;
+	contact: FactSubject;
 	hasAgentFact: boolean;
 }): boolean {
 	if (field === "name") {
@@ -334,8 +334,8 @@ function isEmpty({
 	hasAgentFact,
 }: {
 	field: FactField;
-	column: string | null;
-	contact: Record<string, unknown>;
+	column: FactColumn | null;
+	contact: FactSubject;
 	hasAgentFact: boolean;
 }): boolean {
 	if (hasAgentFact) return false;
@@ -345,10 +345,10 @@ function isEmpty({
 	return !contact[column];
 }
 
-const HOST_ALIASES: Record<string, string> = {
-	"twitter.com": "x.com",
-	"mobile.twitter.com": "x.com",
-};
+const HOST_ALIASES = new Map([
+	["twitter.com", "x.com"],
+	["mobile.twitter.com", "x.com"],
+]);
 
 export function sameValue(a: string, b: string): boolean {
 	return canonicalValue(a) === canonicalValue(b);
@@ -363,7 +363,7 @@ export function canonicalValue(value: string): string {
 	const host = url.host.replace(/^www\./, "");
 	const path = url.pathname.replace(/\/+$/, "");
 
-	return `${HOST_ALIASES[host] ?? host}${path}`;
+	return `${HOST_ALIASES.get(host) ?? host}${path}`;
 }
 
 function asWebUrl(value: string): URL | null {

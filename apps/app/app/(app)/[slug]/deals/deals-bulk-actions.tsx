@@ -1,6 +1,7 @@
 "use client";
 
-import TrashCan from "@carbon/icons-react/es/TrashCan";
+import Archive from "@carbon/icons-react/es/Archive";
+import Undo from "@carbon/icons-react/es/Undo";
 import type { DealStage } from "@crm/db/enums";
 import { Button } from "@crm/ui/components/button";
 import {
@@ -39,9 +40,11 @@ import { useTRPC } from "@/lib/trpc/client";
 export function DealsBulkActions({
 	ids,
 	onDone,
+	archived,
 }: {
 	ids: string[];
 	onDone: () => void;
+	archived: boolean;
 }) {
 	const t = useTranslations("deals");
 	const common = useTranslations("common");
@@ -49,9 +52,9 @@ export function DealsBulkActions({
 	const cache = useCrmCache();
 	const users = useQuery(trpc.users.list.queryOptions());
 	const reasonId = useId();
-	const [confirming, setConfirming] = useState(false);
 	const [closing, setClosing] = useState<DealStage | null>(null);
 	const [reason, setReason] = useState("");
+	const [confirming, setConfirming] = useState(false);
 
 	const onError = (error: { message: string }) => toast.error(error.message);
 
@@ -83,11 +86,37 @@ export function DealsBulkActions({
 		}),
 	);
 
-	const remove = useMutation(
-		trpc.deals.bulkDelete.mutationOptions({
+	const archive = useMutation(
+		trpc.deals.bulkArchive.mutationOptions({
 			onSuccess: async (result, variables) => {
 				await cache.removedMany({ kind: "deal", ids: variables.ids });
-				reportBulk(common, result, (count) => t("bulkDeletedToast", { count }));
+				reportBulk(common, result, (count) =>
+					t("bulkArchivedToast", { count }),
+				);
+				onDone();
+			},
+			onError,
+		}),
+	);
+
+	const restore = useMutation(
+		trpc.deals.bulkRestore.mutationOptions({
+			onSuccess: async (result) => {
+				await cache.deal();
+				reportBulk(common, result, (count) =>
+					t("bulkRestoredToast", { count }),
+				);
+				onDone();
+			},
+			onError,
+		}),
+	);
+
+	const purge = useMutation(
+		trpc.deals.bulkPurge.mutationOptions({
+			onSuccess: async (result, variables) => {
+				await cache.removedMany({ kind: "deal", ids: variables.ids });
+				reportBulk(common, result, (count) => t("bulkPurgedToast", { count }));
 				setConfirming(false);
 				onDone();
 			},
@@ -95,8 +124,42 @@ export function DealsBulkActions({
 		}),
 	);
 
+	if (archived) {
+		const archivedPending = restore.isPending || purge.isPending;
+
+		return (
+			<>
+				<BulkActionsMenu pending={archivedPending}>
+					<DropdownMenuGroup>
+						<DropdownMenuItem onSelect={() => restore.mutate({ ids })}>
+							<Undo />
+							{common("restore")}
+						</DropdownMenuItem>
+					</DropdownMenuGroup>
+					<DropdownMenuSeparator />
+					<DropdownMenuGroup>
+						<DropdownMenuItem
+							variant="destructive"
+							onSelect={() => setConfirming(true)}
+						>
+							{common("deleteForever")}
+						</DropdownMenuItem>
+					</DropdownMenuGroup>
+				</BulkActionsMenu>
+
+				<BulkDeleteDialog
+					open={confirming}
+					onOpenChange={setConfirming}
+					title={t("bulkPurgeConfirmTitle", { count: ids.length })}
+					description={t("bulkDeleteConfirmDescription")}
+					onConfirm={() => purge.mutate({ ids })}
+				/>
+			</>
+		);
+	}
+
 	const pending =
-		assignOwner.isPending || setStage.isPending || remove.isPending;
+		assignOwner.isPending || setStage.isPending || archive.isPending;
 
 	return (
 		<>
@@ -132,12 +195,9 @@ export function DealsBulkActions({
 				</DropdownMenuSub>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>
-					<DropdownMenuItem
-						variant="destructive"
-						onSelect={() => setConfirming(true)}
-					>
-						<TrashCan />
-						{common("delete")}
+					<DropdownMenuItem onSelect={() => archive.mutate({ ids })}>
+						<Archive />
+						{common("archive")}
 					</DropdownMenuItem>
 				</DropdownMenuGroup>
 			</BulkActionsMenu>
@@ -202,14 +262,6 @@ export function DealsBulkActions({
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
-
-			<BulkDeleteDialog
-				open={confirming}
-				onOpenChange={setConfirming}
-				title={t("bulkDeleteConfirmTitle", { count: ids.length })}
-				description={t("bulkDeleteConfirmDescription")}
-				onConfirm={() => remove.mutate({ ids })}
-			/>
 		</>
 	);
 }

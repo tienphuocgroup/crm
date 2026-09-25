@@ -1,11 +1,13 @@
 "use client";
 
+import { DealStage } from "@crm/db/enums";
 import { Checkbox } from "@crm/ui/components/checkbox";
 import { StatusIndicator } from "@crm/ui/components/status-indicator";
 import { cn } from "@crm/ui/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { z } from "zod";
 import { RecordLink } from "@/components/crm/record-sheet/record-link";
 import { LocalDateTime, LocalRelativeTime } from "@/components/local-date-time";
 import { activityLabelKey } from "@/lib/activity-presentation";
@@ -27,11 +29,10 @@ const TIME_OPTIONS: Intl.DateTimeFormatOptions = {
 	minute: "2-digit",
 };
 
-function stageChange(meta: Record<string, unknown> | null) {
-	const from = typeof meta?.from === "string" ? meta.from : null;
-	const to = typeof meta?.to === "string" ? meta.to : null;
-	return from && to ? { from, to } : null;
-}
+const stageChange = z
+	.object({ from: z.enum(DealStage), to: z.enum(DealStage) })
+	.nullable()
+	.catch(null);
 
 function contactAnchor(anchor: TimelineAnchor): string | null {
 	return "contactId" in anchor ? anchor.contactId : null;
@@ -70,7 +71,8 @@ export function TimelineEntry({
 		entry.dueAt !== null &&
 		new Date(entry.dueAt) < new Date();
 
-	const change = entry.type === "STAGE_CHANGE" ? stageChange(entry.meta) : null;
+	const change =
+		entry.type === "STAGE_CHANGE" ? stageChange.parse(entry.meta) : null;
 	const when = entry.occurredAt ?? entry.createdAt;
 
 	const synced = entry.meta?.synced === true;

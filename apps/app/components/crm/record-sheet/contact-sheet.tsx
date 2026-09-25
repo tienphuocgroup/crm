@@ -27,6 +27,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { AgentPanel } from "@/components/crm/agent-panel";
+import { InlineCompanyField } from "@/components/crm/company-picker";
 import { contactName } from "@/components/crm/contact-name";
 import { ContactEnrichmentAction } from "@/components/crm/enrichment-actions";
 import { EnrichmentIndicator } from "@/components/crm/enrichment-status";
@@ -252,6 +253,7 @@ export function ContactSheet({ contactId }: { contactId: string }) {
 									? t("deleteConsequenceEmailSuffix", { email: contact.email })
 									: "")
 							}
+							archivedAt={contact.archivedAt}
 						/>
 					</>
 				) : null
@@ -335,7 +337,6 @@ function ContactOverview({ contact }: { contact: Contact }) {
 	const cache = useCrmCache();
 
 	const users = useQuery(trpc.users.list.queryOptions());
-	const companies = useQuery(trpc.companies.options.queryOptions({ q: "" }));
 
 	const { applied, proposed } = factsByField(contact.facts);
 
@@ -432,16 +433,12 @@ function ContactOverview({ contact }: { contact: Contact }) {
 						onSave={(githubUrl) => save({ githubUrl })}
 						{...agentProps("githubUrl")}
 					/>
-					<InlineSelectField
+					<InlineCompanyField
 						label={t("companyLabel")}
 						value={contact.company?.id ?? NONE}
-						options={[
-							{ value: NONE, label: t("noCompanyOption") },
-							...(companies.data ?? []).map((company) => ({
-								value: company.id,
-								label: company.name,
-							})),
-						]}
+						company={contact.company}
+						saving={isSaving("companyId")}
+						none={{ value: NONE, label: t("noCompanyOption") }}
 						onSave={(companyId) =>
 							save({ companyId: companyId === NONE ? null : companyId })
 						}

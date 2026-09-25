@@ -45,14 +45,18 @@ import { toast } from "sonner";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 import type { RouterOutputs } from "@/lib/trpc/types";
-import { sheetPlacementKey, tablePlacementKey } from "./fields-copy";
+import {
+	filterPlacementKey,
+	sheetPlacementKey,
+	tablePlacementKey,
+} from "./fields-copy";
 import { type FieldEntity, kindOf } from "./fields-entity";
 
-const COVERAGE_NOUN_KEY: Record<FieldEntity, string> = {
+const COVERAGE_NOUN_KEY = {
 	COMPANY: "fields.nounCompanies",
 	CONTACT: "fields.nounContacts",
 	DEAL: "fields.nounDeals",
-};
+} satisfies Record<FieldEntity, string>;
 
 type FieldRecord = RouterOutputs["fields"]["list"][number];
 
@@ -64,9 +68,10 @@ type Draft = {
 	agentBrief: string;
 	showOnSheet: boolean;
 	showOnTable: boolean;
+	showOnFilter: boolean;
 };
 
-const TYPE_HINT_KEY: Record<FieldTypeName, string> = {
+const TYPE_HINT_KEY = {
 	TEXT: "fields.typeHintText",
 	LONG_TEXT: "fields.typeHintLongText",
 	NUMBER: "fields.typeHintNumber",
@@ -77,7 +82,7 @@ const TYPE_HINT_KEY: Record<FieldTypeName, string> = {
 	EMAIL: "fields.typeHintEmail",
 	PHONE: "fields.typeHintPhone",
 	USER: "fields.typeHintUser",
-};
+} satisfies Record<FieldTypeName, string>;
 
 function optionId(option: { id?: string }, index: number): string {
 	return option.id ?? `draft-${index}`;
@@ -98,6 +103,7 @@ function draftFrom(field: FieldRecord | undefined): Draft {
 		agentBrief: field?.agentBrief ?? "",
 		showOnSheet: field?.showOnSheet ?? true,
 		showOnTable: field?.showOnTable ?? false,
+		showOnFilter: field?.showOnFilter ?? false,
 	};
 }
 
@@ -205,6 +211,7 @@ export function FieldEditor({
 
 	const key = field?.key ?? fieldKeyFromLabel(draft.label);
 	const saving = create.isPending || update.isPending;
+	const filterable = draft.type === "SELECT" || draft.type === "USER";
 
 	const save = () => {
 		const payload = {
@@ -215,6 +222,7 @@ export function FieldEditor({
 			agentBrief: draft.agentBrief.trim() || null,
 			showOnSheet: draft.showOnSheet,
 			showOnTable: draft.showOnTable,
+			showOnFilter: filterable && draft.showOnFilter,
 		};
 
 		if (field) {
@@ -403,6 +411,17 @@ export function FieldEditor({
 						/>
 						{common(tablePlacementKey(entity))}
 					</FieldLabel>
+					{filterable ? (
+						<FieldLabel className="items-center gap-2 font-normal">
+							<Checkbox
+								checked={draft.showOnFilter}
+								onCheckedChange={(checked) =>
+									patch({ showOnFilter: checked === true })
+								}
+							/>
+							{common(filterPlacementKey(entity))}
+						</FieldLabel>
+					) : null}
 				</div>
 			</div>
 

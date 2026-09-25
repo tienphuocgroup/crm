@@ -1,6 +1,6 @@
 import type { FieldEntity } from "./fields-entity";
 
-export const STANDARD_FIELDS: Record<FieldEntity, readonly string[]> = {
+export const STANDARD_FIELDS = {
 	COMPANY: [
 		"standardCompanyName",
 		"standardCompanyDomain",
@@ -31,4 +31,4 @@ export const STANDARD_FIELDS: Record<FieldEntity, readonly string[]> = {
 		"standardDealOwner",
 		"standardDealStage",
 	],
-};
+} satisfies Record<FieldEntity, readonly string[]>;

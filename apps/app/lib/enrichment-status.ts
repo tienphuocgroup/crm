@@ -1,10 +1,12 @@
 import type { EnrichmentStatus } from "@crm/db/enums";
 import type { StatusTone } from "@crm/ui/components/status-indicator";
 
-const PRESENTATION: Record<
+type EnrichmentPresentation = Record<
 	EnrichmentStatus,
 	{ labelKey: string; tone: StatusTone; busy?: boolean }
-> = {
+>;
+
+const PRESENTATION: EnrichmentPresentation = {
 	PENDING: { labelKey: "enrichmentNotResearched", tone: "neutral" },
 	RUNNING: { labelKey: "enrichmentResearching", tone: "info", busy: true },
 	COMPLETE: { labelKey: "enrichmentEnriched", tone: "success" },
@@ -19,6 +21,8 @@ const QUEUED = {
 };
 
 export const ENRICHMENT_POLL_MS = 3_000;
+
+export const ENRICHMENT_IDLE_POLL_MS = 30_000;
 
 export const ENRICHMENT_FACET_OPTIONS = (
 	Object.keys(PRESENTATION) as EnrichmentStatus[]

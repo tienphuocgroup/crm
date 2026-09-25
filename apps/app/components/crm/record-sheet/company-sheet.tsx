@@ -240,6 +240,7 @@ export function CompanySheet({ companyId }: { companyId: string }) {
 							record={{ kind: "company", id: company.id }}
 							name={company.name}
 							consequence={companyConsequence(company, t)}
+							archivedAt={company.archivedAt}
 						/>
 					</>
 				) : null

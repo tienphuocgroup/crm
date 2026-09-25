@@ -9,11 +9,11 @@ type RecordProtocol = {
 	field: "contactId" | "companyId" | "dealId";
 };
 
-const PROTOCOL: Record<AgentRecordKind, RecordProtocol> = {
+const PROTOCOL = {
 	contact: { header: "x-crm-contact", field: "contactId" },
 	company: { header: "x-crm-company", field: "companyId" },
 	deal: { header: "x-crm-deal", field: "dealId" },
-};
+} satisfies Record<AgentRecordKind, RecordProtocol>;
 
 export type RecordCopyKeys = {
 	title: string;
@@ -22,7 +22,17 @@ export type RecordCopyKeys = {
 	suggestions: readonly string[];
 };
 
-const COPY_KEYS: Record<AgentRecordKind, RecordCopyKeys> = {
+type RecordCopyKeysByKind = Record<AgentRecordKind, RecordCopyKeys>;
+
+export type AgentRecordHeader = Record<string, string>;
+
+export type AgentRecordFilter = {
+	contactId?: string;
+	companyId?: string;
+	dealId?: string;
+};
+
+const COPY_KEYS: RecordCopyKeysByKind = {
 	contact: {
 		title: "recordContactTitle",
 		blurb: "recordContactBlurb",
@@ -59,15 +69,11 @@ export function recordCopyKeys(kind: AgentRecordKind): RecordCopyKeys {
 	return COPY_KEYS[kind];
 }
 
-export function recordHeader(record: AgentRecord): Record<string, string> {
+export function recordHeader(record: AgentRecord): AgentRecordHeader {
 	return { [PROTOCOL[record.kind].header]: record.id };
 }
 
-export function recordFilter(record: AgentRecord): {
-	contactId?: string;
-	companyId?: string;
-	dealId?: string;
-} {
+export function recordFilter(record: AgentRecord): AgentRecordFilter {
 	return { [PROTOCOL[record.kind].field]: record.id };
 }
 

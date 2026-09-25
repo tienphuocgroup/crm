@@ -39,9 +39,13 @@ export function EnrichmentActions({
 
 	const research = useMutation(
 		trpc.companies.research.mutationOptions({
-			onSuccess: async () => {
+			onSuccess: async (result) => {
 				await cache.activity();
-				toast.success(t("researchAddedToast"));
+				toast.success(
+					result.queued
+						? t("researchAddedToast")
+						: t("researchAlreadyRunningToast"),
+				);
 			},
 			onError: (error) => toast.error(error.message),
 		}),
@@ -87,9 +91,13 @@ export function ContactEnrichmentAction({ contactId }: { contactId: string }) {
 
 	const enrich = useMutation(
 		trpc.contacts.enrich.mutationOptions({
-			onSuccess: async () => {
+			onSuccess: async (result) => {
 				await cache.contact(contactId);
-				toast.success(t("enrichQueuedToast"));
+				toast.success(
+					result.queued
+						? t("enrichQueuedToast")
+						: t("enrichAlreadyRunningToast"),
+				);
 			},
 			onError: (error) => toast.error(error.message),
 		}),

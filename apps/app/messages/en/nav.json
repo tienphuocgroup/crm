@@ -11,10 +11,12 @@
 	"overview": "Overview",
 	"primaryNavLabel": "Primary",
 	"settings": {
+		"apiKeys": "API Keys",
 		"ariaLabel": "Workspace settings",
 		"connections": "Connections",
 		"currencies": "Currencies",
 		"general": "General",
+		"import": "Import",
 		"members": "Members",
 		"sso": "SSO",
 		"tracking": "Tracking & Analytics"

@@ -1,4 +1,10 @@
-const ARTIFACT_KEYS: Record<string, { pending: string; done: string }> = {
+import {
+	type EveToolFields,
+	type EveToolInput,
+	eveToolText,
+} from "@crm/validation/eve-tool";
+
+const ARTIFACT_KEYS = {
 	"agent/instructions.md": {
 		pending: "toolWritingInstructions",
 		done: "toolWroteInstructions",
@@ -11,7 +17,11 @@ const ARTIFACT_KEYS: Record<string, { pending: string; done: string }> = {
 		pending: "toolWritingReadme",
 		done: "toolWroteReadme",
 	},
-};
+} satisfies Record<string, { pending: string; done: string }>;
+
+function isArtifactPath(path: string): path is keyof typeof ARTIFACT_KEYS {
+	return Object.hasOwn(ARTIFACT_KEYS, path);
+}
 
 export type ToolLabel = {
 	key: string;
@@ -20,20 +30,26 @@ export type ToolLabel = {
 
 type LabelInput = {
 	tool: string;
-	input: Record<string, unknown> | null;
+	input: EveToolInput;
 	pending: boolean;
 };
 
-const INPUT_LABELS: Record<
-	string,
-	(input: Record<string, unknown>, pending: boolean) => ToolLabel | null
-> = {
+type ToolInputLabel = (
+	input: EveToolFields,
+	pending: boolean,
+) => ToolLabel | null;
+
+type ToolInputLabels = Record<string, ToolInputLabel>;
+
+const INPUT_LABELS: ToolInputLabels = {
 	write_agent_file: (input, pending) => {
-		const path = typeof input.path === "string" ? input.path : null;
+		const path = eveToolText.parse(input.path);
 		if (!path) return null;
 
-		const artifact = ARTIFACT_KEYS[path];
-		if (artifact) return { key: pending ? artifact.pending : artifact.done };
+		if (isArtifactPath(path)) {
+			const artifact = ARTIFACT_KEYS[path];
+			return { key: pending ? artifact.pending : artifact.done };
+		}
 
 		return {
 			key: pending ? "toolWritingFile" : "toolWroteFile",
@@ -41,7 +57,7 @@ const INPUT_LABELS: Record<
 		};
 	},
 	save_agent_draft: (input, pending) => {
-		const name = typeof input.name === "string" ? input.name.trim() : "";
+		const name = eveToolText.parse(input.name).trim();
 		if (!name) return { key: pending ? "toolSavingDraft" : "toolSavedDraft" };
 
 		return {
@@ -50,7 +66,7 @@ const INPUT_LABELS: Record<
 		};
 	},
 	set_chat_title: (input, pending) => {
-		const title = typeof input.title === "string" ? input.title.trim() : "";
+		const title = eveToolText.parse(input.title).trim();
 		if (!title) return { key: pending ? "toolNamingChat" : "toolNamedChat" };
 
 		return {

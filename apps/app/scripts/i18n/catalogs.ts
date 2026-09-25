@@ -1,22 +1,36 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { z } from "zod";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../../i18n/locale";
 import { matchingBrace } from "./pseudo";
 
 const ROOT = path.resolve(import.meta.dir, "../../../..");
 const MESSAGES_DIR = path.join(ROOT, "apps/app/messages");
 
-type Catalog = { [key: string]: string | Catalog };
+type CatalogNode =
+	| { kind: "message"; message: string }
+	| { kind: "group"; entries: Record<string, CatalogNode> };
+
+const catalogNode: z.ZodType<CatalogNode, unknown> = z.lazy(() =>
+	z.union([
+		z.string().transform((message) => ({ kind: "message" as const, message })),
+		z
+			.record(z.string(), catalogNode)
+			.transform((entries) => ({ kind: "group" as const, entries })),
+	]),
+);
+
+const catalogFile = z.record(z.string(), catalogNode);
 
 function flatten(
-	catalog: Catalog,
+	catalog: Record<string, CatalogNode>,
 	prefix = "",
 	out = new Map<string, string>(),
 ): Map<string, string> {
-	for (const [key, value] of Object.entries(catalog)) {
+	for (const [key, node] of Object.entries(catalog)) {
 		const flatKey = prefix ? `${prefix}.${key}` : key;
-		if (typeof value === "string") out.set(flatKey, value);
-		else flatten(value, flatKey, out);
+		if (node.kind === "message") out.set(flatKey, node.message);
+		else flatten(node.entries, flatKey, out);
 	}
 	return out;
 }
@@ -107,7 +121,7 @@ async function loadCatalogs(locale: string): Promise<Map<string, string>> {
 	for (const name of names.sort()) {
 		const namespace = name.replace(/\.json$/, "");
 		const source = await readFile(path.join(dir, name), "utf8");
-		flatten(JSON.parse(source) as Catalog, namespace, out);
+		flatten(catalogFile.parse(JSON.parse(source)), namespace, out);
 	}
 	return out;
 }

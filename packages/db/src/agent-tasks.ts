@@ -35,6 +35,18 @@ export function isDirectKind(kind: string): kind is DirectKind {
 	return (DIRECT_KINDS as readonly string[]).includes(kind);
 }
 
+export const CONTACT_STATUS_KINDS = ["identify", "profile", "recheck"] as const;
+
+export const COMPANY_STATUS_KINDS = ["brand"] as const;
+
+export function ownsContactStatus(kind: string): boolean {
+	return (CONTACT_STATUS_KINDS as readonly string[]).includes(kind);
+}
+
+export function ownsCompanyStatus(kind: string): boolean {
+	return (COMPANY_STATUS_KINDS as readonly string[]).includes(kind);
+}
+
 export const MAX_ATTEMPTS = 3;
 
 export const RETIRED_OUTCOME = `Gave up after ${MAX_ATTEMPTS} attempts: the session never reported back.`;
