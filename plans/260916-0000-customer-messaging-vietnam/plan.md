@@ -6,6 +6,7 @@ priority: P1
 branch: feat/zalo-oa-chat
 tags: [feature, backend, frontend, database, api, agent, messaging]
 blockedBy: []
+blocks: [260922-0455-jev-message-triage]
 created: 2026-09-16
 updated: 2026-09-21
 ---

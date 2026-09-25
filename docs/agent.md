@@ -192,6 +192,16 @@ states it in the session instructions, and gives tools a shared "not configured,
 retrying will not help" result — **checked before the research budget is charged**. A
 missing key removes a place to look. **Never an error, never throws.**
 
+**`TYPESAFE_API_KEY` is a capability as well**, labelled "Semantic judgments". It is
+not a place to look: it buys typed verdicts on an inbound Zalo message — intent,
+urgency and language — for inbox triage. `lib/jev.ts` reads the key live, and without
+it every call returns "not configured" and the message keeps no verdict. Config,
+questions and thresholds live in `lib/jev-config.ts`. It carries
+`surface: "dispatch"`, so `markdownFor()` keeps it out of the session briefing
+while the boot line still prints it — no session tool calls `judge()`, and a
+model that read "Semantic judgments — Available" would claim a verdict it never
+made.
+
 **`capabilities()` is async** because the Context key is a row;
 `capabilitiesFrom()`/`markdownFor()` are the pure halves. `contextDevKey()` is the only
 resolver, and `lib/context-dev.ts` memoises its client on the key string.
@@ -259,7 +269,14 @@ It may read **everything**, including full email bodies — internal single-tena
 and a signature block is the best source of a job title there is. The boundary is
 egress:
 
-1. No customer text in a third-party query. Derived questions only.
+1. No customer text in a third-party **search or lookup**. `web_search`,
+   `web_fetch` and `research_person` get derived questions only. **Model
+   providers are different.** The AI Gateway reads full email threads. TypeSafe
+   (Jev) is the approved model provider for inbox triage, decided 2026-09-22:
+   when triage ships it receives the body of an inbound Zalo message and up to
+   three earlier inbound bodies from the same thread. Today only the eval
+   harness calls it, with synthetic fixtures, so **no real Zalo body has left
+   this install**. Rep replies are never sent.
 2. Nothing from a mailbox into `/workspace` — different lifetime.
 3. Nothing sensitive logged. Reading is not logging.
 

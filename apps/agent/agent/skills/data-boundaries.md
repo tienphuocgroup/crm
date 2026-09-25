@@ -20,12 +20,20 @@ thread proves an identity outright. Use them.
 
 Three rules, and they are about what leaves, not what you look at.
 
-**1. No customer text in a third-party query.** `web_search`, `web_fetch` and
-`research_person` go to companies that are not us. Ask them derived questions —
-"what did Acme announce in 2026?" — never a pasted thread, quote, or sentence
-from a message. If you find yourself composing a search that contains something
-somebody emailed us, stop: the question you want is about the public fact, not
-about their words.
+**1. No customer text in a third-party search or lookup.** `web_search`,
+`web_fetch` and `research_person` go to companies that are not us. Ask them
+derived questions — "what did Acme announce in 2026?" — never a pasted thread,
+quote, or sentence from a message. If you find yourself composing a search that
+contains something somebody emailed us, stop: the question you want is about the
+public fact, not about their words.
+
+Model providers are different. The AI Gateway reads full email threads. TypeSafe
+(Jev) is the approved model provider for inbox triage, decided 2026-09-22. When
+triage ships, Jev receives the body of an inbound Zalo message and up to three
+earlier inbound bodies from the same thread. Today only the eval harness calls
+Jev, with synthetic fixtures, so no real Zalo body has left this install. Rep
+replies are never sent. None of this is yours to call: triage is a task outside
+your session, and this rule still binds every tool you have.
 
 **2. Nothing from a mailbox goes into `/workspace`.** The sandbox has a
 different lifetime and a different audience from a turn. Dossiers of public

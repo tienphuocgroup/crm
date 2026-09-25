@@ -5,12 +5,15 @@ import { readContextDevKey } from "@crm/db/settings";
 
 export const CONTEXT_DEV = "CONTEXT_DEV";
 
+export type CapabilitySurface = "session" | "dispatch";
+
 export type Capability = {
 	readonly id: string;
 	readonly label: string;
 	readonly gives: string;
 	readonly enabled: boolean;
 	readonly from: string;
+	readonly surface?: CapabilitySurface;
 };
 
 export async function contextDevKey(): Promise<string | null> {
@@ -67,6 +70,13 @@ export function capabilitiesFrom(
 				"customer chat over the company's Zalo OA: inbound messages on the contact record and replies from the CRM",
 		},
 		{
+			...fromEnv("TYPESAFE_API_KEY"),
+			label: "Semantic judgments",
+			gives:
+				"fast typed verdicts on inbound Zalo messages: intent, urgency and language, for inbox triage",
+			surface: "dispatch",
+		},
+		{
 			...fromEnv("BLOB_READ_WRITE_TOKEN"),
 			label: "Picture storage",
 			gives:
@@ -108,8 +118,11 @@ export async function capabilitiesMarkdown(): Promise<string> {
 }
 
 export function markdownFor(all: readonly Capability[]): string {
-	const on = all.filter((capability) => capability.enabled);
-	const off = all.filter((capability) => !capability.enabled);
+	const inSession = all.filter(
+		(capability) => capability.surface !== "dispatch",
+	);
+	const on = inSession.filter((capability) => capability.enabled);
+	const off = inSession.filter((capability) => !capability.enabled);
 
 	const lines = ["## What you can use here", ""];
 

@@ -135,6 +135,30 @@ A message body is what a customer wrote to a business. It is **never logged**,
 Telemetry carries counts and error classes. The only copy is the `Message` row,
 and "Delete conversation" erases it.
 
+## Triage is a task
+
+A verdict on an inbound message is a task, never an LLM session. The capability
+is `TYPESAFE_API_KEY`, labelled "Semantic judgments", and it is **off by
+default**: without the key a message keeps no verdict, and nothing throws.
+`apps/agent/agent/lib/jev-config.ts` holds the model, the questions and the
+thresholds.
+
+When triage ships, one call sends TypeSafe the body of the inbound message,
+capped at 1500 characters, and up to three earlier inbound bodies from the same
+thread. It sends no name, no phone number, no Zalo id, and no rep reply. Each
+question frames the text as a customer message that the classifier must never
+obey, and the `injection` answer scores an attempt to instruct the reader of the
+record. `web_search`, `web_fetch` and `research_person` are unchanged: they get
+derived questions only. See `docs/agent.md`, "What may be read, and what may
+leave".
+
+**Only the eval harness calls TypeSafe today.** `bun run --filter=agent jev:eval`
+reads synthetic fixtures, so no real Zalo body has left this install. The task
+kind, the handler, the verdict columns and the backfill are **not built yet**.
+
+TypeSafe retention and training terms for `state`: to be recorded before the key
+goes into production.
+
 ## The webhook is a gate, then a fast 200
 
 `POST /api/messaging/zalo/webhook`, anonymous, in this order:

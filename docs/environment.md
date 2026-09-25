@@ -116,6 +116,7 @@ single place that knows what is set.
 | `GITHUB_TOKEN` | Raises the GitHub rate limit from 60/hour |
 | `BLOB_READ_WRITE_TOKEN` | Mirrors logos and photos into Blob |
 | `AI_GATEWAY_API_KEY` | The model. Not needed on Vercel (OIDC) |
+| `TYPESAFE_API_KEY` | Jev: typed verdicts on inbound Zalo messages for inbox triage. The agent reads it; the API does not |
 | `AGENT_BRIDGE_SECRET` | The rep-facing Agent panel — see `agent.md` |
 | `ZALO_APP_ID` | With the secret: the Zalo OA inbox, replies and the webhook |
 | `ZALO_APP_SECRET` | The other half of the pair. Also signs the webhook when no OA key is set |

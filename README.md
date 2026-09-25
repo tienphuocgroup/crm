@@ -310,6 +310,7 @@ short version:
 | `API_URL` / `APP_URL` | Where the two halves are served. Only needed off localhost. |
 | `PERPLEXITY_API_KEY` | Lets the agent search the open web, with citations. |
 | `RAPIDAPI_KEY` | Lets the agent read LinkedIn profiles for identity. |
+| `TYPESAFE_API_KEY` | Jev by TypeSafe: typed verdicts on inbound Zalo messages for inbox triage. |
 | `AGENT_BRIDGE_SECRET` | Lets a rep talk to the agent from a contact's **Agent** tab. |
 | `REDIS_URL` | A shared cache. Without it, per-instance and in-memory. |
 | `CRON_SECRET` | Guards the mailbox sync route. Required to use it. |

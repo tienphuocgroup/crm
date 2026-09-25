@@ -1,8 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import {
 	CONTEXT_DEV,
 	capabilitiesFrom,
 	enabled,
+	logCapabilities,
 	markdownFor,
 	unavailable,
 } from "../agent/lib/capabilities";
@@ -12,6 +13,7 @@ const KEYS = [
 	"PERPLEXITY_API_KEY",
 	"BLOB_READ_WRITE_TOKEN",
 	"ZALO_APP_ID",
+	"TYPESAFE_API_KEY",
 ] as const;
 
 const saved: Record<string, string | undefined> = {};
@@ -103,6 +105,67 @@ describe("the Zalo Official Account capability", () => {
 	it("says what the OA gives a rep", () => {
 		expect(zalo()?.label).toBe("Zalo Official Account");
 		expect(zalo()?.gives).toContain("inbound messages on the contact record");
+	});
+});
+
+describe("the semantic judgment capability", () => {
+	const jev = () =>
+		capabilitiesFrom(null).find((c) => c.id === "TYPESAFE_API_KEY");
+
+	it("is off on an install with no TypeSafe key", () => {
+		expect(jev()?.enabled).toBe(false);
+	});
+
+	it("turns on with the key alone", async () => {
+		process.env.TYPESAFE_API_KEY = "ts-key";
+
+		expect(jev()?.enabled).toBe(true);
+		expect(await enabled("TYPESAFE_API_KEY")).toBe(true);
+	});
+
+	it("says what a verdict gives a rep", () => {
+		expect(jev()?.label).toBe("Semantic judgments");
+		expect(jev()?.gives).toContain("intent, urgency and language");
+		expect(jev()?.from).toBe("TYPESAFE_API_KEY");
+	});
+
+	it("prints one off line at boot", async () => {
+		const log = spyOn(console, "log").mockImplementation(() => {});
+
+		await logCapabilities();
+
+		const lines = log.mock.calls.flat().map(String);
+
+		log.mockRestore();
+
+		expect(lines).toContain(
+			"[agent] off  Semantic judgments (TYPESAFE_API_KEY)",
+		);
+	});
+
+	it("belongs to the dispatch surface, not to a session", () => {
+		expect(jev()?.surface).toBe("dispatch");
+	});
+
+	it("stays out of the session briefing while the boot line keeps it", async () => {
+		process.env.TYPESAFE_API_KEY = "ts-key";
+		process.env.RAPIDAPI_KEY = "key";
+
+		expect(markdownFor(capabilitiesFrom(null))).not.toContain(
+			"Semantic judgments",
+		);
+
+		const log = spyOn(console, "log").mockImplementation(() => {});
+
+		await logCapabilities();
+
+		const lines = log.mock.calls.flat().map(String);
+
+		log.mockRestore();
+
+		expect(lines).toContain(
+			"[agent] on   Semantic judgments (TYPESAFE_API_KEY)",
+		);
 	});
 });
 
