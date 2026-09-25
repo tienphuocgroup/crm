@@ -97,7 +97,25 @@ async function seed() {
 	};
 }
 
+async function clearProfileTasks() {
+	const identities = await db.contactChannelIdentity.findMany({
+		where: { account: { externalId: oaId } },
+		select: { id: true },
+	});
+	if (identities.length === 0) return;
+
+	await db.agentTask.deleteMany({
+		where: {
+			kind: "message-identity-profile",
+			OR: identities.map((identity) => ({
+				payload: { path: ["identityId"], equals: identity.id },
+			})),
+		},
+	});
+}
+
 async function clear() {
+	await clearProfileTasks();
 	await db.messagingAccount.deleteMany({ where: { externalId: oaId } });
 	await db.contact.deleteMany({ where: { email } });
 }
