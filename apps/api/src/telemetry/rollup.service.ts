@@ -37,6 +37,8 @@ const HOUR_MS = 60 * 60 * 1000;
 
 const SUPERSEDE_WINDOW_DAYS = 7;
 
+const MESSAGING_WINDOW_HOURS = 7 * 24;
+
 const SANDBOX_TOOLS = new Set([
 	"bash",
 	"glob",
@@ -449,6 +451,10 @@ export class RollupService {
 	}
 
 	private async crm(since: Date): Promise<Properties> {
+		const messagingSince = new Date(
+			since.getTime() - (MESSAGING_WINDOW_HOURS - WINDOW_HOURS) * HOUR_MS,
+		);
+
 		const [
 			contacts,
 			companies,
@@ -461,6 +467,12 @@ export class RollupService {
 			syncs,
 			threads,
 			messages,
+			zaloAccounts,
+			messagesInbound,
+			messagesOutbound,
+			messagesFailed,
+			messagingThreads,
+			messagingUnmatched,
 			enrichment,
 			suppressedDomains,
 			suppressedContacts,
@@ -478,6 +490,24 @@ export class RollupService {
 			this.db.mailboxSync.groupBy({ by: ["status"], _count: { _all: true } }),
 			this.db.emailThread.count({ where: { createdAt: { gte: since } } }),
 			this.db.emailMessage.count({ where: { createdAt: { gte: since } } }),
+			this.db.messagingAccount.count({
+				where: { channel: "ZALO", disconnectedAt: null },
+			}),
+			this.db.message.count({
+				where: { direction: "INBOUND", queuedAt: { gte: messagingSince } },
+			}),
+			this.db.message.count({
+				where: { direction: "OUTBOUND", queuedAt: { gte: messagingSince } },
+			}),
+			this.db.message.count({
+				where: {
+					direction: "OUTBOUND",
+					status: "FAILED",
+					queuedAt: { gte: messagingSince },
+				},
+			}),
+			this.db.messageThread.count(),
+			this.db.messageThread.count({ where: { contactId: null } }),
 			this.db.company.groupBy({
 				by: ["enrichmentStatus"],
 				_count: { _all: true },
@@ -566,6 +596,13 @@ export class RollupService {
 			),
 			threads_ingested: threads,
 			messages_ingested: messages,
+
+			zalo_connected: zaloAccounts > 0,
+			messages_inbound_7d: messagesInbound,
+			messages_outbound_7d: messagesOutbound,
+			messages_failed_7d: messagesFailed,
+			messaging_threads_bucket: bucket(messagingThreads),
+			messaging_unmatched: messagingUnmatched,
 
 			enrichment_by_status: countsOf(
 				enrichment.map((row) => ({

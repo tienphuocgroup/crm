@@ -67,6 +67,12 @@ export function capabilitiesFrom(
 			enabled: contextDev !== null,
 		},
 		{
+			...fromEnv("ZALO_APP_ID"),
+			label: "Zalo Official Account",
+			gives:
+				"customer chat over the company's Zalo OA: inbound messages on the contact record and replies from the CRM",
+		},
+		{
 			...fromEnv("BLOB_READ_WRITE_TOKEN"),
 			label: "Picture storage",
 			gives:

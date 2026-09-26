@@ -26,6 +26,7 @@ import { ImportsModule } from "./imports/imports.module";
 import { LoggingModule } from "./logging/logging.module";
 import { logAuthRoute } from "./logging/request-logger.middleware";
 import { MailboxModule } from "./mailbox/mailbox.module";
+import { MessagingModule } from "./messaging/messaging.module";
 import { MicrosoftModule } from "./microsoft/microsoft.module";
 import { SavedViewsModule } from "./saved-views/saved-views.module";
 import { SearchModule } from "./search/search.module";
@@ -50,7 +51,11 @@ import { WorkspaceModule } from "./workspace/workspace.module";
 		AppCacheModule,
 		DatabaseModule,
 		CrmModule,
-		BetterAuthModule.forRoot({ auth, middleware: logAuthRoute }),
+		BetterAuthModule.forRoot({
+			auth,
+			middleware: logAuthRoute,
+			bodyParser: { rawBody: true },
+		}),
 		AuthModule,
 		HealthModule,
 		TrpcModule,
@@ -76,6 +81,7 @@ import { WorkspaceModule } from "./workspace/workspace.module";
 		WorkspaceModule,
 		SsoModule,
 		SlackModule,
+		MessagingModule,
 		BackfillModule,
 		TelemetryModule,
 		TrackingModule,

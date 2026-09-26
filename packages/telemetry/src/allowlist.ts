@@ -63,6 +63,12 @@ export const ALLOWED_PROPERTIES = [
 	"mailbox_sync_status",
 	"threads_ingested",
 	"messages_ingested",
+	"zalo_connected",
+	"messages_inbound_7d",
+	"messages_outbound_7d",
+	"messages_failed_7d",
+	"messaging_threads_bucket",
+	"messaging_unmatched",
 	"enrichment_by_status",
 	"suppressed_domains",
 	"suppressed_contacts",
@@ -82,6 +88,7 @@ export const ALLOWED_PROPERTIES = [
 	"status_code",
 	"sync_source",
 	"model_id",
+	"stage",
 ] as const;
 
 export type AllowedProperty = (typeof ALLOWED_PROPERTIES)[number];
@@ -254,6 +261,21 @@ export function permittedSyncErrorSource(
 	return name === OTHER
 		? MAILBOX_SYNC
 		: SYNC_ERROR_SOURCES[name as TelemetrySyncSource];
+}
+
+export const MESSAGING_STAGES = [
+	"webhook",
+	"send",
+	"token",
+	"profile",
+] as const;
+
+export type MessagingStage = (typeof MESSAGING_STAGES)[number];
+
+const STAGE_SET = new Set<string>(MESSAGING_STAGES);
+
+export function permittedStage(stage: string | null | undefined): string {
+	return stage && STAGE_SET.has(stage) ? stage : OTHER;
 }
 
 const ROUTE_SHAPE = /^\/[A-Za-z0-9/_:.*-]*$/;

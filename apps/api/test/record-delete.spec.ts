@@ -11,6 +11,7 @@ import { EnrichmentLogService } from "../src/crm/enrichment-log.service";
 import { ConversionService } from "../src/currency/conversion.service";
 import { FieldsService } from "../src/fields/fields.service";
 import { MailboxMatchService } from "../src/mailbox/mailbox-match.service";
+import { MessagingWriterService } from "../src/messaging/messaging-writer.service";
 import { withDiscardedCrmEvents } from "./agent-trigger.stub";
 
 const suffix = process.env.TEST_RUN_ID ?? "record-delete-spec";
@@ -19,6 +20,7 @@ const doomedDomain = `doomed-${suffix}.test`;
 const stampDomain = `stamped-${suffix}.test`;
 const orphanDomain = `orphaned-${suffix}.test`;
 const keptDomain = `kept-${suffix}.test`;
+const zaloDomain = `zalo-co-${suffix}.test`;
 const email = `gone@${domain}`;
 const colleague = `stays@${domain}`;
 const userId = `user-${suffix}`;
@@ -38,6 +40,7 @@ const queue = new AgentQueueService(db);
 const conversion = new ConversionService(db);
 
 const fields = new FieldsService(db, agent);
+const writer = new MessagingWriterService(db, stamp, agent);
 const contacts = new ContactsService(
 	db,
 	directory,
@@ -45,6 +48,7 @@ const contacts = new ContactsService(
 	queue,
 	stamp,
 	fields,
+	writer,
 );
 const companies = new CompaniesService(
 	db,
@@ -57,6 +61,66 @@ const companies = new CompaniesService(
 );
 const match = new MailboxMatchService(db, directory, agent, log);
 
+const zaloOaId = `delete-oa-${suffix}`;
+
+async function zaloHistory(address: string, companyId?: string) {
+	const draft = {
+		firstName: "Zalo",
+		lastName: "Person",
+		email: address,
+		ownerId: userId,
+	};
+
+	const contact = await contacts.create(
+		companyId ? { ...draft, companyId } : draft,
+	);
+
+	await db.messagingAccount.upsert({
+		where: { channel_externalId: { channel: "ZALO", externalId: zaloOaId } },
+		create: {
+			channel: "ZALO",
+			externalId: zaloOaId,
+			label: "Delete OA",
+			connectedById: userId,
+		},
+		update: {},
+	});
+
+	const person = `zalo-person-${address}`;
+
+	await writer.store({
+		channel: "ZALO",
+		accountExternalIds: [zaloOaId],
+		senderExternalId: person,
+		displayName: "Nguyen Van A",
+		avatarUrl: null,
+		kind: "TEXT",
+		body: "Xin chao",
+		attachments: [],
+		externalId: `msg-${address}`,
+		sentAt: new Date("2026-09-20T07:00:00.000Z"),
+	});
+
+	const thread = await db.messageThread.findFirstOrThrow({
+		where: { identity: { externalId: person } },
+		select: { id: true, identityId: true },
+	});
+
+	await writer.linkContact(thread.id, contact.id);
+
+	const activity = await db.activity.findFirstOrThrow({
+		where: { messageThreadId: thread.id },
+		select: { id: true },
+	});
+
+	return {
+		contactId: contact.id,
+		identityId: thread.identityId,
+		threadId: thread.id,
+		activityId: activity.id,
+	};
+}
+
 async function matchContext() {
 	const internal = await match.internalIdentity();
 	return {
@@ -67,7 +131,14 @@ async function matchContext() {
 	};
 }
 
-const domains = [domain, doomedDomain, stampDomain, orphanDomain, keptDomain];
+const domains = [
+	domain,
+	doomedDomain,
+	stampDomain,
+	orphanDomain,
+	keptDomain,
+	zaloDomain,
+];
 const ours = {
 	OR: domains.map((host) => ({ email: { endsWith: `@${host}` } })),
 };
@@ -89,6 +160,8 @@ async function parked(subject: {
 }
 
 async function clean() {
+	await db.messagingAccount.deleteMany({ where: { externalId: zaloOaId } });
+
 	const [existingContacts, existingCompanies] = await Promise.all([
 		db.contact.findMany({ where: ours, select: { id: true } }),
 		db.company.findMany({
@@ -248,6 +321,90 @@ describe("purging a contact", () => {
 		expect(
 			await db.contact.findFirst({ where: { email: asSynced } }),
 		).toBeNull();
+	});
+
+	it("keeps the Zalo history and returns the conversation to unmatched", async () => {
+		const zalo = await zaloHistory(`zalo-keep@${domain}`);
+
+		await contacts.purge(zalo.contactId);
+
+		const identity = await db.contactChannelIdentity.findUnique({
+			where: { id: zalo.identityId },
+			select: { contactId: true },
+		});
+		const thread = await db.messageThread.findUnique({
+			where: { id: zalo.threadId },
+			select: { contactId: true },
+		});
+		const activity = await db.activity.findUnique({
+			where: { id: zalo.activityId },
+			select: { contactId: true, companyId: true, type: true },
+		});
+
+		expect(identity).toEqual({ contactId: null });
+		expect(thread).toEqual({ contactId: null });
+		expect(activity).toEqual({
+			contactId: null,
+			companyId: null,
+			type: "MESSAGE",
+		});
+		expect(await db.message.count({ where: { threadId: zalo.threadId } })).toBe(
+			1,
+		);
+
+		await db.messagingAccount.deleteMany({ where: { externalId: zaloOaId } });
+	});
+
+	it("clears the company from a conversation whose contact goes", async () => {
+		const company = await companies.create({
+			name: "Zalo Employer",
+			domain: zaloDomain,
+		});
+		const zalo = await zaloHistory(`zalo-company@${domain}`, company.id);
+
+		const linked = await db.messageThread.findUnique({
+			where: { id: zalo.threadId },
+			select: { contactId: true, companyId: true },
+		});
+		expect(linked).toEqual({
+			contactId: zalo.contactId,
+			companyId: company.id,
+		});
+
+		await contacts.purge(zalo.contactId);
+
+		expect(
+			await db.messageThread.findUnique({
+				where: { id: zalo.threadId },
+				select: { contactId: true, companyId: true },
+			}),
+		).toEqual({ contactId: null, companyId: null });
+
+		await db.messagingAccount.deleteMany({ where: { externalId: zaloOaId } });
+		await companies.purge(company.id);
+	});
+
+	it("erases all four rows when the conversation itself is deleted", async () => {
+		const zalo = await zaloHistory(`zalo-erase@${domain}`);
+
+		await writer.deleteThread(zalo.threadId);
+
+		expect(
+			await db.contactChannelIdentity.count({
+				where: { id: zalo.identityId },
+			}),
+		).toBe(0);
+		expect(await db.messageThread.count({ where: { id: zalo.threadId } })).toBe(
+			0,
+		);
+		expect(await db.message.count({ where: { threadId: zalo.threadId } })).toBe(
+			0,
+		);
+		expect(await db.activity.count({ where: { id: zalo.activityId } })).toBe(0);
+		expect(await db.contact.count({ where: { id: zalo.contactId } })).toBe(1);
+
+		await contacts.purge(zalo.contactId);
+		await db.messagingAccount.deleteMany({ where: { externalId: zaloOaId } });
 	});
 });
 

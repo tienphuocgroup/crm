@@ -120,6 +120,38 @@ the same background task rather than waiting on a round trip
 (`apps/agent/agent/lib/slack-people.ts`). A builder chat that blocks on Slack is
 a builder chat that is as slow as Slack is.
 
+## Zalo: token health leads the page
+
+The Zalo Official Account is one connection for the whole workspace, and the rules
+for it are `docs/messaging.md`. What belongs here is the page.
+
+- **Token health is the first thing on it.** An OA whose token is dead still looks
+  connected, and every reply fails silently until somebody looks. `zalo.status`
+  returns `tokenError`, `tokenRefreshedAt`, `tokenExpiresAt`, `lastInboundAt`,
+  `lastOutboundAt` and `lastWebhookAt`, and the page leads with them. A set
+  `tokenError` reads "Needs a reconnect" and blocks the composer too, so the rep
+  learns it at the moment of typing and not after the send.
+- **The unmatched count is on the page.** `unmatchedCount` is the number of Zalo
+  people with no client record, and it links to
+  `/<slug>/messages?filter=unmatched`. Same rule as Slack: an unmatched person is
+  allowed, and the gap is visible before it bites.
+- **Connect and disconnect are owner or admin.** `ZaloConnectionService.disconnect`
+  asks `canManageConnections` after `assertMember`, and `zalo.status` returns
+  `canManage` so the button is disabled for the same people the service refuses.
+- **A second connect replaces the OA.** One account row is live at a time, so
+  connecting again re-points every thread, every reply and the webhook at another
+  Official Account. That is the same decision as disconnecting, so
+  `assertCanConnect` runs on **both** `/connect` and `/callback` — the callback is
+  the one that matters, because refusing there exchanges no code. A workspace with
+  no owner and no admin lets any member connect, as Slack does.
+- **Disconnect clears the tokens and closes the open tasks.** It nulls
+  `accessToken`, `refreshToken` and `tokenExpiresAt`, stamps `disconnectedAt`, and
+  finishes every open `message-send` and `message-token-refresh` task with
+  "Disconnected". A queued reply does not leave after the OA is gone.
+- **Unlink and "Delete conversation" are owner or admin**, as disconnect is.
+  Unlink is reversible and keeps the messages. Delete erases the person and every
+  message with them, and the dialog says so.
+
 ## Permissions are shown in groups, not one line each
 
 Sixteen scopes read as noise. Group them by what they touch — people, channels it

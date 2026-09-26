@@ -47,15 +47,29 @@ function AddButton(props: ComponentProps<typeof Button>) {
 	);
 }
 
-export function CreateContactSheet({ companyId }: { companyId?: string }) {
+type CreateContactSheetProps = {
+	companyId?: string;
+	initialFirstName?: string;
+	initialLastName?: string;
+	onCreated?: (contactId: string) => void;
+	openRecordOnSuccess?: boolean;
+};
+
+export function CreateContactSheet(props: CreateContactSheetProps) {
 	return (
 		<Suspense fallback={<AddButton disabled />}>
-			<CreateContactForm companyId={companyId} />
+			<CreateContactForm {...props} />
 		</Suspense>
 	);
 }
 
-function CreateContactForm({ companyId }: { companyId?: string }) {
+function CreateContactForm({
+	companyId,
+	initialFirstName = "",
+	initialLastName = "",
+	onCreated,
+	openRecordOnSuccess = true,
+}: CreateContactSheetProps) {
 	const t = useTranslations("contacts");
 	const common = useTranslations("common");
 	const openRecord = useOpenRecord();
@@ -66,8 +80,8 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 		SEARCH_PARAM.dialog.create,
 		parseAsBoolean.withDefault(false),
 	);
-	const [firstName, setFirstName] = useState("");
-	const [lastName, setLastName] = useState("");
+	const [firstName, setFirstName] = useState(initialFirstName);
+	const [lastName, setLastName] = useState(initialLastName);
 	const [email, setEmail] = useState("");
 	const [title, setTitle] = useState("");
 	const [company, setCompany] = useState(companyId ?? NONE);
@@ -92,11 +106,14 @@ function CreateContactForm({ companyId }: { companyId?: string }) {
 					}),
 				);
 				await setOpen(null);
-				setFirstName("");
-				setLastName("");
+				setFirstName(initialFirstName);
+				setLastName(initialLastName);
 				setEmail("");
 				setTitle("");
-				openRecord({ kind: "contact", id: contact.id });
+				onCreated?.(contact.id);
+				if (openRecordOnSuccess) {
+					openRecord({ kind: "contact", id: contact.id });
+				}
 			},
 			onError: (error) => toast.error(error.message),
 		}),

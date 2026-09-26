@@ -238,4 +238,66 @@ describe("scheduleTask", () => {
 		expect(second.id).toBe(first.id);
 		expect(await db.agentTask.count({ where: { kind } })).toBe(1);
 	});
+
+	it("matches only the row whose payload path holds the subject value", async () => {
+		const soon = new Date(Date.now() + 1000);
+		const later = new Date(Date.now() + 60_000);
+		const subject = (value: string) => ({ path: ["accountId"], value });
+
+		const first = await scheduleTask({
+			kind,
+			reason: "first OA",
+			dueAt: soon,
+			payload: { accountId: "oa-one" },
+			subject: subject("oa-one"),
+		});
+		const second = await scheduleTask({
+			kind,
+			reason: "second OA",
+			dueAt: soon,
+			payload: { accountId: "oa-two" },
+			subject: subject("oa-two"),
+		});
+		const again = await scheduleTask({
+			kind,
+			reason: "first OA again",
+			dueAt: later,
+			payload: { accountId: "oa-one" },
+			subject: subject("oa-one"),
+		});
+
+		expect(second.id).not.toBe(first.id);
+		expect(again.id).toBe(first.id);
+		expect(await db.agentTask.count({ where: { kind } })).toBe(2);
+
+		const moved = await db.agentTask.findUnique({ where: { id: first.id } });
+		expect(moved?.dueAt.getTime()).toBe(later.getTime());
+	});
+
+	it("skips the running row, so a rebook never finishes itself", async () => {
+		const running = await scheduleTask({
+			kind,
+			reason: "running",
+			dueAt: new Date(Date.now() - 1000),
+			payload: { accountId: "oa-one" },
+			subject: { path: ["accountId"], value: "oa-one" },
+		});
+
+		const rebooked = await scheduleTask({
+			kind,
+			reason: "rebooked",
+			dueAt: new Date(Date.now() + 60_000),
+			payload: { accountId: "oa-one" },
+			subject: { path: ["accountId"], value: "oa-one" },
+			exceptId: running.id,
+		});
+
+		expect(rebooked.id).not.toBe(running.id);
+		expect(await db.agentTask.count({ where: { kind } })).toBe(2);
+
+		await completeTask(running.id, "ran");
+		expect(
+			await db.agentTask.count({ where: { kind, finishedAt: null } }),
+		).toBe(1);
+	});
 });

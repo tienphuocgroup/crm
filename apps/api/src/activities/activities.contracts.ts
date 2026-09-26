@@ -20,6 +20,7 @@ const ALL_ACTIVITY_TYPES = [
 	ActivityType.TASK,
 	ActivityType.STAGE_CHANGE,
 	ActivityType.ENRICHMENT,
+	ActivityType.MESSAGE,
 ] as const;
 
 const activityTypeOutput = z.enum(ALL_ACTIVITY_TYPES);
@@ -32,6 +33,7 @@ const TIMELINE_FILTERS = [
 	"done",
 	"email",
 	"meetings",
+	"messages",
 ] as const;
 
 export type TimelineFilter = (typeof TIMELINE_FILTERS)[number];
@@ -126,6 +128,17 @@ const activityEmailThreadOutput = z
 	})
 	.nullable();
 
+const activityMessageThreadOutput = z
+	.object({
+		id: z.string(),
+		messageCount: z.number(),
+		unreadCount: z.number(),
+		lastMessageAt: z.string(),
+		displayName: z.string().nullable(),
+		externalId: z.string(),
+	})
+	.nullable();
+
 const activityCalendarEventOutput = z
 	.object({
 		id: z.string(),
@@ -154,6 +167,7 @@ export const activityEntryOutput = z.object({
 	deal: activityDealRefOutput,
 	emailThread: activityEmailThreadOutput,
 	calendarEvent: activityCalendarEventOutput,
+	messageThread: activityMessageThreadOutput,
 });
 
 export type ActivityEntry = z.infer<typeof activityEntryOutput>;
@@ -172,6 +186,7 @@ export const timelineCountsOutput = z.object({
 	done: z.number(),
 	email: z.number(),
 	meetings: z.number(),
+	messages: z.number(),
 });
 
 export type TimelineCounts = z.infer<typeof timelineCountsOutput>;

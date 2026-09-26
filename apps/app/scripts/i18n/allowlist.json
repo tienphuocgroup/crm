@@ -20,6 +20,12 @@
 	"Slack": {
 		"reason": "Vendor name. Never translated."
 	},
+	"Zalo": {
+		"reason": "Vendor name. Never translated."
+	},
+	"Zalo Official Account": {
+		"reason": "Product name. Also used as an identifier in the connected-list equality check in add-connection-dialog.tsx and connections/page.tsx — translating it would break that comparison."
+	},
 	"Google Workspace": {
 		"reason": "Product name. Also used as an identifier in the connected-list equality check in add-connection-dialog.tsx and connections/page.tsx — translating it would break that comparison."
 	},

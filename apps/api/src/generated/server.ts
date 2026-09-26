@@ -27,6 +27,7 @@ import { fieldListInput, fieldListOutput, fieldByKeyInput, serializedFieldOutput
 import { googleConnectionStatusOutput, setAutoCreateInput, suppressDomainInput, suppressDomainOutput, threadInput, emailThreadOutput, calendarEventInput, calendarEventOutput } from "../google/google.contracts";
 import { purgeSyncedDataOutput, revokeAccessOutput, microsoftConnectionStatusOutput, setOutlookAutoCreateInput } from "../microsoft/microsoft.contracts";
 import { importCommitInput } from "../imports/imports.contracts";
+import { messagingThreadsInput, messagingThreadByContactInput, messagingThreadIdInput, messagingMessagesInput, messagingSendInput, messagingLinkContactInput } from "../messaging/messaging.contracts";
 import { savedViewListInput, savedViewListOutput, savedViewCreateInput, savedViewOutput, savedViewUpdateArgs, savedViewIdInput, savedViewDeleteOutput } from "../saved-views/saved-views.contracts";
 import { agentModelOutput, modelCatalogOutput, setAgentModelInput, researchKeyOutput, setResearchKeyInput, archiveRetentionOutput, setArchiveRetentionDaysInput } from "../settings/settings.contracts";
 import { slackStatusOutput, slackMatchesOutput, slackChannelsInput, slackChannelsOutput, slackJoinChannelInput, slackJoinChannelOutput, slackRefreshPeopleOutput, slackCreateChannelInput, slackCreateChannelOutput, slackDisconnectOutput } from "../slack/slack.contracts";
@@ -35,6 +36,8 @@ import { trackingSettingsOutput, trackingFlagInput, cookieLifetimeInput, addDoma
 import { setLocaleInput } from "../users/users.contracts";
 import { workspaceOutput, memberListInput, memberListOutput, updateWorkspaceInput, setMemberRoleInput, workspaceMemberOutput } from "../workspace/workspace.contracts";
 import type { ImportsRouter } from "../imports/imports.router";
+import type { MessagingRouter } from "../messaging/messaging.router";
+import type { ZaloRouter } from "../messaging/zalo/zalo.router";
 import type { UsersRouter } from "../users/users.router";
 
 const appRouter = t.router({
@@ -565,6 +568,46 @@ const appRouter = t.router({
     commit: publicProcedure
       .input(importCommitInput)
       .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<ImportsRouter["commit"]>>)
+    }),
+  messaging: t.router({
+    threads: publicProcedure
+      .input(messagingThreadsInput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MessagingRouter["threads"]>>),
+    threadByContact: publicProcedure
+      .input(messagingThreadByContactInput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MessagingRouter["threadByContact"]>>),
+    threadById: publicProcedure
+      .input(messagingThreadIdInput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MessagingRouter["threadById"]>>),
+    unreadCount: publicProcedure
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MessagingRouter["unreadCount"]>>),
+    messages: publicProcedure
+      .input(messagingMessagesInput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MessagingRouter["messages"]>>),
+    eligibility: publicProcedure
+      .input(messagingThreadIdInput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MessagingRouter["eligibility"]>>),
+    send: publicProcedure
+      .input(messagingSendInput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MessagingRouter["send"]>>),
+    linkContact: publicProcedure
+      .input(messagingLinkContactInput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MessagingRouter["linkContact"]>>),
+    unlinkContact: publicProcedure
+      .input(messagingThreadIdInput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MessagingRouter["unlinkContact"]>>),
+    deleteThread: publicProcedure
+      .input(messagingThreadIdInput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MessagingRouter["deleteThread"]>>),
+    markRead: publicProcedure
+      .input(messagingThreadIdInput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MessagingRouter["markRead"]>>)
+    }),
+  zalo: t.router({
+    status: publicProcedure
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<ZaloRouter["status"]>>),
+    disconnect: publicProcedure
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<ZaloRouter["disconnect"]>>)
     }),
   microsoft: t.router({
     status: publicProcedure

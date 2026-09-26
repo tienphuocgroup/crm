@@ -116,6 +116,23 @@ single place that knows what is set.
 | `BLOB_READ_WRITE_TOKEN` | Mirrors logos and photos into Blob |
 | `AI_GATEWAY_API_KEY` | The model. Not needed on Vercel (OIDC) |
 | `AGENT_BRIDGE_SECRET` | The rep-facing Agent panel — see `agent.md` |
+| `ZALO_APP_ID` | With the secret: the Zalo OA inbox, replies and the webhook |
+| `ZALO_APP_SECRET` | The other half of the pair. Also signs the webhook when no OA key is set |
+| `ZALO_OA_SECRET_KEY` | The OA secret key from the app's webhook settings. Optional on its own |
+
+`ZALO_APP_ID` and `ZALO_APP_SECRET` are **both or neither**: one alone configures
+nothing, `isZaloConfigured()` stays false, and the Messages page and the
+connection page both show their pre-connect state. Half a pair is the mistake
+worth naming, so `MessagingModule` warns once on boot: "ZALO_APP_ID and
+ZALO_APP_SECRET must be set together. Zalo stays off."
+`ZALO_OA_SECRET_KEY` is a third, separate value — it is not the app secret — and
+without it the webhook signature check falls back to `ZALO_APP_SECRET`.
+
+Register two URLs on the app at `developers.zalo.me`:
+`API_URL` + `/api/messaging/zalo/callback` as the OAuth redirect URI, and
+`API_URL` + `/api/messaging/zalo/webhook` as the webhook URL. All three variables
+are read by the API, so all three are declared in `env.validation.ts`. Rules for
+the area: `docs/messaging.md`.
 
 `BLOB_READ_WRITE_TOKEN` is also in `env.validation.ts` and `apps/api/turbo.json`
 because the API and the seed write pictures too. The Next.js app is deliberately

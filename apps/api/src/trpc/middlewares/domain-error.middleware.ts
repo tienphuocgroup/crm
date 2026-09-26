@@ -12,6 +12,7 @@ type TrpcErrorCode =
 	| "FORBIDDEN"
 	| "NOT_FOUND"
 	| "CONFLICT"
+	| "UNPROCESSABLE_CONTENT"
 	| "TOO_MANY_REQUESTS"
 	| "INTERNAL_SERVER_ERROR";
 
@@ -27,6 +28,8 @@ function statusToTrpcCode(status: number): TrpcErrorCode {
 			return "NOT_FOUND";
 		case 409:
 			return "CONFLICT";
+		case 422:
+			return "UNPROCESSABLE_CONTENT";
 		case 429:
 			return "TOO_MANY_REQUESTS";
 		default:

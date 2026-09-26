@@ -32,6 +32,9 @@ export type CrmCache = {
 	removedMany(records: RemovedRecords): Promise<void>;
 	conversationRemoved(id: string): Promise<void>;
 	activity(options?: Options): Promise<void>;
+	messaging(options?: Options): Promise<void>;
+	messagingRead(options?: Options): Promise<void>;
+	messagingSent(options?: Options): Promise<void>;
 	google(options?: Options): Promise<void>;
 	microsoft(options?: Options): Promise<void>;
 	settings(options?: Options): Promise<void>;
@@ -41,6 +44,7 @@ export type CrmCache = {
 	sso(options?: Options): Promise<void>;
 	apiKeys(options?: Options): Promise<void>;
 	tracking(options?: Options): Promise<void>;
+	zalo(options?: Options): Promise<void>;
 	everything(): Promise<void>;
 };
 
@@ -69,6 +73,14 @@ export function useCrmCache(): CrmCache {
 		trpc.activities.timeline.pathKey(),
 		trpc.activities.timelineCounts.queryKey(),
 		trpc.activities.myTasks.queryKey(),
+	];
+
+	const messagingKeys = () => [
+		trpc.messaging.threads.pathKey(),
+		trpc.messaging.messages.pathKey(),
+		trpc.messaging.threadByContact.queryKey(),
+		trpc.messaging.unreadCount.queryKey(),
+		trpc.messaging.eligibility.queryKey(),
 	];
 
 	const listKeys = () => [
@@ -107,7 +119,12 @@ export function useCrmCache(): CrmCache {
 		}
 
 		return run(
-			[...listKeys(), ...activityKeys(), trpc.dashboard.summary.queryKey()],
+			[
+				...listKeys(),
+				...activityKeys(),
+				trpc.messaging.threads.pathKey(),
+				trpc.dashboard.summary.queryKey(),
+			],
 			[],
 		);
 	};
@@ -193,6 +210,7 @@ export function useCrmCache(): CrmCache {
 					trpc.companies.byId.queryKey(),
 					trpc.deals.byId.queryKey(),
 					trpc.deals.contactOptions.queryKey(),
+					trpc.messaging.threadByContact.queryKey(),
 				],
 				options,
 			),
@@ -242,6 +260,35 @@ export function useCrmCache(): CrmCache {
 					trpc.deals.byId.queryKey(),
 					trpc.dashboard.summary.queryKey(),
 				],
+				options,
+			),
+
+		messaging: (options) =>
+			run(
+				messagingKeys(),
+				[...activityKeys(), trpc.zalo.status.queryKey()],
+				options,
+			),
+
+		messagingSent: (options) =>
+			run(
+				[
+					trpc.messaging.messages.pathKey(),
+					trpc.messaging.threads.pathKey(),
+					trpc.messaging.eligibility.queryKey(),
+					trpc.messaging.threadByContact.queryKey(),
+				],
+				[],
+				options,
+			),
+
+		messagingRead: (options) =>
+			run(
+				[
+					trpc.messaging.threads.pathKey(),
+					trpc.messaging.unreadCount.queryKey(),
+				],
+				[],
 				options,
 			),
 
@@ -323,6 +370,8 @@ export function useCrmCache(): CrmCache {
 				[trpc.tracking.sources.queryKey()],
 				options,
 			),
+
+		zalo: (options) => run([trpc.zalo.status.queryKey()], [], options),
 
 		everything: () => queryClient.invalidateQueries(),
 	};

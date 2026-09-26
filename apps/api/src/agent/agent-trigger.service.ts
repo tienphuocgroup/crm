@@ -26,7 +26,17 @@ export type AgentTaskQueue = {
 		channelId: string,
 		channelName: string,
 	) => Promise<void>;
+	messageSendRequested: (
+		messageId: string,
+		clientRequestId: string,
+	) => Promise<void>;
+	messageIdentityProfileRequested: (identityId: string) => Promise<void>;
 };
+
+const MESSAGE_SEND_REASON = "A rep replied on Zalo.";
+
+const MESSAGE_PROFILE_REASON =
+	"Read the Zalo profile of a person who wrote to the OA.";
 
 async function runWithConcurrency<T>(
 	items: readonly T[],
@@ -142,6 +152,33 @@ export class AgentTriggerService {
 		await this.queueSlackChannelJoin(channelId, channelName);
 	}
 
+	async messageTokenRefreshDue(
+		accountId: string,
+		dueAt: Date,
+		client?: Prisma.TransactionClient,
+	): Promise<boolean> {
+		return this.enqueue(
+			{
+				kind: "message-token-refresh",
+				reason: "Keep the Zalo token fresh.",
+				priority: PRIORITY.messageToken,
+				budget: 1,
+				subject: { path: ["accountId"], value: accountId },
+				payload: { accountId },
+				dueAt,
+			},
+			true,
+			client,
+		);
+	}
+
+	async messageIdentityProfileRequested(
+		identityId: string,
+		client?: Prisma.TransactionClient,
+	): Promise<boolean> {
+		return this.queueMessageIdentityProfile(identityId, client);
+	}
+
 	async withTasks<Result>(
 		work: (
 			tx: Prisma.TransactionClient,
@@ -160,12 +197,64 @@ export class AgentTriggerService {
 					);
 					queued = queued || created;
 				},
+				messageSendRequested: async (messageId, clientRequestId) => {
+					const created = await this.queueMessageSend(
+						messageId,
+						clientRequestId,
+						tx,
+					);
+					queued = queued || created;
+				},
+				messageIdentityProfileRequested: async (identityId) => {
+					const created = await this.queueMessageIdentityProfile(
+						identityId,
+						tx,
+					);
+					queued = queued || created;
+				},
 			}),
 		);
 
 		if (queued) this.poke();
 
 		return result;
+	}
+
+	private queueMessageSend(
+		messageId: string,
+		clientRequestId: string,
+		client?: Prisma.TransactionClient,
+	): Promise<boolean> {
+		return this.enqueue(
+			{
+				kind: "message-send",
+				reason: MESSAGE_SEND_REASON,
+				priority: PRIORITY.messageSend,
+				budget: 0,
+				subject: { path: ["clientRequestId"], value: clientRequestId },
+				payload: { messageId, clientRequestId },
+			},
+			true,
+			client,
+		);
+	}
+
+	private queueMessageIdentityProfile(
+		identityId: string,
+		client?: Prisma.TransactionClient,
+	): Promise<boolean> {
+		return this.enqueue(
+			{
+				kind: "message-identity-profile",
+				reason: MESSAGE_PROFILE_REASON,
+				priority: PRIORITY.messageProfile,
+				budget: 0,
+				subject: { path: ["identityId"], value: identityId },
+				payload: { identityId },
+			},
+			false,
+			client,
+		);
 	}
 
 	private queueSlackChannelJoin(
@@ -453,6 +542,7 @@ export class AgentTriggerService {
 			budget: number;
 			payload?: Prisma.InputJsonValue;
 			subject?: { path: string[]; value: string };
+			dueAt?: Date;
 		},
 		required = false,
 		client?: Prisma.TransactionClient,
@@ -485,7 +575,7 @@ export class AgentTriggerService {
 						reason: task.reason,
 						priority: task.priority,
 						budget: task.budget,
-						dueAt: new Date(),
+						dueAt: task.dueAt ?? new Date(),
 						payload: task.payload ?? undefined,
 					},
 				});

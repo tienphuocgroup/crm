@@ -8,6 +8,7 @@ import {
 	bucket,
 	dayBucket,
 	EVIDENCE_KINDS,
+	MESSAGING_STAGES,
 	OTHER,
 	permitted,
 	permittedErrorClass,
@@ -15,6 +16,7 @@ import {
 	permittedMethod,
 	permittedModelId,
 	permittedRoute,
+	permittedStage,
 	permittedTaskKind,
 	permittedTool,
 } from "../src/allowlist";
@@ -171,6 +173,17 @@ describe("permittedErrorClass", () => {
 		expect(permittedErrorClass("could not reach ada@example.test")).toBe(OTHER);
 		expect(permittedErrorClass({})).toBe(OTHER);
 	});
+
+	it("keeps every Zalo error class a messaging error sends", () => {
+		expect(permittedErrorClass("zalo.-216")).toBe("zalo.-216");
+		expect(permittedErrorClass("zalo.network")).toBe("zalo.network");
+		expect(permittedErrorClass("zalo.http-500")).toBe("zalo.http-500");
+		expect(permittedErrorClass("zalo.no-token")).toBe("zalo.no-token");
+	});
+
+	it("buckets a bare vendor code", () => {
+		expect(permittedErrorClass("-216")).toBe(OTHER);
+	});
 });
 
 describe("permittedModelId", () => {
@@ -198,5 +211,53 @@ describe("buckets", () => {
 		expect(dayBucket(7)).toBe("2-7");
 		expect(dayBucket(30)).toBe("8-30");
 		expect(dayBucket(365)).toBe("180+");
+	});
+});
+
+describe("permittedStage", () => {
+	it("keeps every stage a messaging error comes from", () => {
+		for (const stage of MESSAGING_STAGES) {
+			expect(permittedStage(stage)).toBe(stage);
+		}
+	});
+
+	it("buckets a stage nobody declared", () => {
+		expect(permittedStage("inbox")).toBe(OTHER);
+		expect(permittedStage("ada@example.test")).toBe(OTHER);
+		expect(permittedStage(null)).toBe(OTHER);
+	});
+});
+
+describe("the messaging properties", () => {
+	it("keeps the counts install_daily carries", () => {
+		expect(
+			permitted({
+				zalo_connected: true,
+				messages_inbound_7d: 12,
+				messages_outbound_7d: 4,
+				messages_failed_7d: 1,
+				messaging_threads_bucket: "10-49",
+				messaging_unmatched: 3,
+				stage: "send",
+			}),
+		).toEqual({
+			zalo_connected: true,
+			messages_inbound_7d: 12,
+			messages_outbound_7d: 4,
+			messages_failed_7d: 1,
+			messaging_threads_bucket: "10-49",
+			messaging_unmatched: 3,
+			stage: "send",
+		});
+	});
+
+	it("drops a message body and a Zalo id", () => {
+		expect(
+			permitted({
+				message_body: "Xin chao",
+				zalo_user_id: "1234567890",
+				messaging_unmatched: 3,
+			}),
+		).toEqual({ messaging_unmatched: 3 });
 	});
 });

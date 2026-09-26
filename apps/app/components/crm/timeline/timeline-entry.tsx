@@ -18,6 +18,7 @@ import type { RouterOutputs } from "@/lib/trpc/types";
 import { ActivityIcon } from "./activity-icon";
 import { EmailThreadEntry } from "./email-thread-entry";
 import { MeetingEntry } from "./meeting-entry";
+import { MessageThreadEntry } from "./message-thread-entry";
 import type { TimelineAnchor } from "./timeline";
 
 export type TimelineEntryData =
@@ -32,6 +33,10 @@ const stageChange = z
 	.object({ from: z.enum(DealStage), to: z.enum(DealStage) })
 	.nullable()
 	.catch(null);
+
+function contactAnchor(anchor: TimelineAnchor): string | null {
+	return "contactId" in anchor ? anchor.contactId : null;
+}
 
 function anchorId(anchor: TimelineAnchor): string {
 	if ("companyId" in anchor) return anchor.companyId;
@@ -176,6 +181,15 @@ export function TimelineEntry({
 					<EmailThreadEntry
 						threadId={entry.emailThread.id}
 						messageCount={entry.emailThread.messageCount}
+					/>
+				) : null}
+
+				{entry.messageThread ? (
+					<MessageThreadEntry
+						contactId={entry.contact?.id ?? contactAnchor(anchor)}
+						displayName={entry.messageThread.displayName}
+						messageCount={entry.messageThread.messageCount}
+						threadId={entry.messageThread.id}
 					/>
 				) : null}
 

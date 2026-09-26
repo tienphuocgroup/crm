@@ -28,8 +28,11 @@ Nest's half is to report *that something happened*: `AgentTriggerService` writes
 `AgentTask` row. A row, not an HTTP call — the agent already leases from that table,
 so the row survives the agent being down.
 
-About to add a vendor client to `apps/api`? You want `apps/agent/agent/lib`. One
-documented exception, for timing: the exchange-rate fetcher, below.
+About to add a vendor client to `apps/api`? You want `apps/agent/agent/lib`.
+Two documented exceptions, both for timing: the exchange-rate fetcher, below, and
+the Zalo OAuth exchange with its one `oa/getoa` read (`zalo-oauth.service.ts`),
+because a redirect callback has nobody to wait for it. Slack's OAuth is Better
+Auth in `packages/auth`, not an exception here.
 
 ## One organization, and it is not a tenancy boundary
 
@@ -233,6 +236,23 @@ picker reads.
 - **`role` is blanked to null, never stored as `""`** — `blankToNull`, as everywhere
   else.
 
+## Messaging is a row and a task, never a call to Zalo
+
+`docs/messaging.md` is the whole of it; the API's half is short.
+`MessagingWriterService` is the only writer of `MessagingAccount`,
+`ContactChannelIdentity`, `MessageThread`, `Message`, `MessageReceipt` and the
+`MESSAGE` activity, inbound and outbound both. `messaging.send` checks
+`eligibility()` and then writes one `Message(QUEUED)` plus one
+`AgentTask("message-send")` in a single `agent.withTasks()` transaction; the agent
+calls Zalo. A blocked verdict is 422 with the reason sentence, which the composer
+shows as it stands.
+
+The webhook (`POST /api/messaging/zalo/webhook`) is anonymous and gates in order:
+content type, raw bytes through `rawBody()` (never a body parser — the signature
+covers the wire bytes), signature, then a 2-hour timestamp tolerance. Everything
+it cannot use answers 200; only a failed write answers 500, because a webhook that
+keeps failing is one Zalo disables.
+
 ## Deleting a record is archive first, purge later
 
 `contacts.archive`, `companies.archive`, `deals.archive` set `archivedAt`. Nothing
@@ -285,6 +305,10 @@ Below is `purge`'s contract — everything that used to be `delete`'s:
   `lastActivityAt`. Rows filed against the company alone still cascade.
 - **Clear `AgentTask` and `AgentEvent` yourself** — they carry `contactId`/`companyId`
   with no foreign key, so nothing cascades.
+- **A purged contact's Zalo thread returns to Unmatched with its history.** Both
+  `contactId` columns are `SetNull`, so nothing is erased by an archive.
+  `messaging.deleteThread` is the erasure: it deletes the
+  `ContactChannelIdentity` and the cascade takes the thread and every message.
 - **Recompute `lastActivityAt` on exactly the records the purge reached.**
   `ActivityStampService.targetsOf(where)` collects them *inside* the transaction (the
   evidence is what gets deleted); `recomputeMany` restamps. A company's `where` must

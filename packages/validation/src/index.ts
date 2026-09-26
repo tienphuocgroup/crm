@@ -6,6 +6,7 @@ import * as agents from "./agents";
 import * as builderQuestion from "./builder-question";
 import * as eveStream from "./eve-stream";
 import * as eveTool from "./eve-tool";
+import * as messaging from "./messaging";
 import * as slack from "./slack";
 
 export const schemas = {
@@ -16,6 +17,7 @@ export const schemas = {
 	builderQuestion,
 	eveStream,
 	eveTool,
+	messaging,
 	slack,
 } as const;
 
@@ -56,6 +58,16 @@ export type {
 	EveToolOutcome,
 	EveToolOutput,
 } from "./eve-tool";
+export type {
+	IdentityProfilePayload,
+	SendPayload,
+	TokenRefreshPayload,
+	ZaloErrorEnvelope,
+	ZaloOaProfile,
+	ZaloSentMessage,
+	ZaloTokens,
+	ZaloUserProfile,
+} from "./messaging";
 export type { AuthTest, JoinPayload, OauthAccess, Reply } from "./slack";
 
 export class InvalidInput extends Error {

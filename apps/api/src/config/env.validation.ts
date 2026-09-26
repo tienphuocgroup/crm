@@ -77,6 +77,18 @@ export class EnvironmentVariables {
 	SLACK_CLIENT_SECRET?: string;
 
 	@IsOptional()
+	@IsString()
+	ZALO_APP_ID?: string;
+
+	@IsOptional()
+	@IsString()
+	ZALO_APP_SECRET?: string;
+
+	@IsOptional()
+	@IsString()
+	ZALO_OA_SECRET_KEY?: string;
+
+	@IsOptional()
 	@IsUrl({ require_tld: false })
 	API_URL?: string;
 

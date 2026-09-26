@@ -6,6 +6,7 @@ import GoogleLogo from "@crm/ui/components/brand-logos/google";
 import MicrosoftLogo from "@crm/ui/components/brand-logos/microsoft";
 import SlackLogo from "@crm/ui/components/brand-logos/slack";
 import StripeLogo from "@crm/ui/components/brand-logos/stripe";
+import ZaloLogo from "@crm/ui/components/brand-logos/zalo";
 import {
 	Dialog,
 	DialogContent,
@@ -59,6 +60,14 @@ export function AddConnectionDialog({
 							name="Slack"
 							description={t("connections.slackCapabilityDescription")}
 							href={`/${slug}/settings/connections/slack`}
+						/>
+					) : null}
+					{!connected.includes("Zalo Official Account") ? (
+						<CatalogRow
+							logo={ZaloLogo}
+							name="Zalo Official Account"
+							description={t("connections.zaloCatalogDescription")}
+							href={`/${slug}/settings/connections/zalo`}
 						/>
 					) : null}
 					{!connected.includes("Microsoft 365") ? (
