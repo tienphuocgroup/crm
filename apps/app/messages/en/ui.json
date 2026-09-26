@@ -16,6 +16,7 @@
 	"dataTableDetail": "Detail",
 	"dataTableEmpty": "No results found.",
 	"dataTableFilters": "Filters",
+	"dataTableNoMatch": "Nothing matches.",
 	"dataTableSelectAll": "Select every row on this page",
 	"dataTableSelected": "selected",
 	"dataTableSort": "Sort",

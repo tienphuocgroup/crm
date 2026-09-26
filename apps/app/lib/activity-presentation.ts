@@ -10,21 +10,21 @@ import type { CarbonIcon } from "@crm/ui/components/icon";
 
 type ActivityPresentation = Record<
 	ActivityType,
-	{ icon: CarbonIcon; label: string }
+	{ icon: CarbonIcon; labelKey: string }
 >;
 
 const PRESENTATION: ActivityPresentation = {
-	NOTE: { icon: Chat, label: "Note" },
-	CALL: { icon: Phone, label: "Call" },
-	EMAIL: { icon: Email, label: "Email" },
-	MEETING: { icon: Events, label: "Meeting" },
-	TASK: { icon: Task, label: "Task" },
-	STAGE_CHANGE: { icon: ArrowRight, label: "Stage change" },
-	ENRICHMENT: { icon: MagicWand, label: "Enrichment" },
+	NOTE: { icon: Chat, labelKey: "activityTypeNote" },
+	CALL: { icon: Phone, labelKey: "activityTypeCall" },
+	EMAIL: { icon: Email, labelKey: "activityTypeEmail" },
+	MEETING: { icon: Events, labelKey: "activityTypeMeeting" },
+	TASK: { icon: Task, labelKey: "activityTypeTask" },
+	STAGE_CHANGE: { icon: ArrowRight, labelKey: "activityTypeStageChange" },
+	ENRICHMENT: { icon: MagicWand, labelKey: "activityTypeEnrichment" },
 };
 
-export function activityLabel(type: ActivityType): string {
-	return PRESENTATION[type].label;
+export function activityLabelKey(type: ActivityType): string {
+	return PRESENTATION[type].labelKey;
 }
 
 export function activityIcon(type: ActivityType): CarbonIcon {

@@ -22,7 +22,7 @@ export type ImportProblem = {
 	reason: string;
 };
 
-const FIELD_LABEL_KEY: Record<string, string> = {
+const FIELD_LABEL_KEY = {
 	name: "import.fieldName",
 	domain: "import.fieldDomain",
 	website: "import.fieldWebsite",
@@ -37,20 +37,28 @@ const FIELD_LABEL_KEY: Record<string, string> = {
 	title: "import.fieldTitle",
 	companyDomain: "import.fieldCompanyDomain",
 	companyName: "import.fieldCompanyName",
-};
+} satisfies Record<string, string>;
 
-const REASON_LABEL_KEY: Record<string, string> = {
+const REASON_LABEL_KEY = {
 	required: "import.reasonRequired",
 	invalid: "import.reasonInvalid",
 	companyNotFound: "import.reasonCompanyNotFound",
-};
+} satisfies Record<string, string>;
+
+function isLabelledField(field: string): field is keyof typeof FIELD_LABEL_KEY {
+	return Object.hasOwn(FIELD_LABEL_KEY, field);
+}
+
+function isLabelledReason(
+	reason: string,
+): reason is keyof typeof REASON_LABEL_KEY {
+	return Object.hasOwn(REASON_LABEL_KEY, reason);
+}
 
 export function useImportFieldLabel(): (field: string) => string {
 	const t = useTranslations("settings");
-	return (field) => {
-		const key = FIELD_LABEL_KEY[field];
-		return key ? t(key) : field;
-	};
+	return (field) =>
+		isLabelledField(field) ? t(FIELD_LABEL_KEY[field]) : field;
 }
 
 const CELL = "px-3 py-2 align-middle";
@@ -59,8 +67,7 @@ function reasonLabel(
 	t: ReturnType<typeof useTranslations>,
 	reason: string,
 ): string {
-	const key = REASON_LABEL_KEY[reason];
-	return key ? t(key) : reason;
+	return isLabelledReason(reason) ? t(REASON_LABEL_KEY[reason]) : reason;
 }
 
 function Count({ label, value }: { label: string; value: number }) {

@@ -16,6 +16,7 @@
 	"dataTableDetail": "Chi tiết",
 	"dataTableEmpty": "Không tìm thấy kết quả.",
 	"dataTableFilters": "Bộ lọc",
+	"dataTableNoMatch": "Không có kết quả phù hợp.",
 	"dataTableSelectAll": "Chọn mọi hàng trên trang này",
 	"dataTableSelected": "được chọn",
 	"dataTableSort": "Sắp xếp",

@@ -18,12 +18,15 @@ import {
 import { Input } from "@crm/ui/components/input";
 import { Spinner } from "@crm/ui/components/spinner";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 
 export function ArchiveRetention() {
+	const t = useTranslations("settings");
+	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const cache = useCrmCache();
 	const daysId = useId();
@@ -39,7 +42,7 @@ export function ArchiveRetention() {
 		trpc.settings.setArchiveRetention.mutationOptions({
 			onSuccess: async () => {
 				await cache.settings();
-				toast.success("Archive retention saved.");
+				toast.success(t("archive.savedToast"));
 			},
 			onError: (error) => toast.error(error.message),
 		}),
@@ -53,10 +56,8 @@ export function ArchiveRetention() {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Archived records</CardTitle>
-				<CardDescription>
-					Deleted records are archived and hidden, then pruned for good.
-				</CardDescription>
+				<CardTitle>{t("archive.title")}</CardTitle>
+				<CardDescription>{t("archive.description")}</CardDescription>
 
 				<CardAction>
 					<Button
@@ -70,7 +71,7 @@ export function ArchiveRetention() {
 						}
 					>
 						{save.isPending ? <Spinner data-icon="inline-start" /> : null}
-						Save
+						{common("save")}
 					</Button>
 				</CardAction>
 			</CardHeader>
@@ -81,7 +82,7 @@ export function ArchiveRetention() {
 					onSubmit={(event) => {
 						event.preventDefault();
 						if (!Number.isFinite(days)) {
-							toast.error("Enter a number of days.");
+							toast.error(t("archive.enterDaysError"));
 							return;
 						}
 						save.mutate({ days });
@@ -90,7 +91,7 @@ export function ArchiveRetention() {
 					<FieldGroup>
 						<Field>
 							<FieldLabel htmlFor={daysId}>
-								Prune archived records after
+								{t("archive.pruneAfterLabel")}
 							</FieldLabel>
 							<Input
 								id={daysId}
@@ -99,7 +100,7 @@ export function ArchiveRetention() {
 								disabled={save.isPending}
 								onChange={(event) => setDraft(event.target.value)}
 							/>
-							<FieldDescription>Days. 180 is the default.</FieldDescription>
+							<FieldDescription>{t("archive.daysHint")}</FieldDescription>
 						</Field>
 					</FieldGroup>
 				</form>

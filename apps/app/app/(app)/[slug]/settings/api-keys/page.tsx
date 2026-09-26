@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import {
 	PageShell,
@@ -17,21 +18,23 @@ import { apiKeysSearchParams } from "./api-keys-search-params";
 import { ApiKeysTable } from "./api-keys-table";
 import { CreateApiKeySheet } from "./create-api-key-sheet";
 
-export const metadata: Metadata = {
-	title: "API Keys",
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const t = await getTranslations("settings");
+	return { title: t("apiKeys.metaTitle") };
+}
 
-export default function ApiKeysSettingsPage({
+export default async function ApiKeysSettingsPage({
 	searchParams,
 }: PageProps<"/[slug]/settings/api-keys">) {
+	const t = await getTranslations("settings");
+
 	return (
 		<PageShell className="min-h-0">
 			<PageShellHeader>
 				<PageShellHeading>
-					<PageShellTitle>API Keys</PageShellTitle>
+					<PageShellTitle>{t("apiKeys.metaTitle")}</PageShellTitle>
 					<PageShellDescription>
-						Personal keys for calling the CRM API. Each one acts as you —
-						anything it can read or change is exactly what you can.
+						{t("apiKeys.pageDescription")}
 					</PageShellDescription>
 				</PageShellHeading>
 

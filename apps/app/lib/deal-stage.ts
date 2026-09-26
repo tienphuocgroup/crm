@@ -1,41 +1,37 @@
 import { DealStage } from "@crm/db/enums";
 import type { StatusTone } from "@crm/ui/components/status-indicator";
 
+type StagePresentation = { labelKey: string; tone: StatusTone };
+
+export type DealStageLabel =
+	| { known: true; labelKey: string; tone: StatusTone }
+	| { known: false; text: string; tone: StatusTone };
+
 const ORDER = [
-	DealStage.DEMO_BOOKED,
-	DealStage.QUALIFIED_TO_BUY,
-	DealStage.DECISION_MAKER_BOUGHT_IN,
-	DealStage.CONTRACT_SENT,
-	DealStage.CLOSED_WON,
-	DealStage.CLOSED_LOST,
-	DealStage.UNQUALIFIED_TO_BUY,
+	DealStage.INQUIRY,
+	DealStage.CONSULT_BOOKED,
+	DealStage.CONSULT_DONE,
+	DealStage.PROPOSAL_SENT,
+	DealStage.ENROLLED,
+	DealStage.LOST,
 ] as const;
 
-type DealStagePresentation = Record<
-	DealStage,
-	{ label: string; tone: StatusTone }
->;
-
-const PRESENTATION: DealStagePresentation = {
-	DEMO_BOOKED: { label: "Demo booked", tone: "neutral" },
-	QUALIFIED_TO_BUY: { label: "Qualified to buy", tone: "info" },
-	DECISION_MAKER_BOUGHT_IN: { label: "Decision maker in", tone: "info" },
-	CONTRACT_SENT: { label: "Contract sent", tone: "warning" },
-	CLOSED_WON: { label: "Closed won", tone: "success" },
-	CLOSED_LOST: { label: "Closed lost", tone: "error" },
-	UNQUALIFIED_TO_BUY: { label: "Unqualified", tone: "neutral" },
-};
+const PRESENTATION = {
+	INQUIRY: { labelKey: "stageInquiry", tone: "neutral" },
+	CONSULT_BOOKED: { labelKey: "stageConsultBooked", tone: "info" },
+	CONSULT_DONE: { labelKey: "stageConsultDone", tone: "info" },
+	PROPOSAL_SENT: { labelKey: "stageProposalSent", tone: "warning" },
+	ENROLLED: { labelKey: "stageEnrolled", tone: "success" },
+	LOST: { labelKey: "stageLost", tone: "error" },
+} satisfies Record<DealStage, StagePresentation>;
 
 export const OPEN_STAGES = ORDER.slice(0, 4) as readonly DealStage[];
 
-export const LOSING_STAGES: readonly DealStage[] = [
-	DealStage.CLOSED_LOST,
-	DealStage.UNQUALIFIED_TO_BUY,
-];
+export const LOSING_STAGES: readonly DealStage[] = [DealStage.LOST];
 
 export const DEAL_STAGE_OPTIONS = ORDER.map((value) => ({
 	value,
-	label: PRESENTATION[value].label,
+	labelKey: PRESENTATION[value].labelKey,
 }));
 
 const OPEN_STAGE_COLORS = [
@@ -53,10 +49,28 @@ export function dealStageColor(stage: DealStage): string {
 	return OPEN_STAGE_COLORS[OPEN_STAGES.indexOf(stage)] ?? "var(--chart-5)";
 }
 
-export function dealStageLabel(stage: DealStage): string {
-	return PRESENTATION[stage].label;
+export function humaniseDealStage(stage: string): string {
+	return stage
+		.toLowerCase()
+		.split("_")
+		.map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+		.join(" ");
 }
 
-export function dealStagePresentation(stage: DealStage) {
-	return PRESENTATION[stage];
+function presentationOf(stage: string): StagePresentation | undefined {
+	return Object.hasOwn(PRESENTATION, stage)
+		? PRESENTATION[stage as DealStage]
+		: undefined;
+}
+
+export function resolveDealStageLabel(stage: string): DealStageLabel {
+	const known = presentationOf(stage);
+	return known
+		? { known: true, labelKey: known.labelKey, tone: known.tone }
+		: { known: false, text: humaniseDealStage(stage), tone: "neutral" };
+}
+
+export function dealStageLabelKey(stage: DealStage): string {
+	const label = resolveDealStageLabel(stage);
+	return label.known ? label.labelKey : label.text;
 }

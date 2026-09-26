@@ -26,10 +26,10 @@ import {
 import { writeLocaleCookie } from "@/lib/locale";
 import { useTRPC } from "@/lib/trpc/client";
 
-const LOCALE_LABEL_KEY: Record<SupportedLocale, string> = {
+const LOCALE_LABEL_KEY = {
 	en: "general.languageEnglish",
 	vi: "general.languageVietnamese",
-};
+} satisfies Record<SupportedLocale, string>;
 
 export function LanguageForm() {
 	const t = useTranslations("settings");

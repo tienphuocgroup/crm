@@ -186,6 +186,8 @@ function FacetSubmenu({
 	selected: string[];
 	onChange: (values: string[]) => void;
 }) {
+	const strings = useUiStrings();
+
 	return (
 		<DropdownMenuSub>
 			<DropdownMenuSubTrigger>
@@ -207,7 +209,7 @@ function FacetSubmenu({
 							onKeyDown={(event) => event.stopPropagation()}
 						/>
 						<CommandList>
-							<CommandEmpty>{facet.empty ?? "Nothing matches."}</CommandEmpty>
+							<CommandEmpty>{facet.empty ?? strings.dataTableNoMatch}</CommandEmpty>
 							<CommandGroup>
 								{facet.options.map((option) => {
 									const checked = selected.includes(option.value);
@@ -237,7 +239,7 @@ function FacetSubmenu({
 						{selected.length > 0 && (
 							<>
 								<DropdownMenuItem onSelect={() => onChange([])}>
-									Clear
+									{strings.dataTableClear}
 								</DropdownMenuItem>
 								<DropdownMenuSeparator />
 							</>
@@ -469,7 +471,7 @@ export function DataTable<TRow, TSub = unknown>({
 										className="justify-start sm:justify-center"
 									>
 										<Filter data-icon="inline-start" />
-										Filters
+										{strings.dataTableFilters}
 										{activeFacetFilterCount > 0 && (
 											<span className="tabular-nums opacity-60">
 												({activeFacetFilterCount})

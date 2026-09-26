@@ -4,6 +4,7 @@ import type { DataTableColumn } from "@crm/ui/components/data-table";
 import { EmptyCellValue } from "@crm/ui/components/empty-cell";
 import { formatDay } from "@crm/ui/lib/format";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import { type Owner, OwnerCell } from "@/components/crm/owner-cell";
 import { useTRPC } from "@/lib/trpc/client";
@@ -15,10 +16,15 @@ function render(
 	type: string,
 	value: string | number | boolean | null,
 	users: Map<string, Owner>,
+	common: ReturnType<typeof useTranslations<"common">>,
 ) {
 	if (value === null || value === "") return <EmptyCellValue />;
 
-	if (type === "CHECKBOX") return value === true ? "Yes" : "No";
+	if (type === "CHECKBOX") {
+		return value === true
+			? common("fields.checkboxYes")
+			: common("fields.checkboxNo");
+	}
 	if (type === "DATE") return formatDay(String(value));
 	if (type === "USER") {
 		const user = users.get(String(value));
@@ -34,6 +40,7 @@ function render(
 export function useFieldColumns<Row extends WithFields>(
 	entity: FieldEntity,
 ): DataTableColumn<Row>[] {
+	const common = useTranslations("common");
 	const trpc = useTRPC();
 	const query = useQuery(
 		trpc.fields.list.queryOptions({ entity, includeArchived: false }),
@@ -60,9 +67,9 @@ export function useFieldColumns<Row extends WithFields>(
 				hideBelow: "lg" as const,
 				cell: (row: Row) => (
 					<span className="truncate">
-						{render(field.type, row.fields[field.key] ?? null, byId)}
+						{render(field.type, row.fields[field.key] ?? null, byId, common)}
 					</span>
 				),
 			}));
-	}, [fields, byId]);
+	}, [fields, byId, common]);
 }

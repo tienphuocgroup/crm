@@ -458,10 +458,6 @@ export class CompaniesService {
 					tx,
 				);
 
-				const deals = await tx.deal.findMany({
-					where: { companyId: id },
-					select: { id: true },
-				});
 				const alsoAnchored = {
 					companyId: id,
 					OR: [{ dealId: { not: null } }, { contactId: { not: null } }],
@@ -479,15 +475,7 @@ export class CompaniesService {
 					where: alsoAnchored,
 					data: { companyId: null },
 				});
-
-				await tx.agentTask.deleteMany({
-					where: {
-						OR: [
-							{ companyId: id },
-							{ dealId: { in: deals.map((deal) => deal.id) } },
-						],
-					},
-				});
+				await tx.agentTask.deleteMany({ where: { companyId: id } });
 
 				const company = await tx.company.delete({
 					where: { id },
